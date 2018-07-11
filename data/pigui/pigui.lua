@@ -235,6 +235,9 @@ ui.circleSegments = function(radius)
 end
 
 ui.Format = {
+	MassT = function(tonnes)
+		return tonnes .. 't'
+	end,
 	Latitude = function(decimal_degrees)
 		local prefix = lc.LATITUDE_NORTH_ABBREV
 		if decimal_degrees < 0 then
