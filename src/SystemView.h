@@ -51,7 +51,9 @@ public:
 	void IncreaseFactor(), ResetFactor(), DecreaseFactor();
 	void AddStartTime(double timeStep);
 	void ResetStartTime();
+	double GetFactor() const { return m_factor; }
 	void AddDv(BurnDirection d, double dv);
+	double GetDv(BurnDirection d);
 	void ResetDv(BurnDirection d);
 	void ResetDv();
 	std::string printDeltaTime();
