@@ -1178,6 +1178,14 @@ static int l_engine_system_map_accelerate_time(lua_State *l)
 		return 0;
 }
 
+static int l_engine_system_map_project(lua_State *l)
+{
+  SystemView *sv = Pi::game->GetSystemView();
+  vector3d v = LuaPull<vector3d>(l, 1);
+  LuaPush<vector3d>(l, sv->Project(v));
+  return 1;
+}
+
 static int l_engine_transfer_planner_get(lua_State *l)
 {
   std::string key = LuaPull<std::string>(l, 1);
@@ -1363,6 +1371,7 @@ void LuaEngine::Register()
 		{ "SystemMapGetOrbitPlannerStartTime",      l_engine_system_map_get_orbit_planner_start_time },
 		{ "SystemMapGetOrbitPlannerTime",           l_engine_system_map_get_orbit_planner_time },
 		{ "SystemMapAccelerateTime",                l_engine_system_map_accelerate_time },
+		{ "SystemMapProject",                       l_engine_system_map_project },
 		{ "TransferPlannerAdd",                     l_engine_transfer_planner_add },
 		{ "TransferPlannerGet",                     l_engine_transfer_planner_get },
 		{ "TransferPlannerReset",                   l_engine_transfer_planner_reset },
