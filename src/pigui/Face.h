@@ -19,7 +19,7 @@ namespace PiGUI {
 		Uint32 GetTextureId();
 		vector2f GetTextureSize();
 
-		enum Flags { // <enum scope='GameUI::Face' name=GameUIFaceFlags public>
+		enum Flags { // <enum scope='PiGUI::Face' name=PiGUIFaceFlags public>
 			RAND = 0,
 			MALE = (1 << 0),
 			FEMALE = (1 << 1),
