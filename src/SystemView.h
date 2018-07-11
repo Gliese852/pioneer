@@ -15,6 +15,7 @@ class SystemBody;
 class Orbit;
 class Ship;
 class Game;
+class Body;
 
 enum BurnDirection {
 	PROGRADE,
@@ -86,7 +87,7 @@ public:
 	double GetOrbitPlannerTime() const { return m_time; }
 	void OnClickAccel(float step);
 	void OnClickRealt();
-	vector3d Project(const vector3d &offset);
+	vector3d Project(const Body *body, vector3d offset);
 private:
 	static const double PICK_OBJECT_RECT_SIZE;
 	static const Uint16 N_VERTICES_MAX;
