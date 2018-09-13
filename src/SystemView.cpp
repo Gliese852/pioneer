@@ -943,7 +943,7 @@ void SystemView::Update()
 		if (Pi::input.KeyState(SDLK_EQUALS) ||
 			m_zoomInButton->IsPressed())
 			ZoomIn();
-		if (Pi::KeyState(SDLK_MINUS) ||
+		if (Pi::input.KeyState(SDLK_MINUS) ||
 			m_zoomOutButton->IsPressed())
 			ZoomOut();
 
