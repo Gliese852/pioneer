@@ -1,7 +1,7 @@
 local Engine = import('Engine')
 local Game = import('Game')
 local ui = import('pigui/pigui.lua')
-local Vector = import('Vector')
+local Vector2 = _G.Vector2
 local Event = import('Event')
 local Lang = import("Lang")
 local lc = Lang.GetResource("core")
@@ -14,7 +14,7 @@ local player = nil
 local colors = ui.theme.colors
 local icons = ui.theme.icons
 
-local mainButtonSize = Vector(24,24) * (ui.screenHeight / 1200)
+local mainButtonSize = Vector2(24,24) * (ui.screenHeight / 1200)
 local mainButtonFramePadding = 3
 
 local function showDvLine(rightIcon, resetIcon, leftIcon, key, Formatter, rightTooltip, resetTooltip, leftTooltip)
@@ -64,8 +64,8 @@ local show_lagrange = "off"
 local nextShipDrawings = { ["off"] = "boxes", ["boxes"] = "orbits", ["orbits"] = "off" }
 local nextShowLagrange = { ["off"] = "icon", ["icon"] = "icontext", ["icontext"] = "off" }
 local function showOrbitPlannerWindow()
-	ui.setNextWindowSize(Vector(ui.screenWidth / 5, (ui.screenHeight / 5) * 2), "Always")
-	ui.setNextWindowPos(Vector(ui.screenWidth - ui.screenWidth / 5 - 10, (ui.screenHeight / 5) * 2 + 20), "Always")
+	ui.setNextWindowSize(Vector2(ui.screenWidth / 5, (ui.screenHeight / 5) * 2), "Always")
+	ui.setNextWindowPos(Vector2(ui.screenWidth - ui.screenWidth / 5 - 10, (ui.screenHeight / 5) * 2 + 20), "Always")
 	ui.withStyleColors({["WindowBg"] = colors.lightBlackBackground}, function()
 			ui.window("OrbitPlannerWindow", {"NoTitleBar", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus"},
 								function()
@@ -146,8 +146,8 @@ local function tabular(data)
 end
 local function showTargetInfoWindow(systemBody, body)
 	local width = ui.screenWidth / 5
-	ui.setNextWindowSize(Vector(width, (ui.screenHeight / 5) * 2), "Always")
-	ui.setNextWindowPos(Vector(20, (ui.screenHeight / 5) * 2 + 20), "Always")
+	ui.setNextWindowSize(Vector2(width, (ui.screenHeight / 5) * 2), "Always")
+	ui.setNextWindowPos(Vector2(20, (ui.screenHeight / 5) * 2 + 20), "Always")
 	ui.withStyleColors({["WindowBg"] = colors.lightBlackBackground}, function()
 			ui.window("TargetInfoWindow", {"NoTitleBar", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus"},
 								function()
@@ -259,17 +259,18 @@ end
 
 local function showLabels()
 	local label_offset = 14
-	ui.setNextWindowPos(Vector(0, 0), "Always")
-	ui.setNextWindowSize(Vector(ui.screenWidth, ui.screenHeight), "Always")
+	ui.setNextWindowPos(Vector2(0, 0), "Always")
+	ui.setNextWindowSize(Vector2(ui.screenWidth, ui.screenHeight), "Always")
 	ui.withStyleColors({ ["WindowBg"] = colors.transparent }, function()
 			ui.window("Labels", {"NoTitleBar", "NoResize", "NoMove", "NoInputs", "NoSavedSettings", "NoFocusOnAppearing", "NoBringToFrontOnFocus"}, function()
 									for _,body in pairs(Space.GetBodies()) do
 										if body and body:IsShip() or body:GetSystemBody() then
-											local pos = Engine.SystemMapProject(body, body:GetPositionRelTo(Space.GetRootBody()))
+											local pos3d = Engine.SystemMapProject(body, body:GetPositionRelTo(Space.GetRootBody()))
+											local pos = Vector2(pos3d.x, pos3d.y)
 											pos.x = pos.x / 800.0 * ui.screenWidth
 											pos.y = pos.y / 600.0 * ui.screenHeight
-											ui.addIcon(pos, getBodyIcon(body), colors.white, Vector(32,32), ui.anchor.center, ui.anchor.center, "TEST")
-											ui.addStyledText(pos + Vector(label_offset, 0), ui.anchor.left, ui.anchor.center, body.label , colors.frame, ui.fonts.pionillium.medium)
+											ui.addIcon(pos, getBodyIcon(body), colors.white, Vector2(32,32), ui.anchor.center, ui.anchor.center, "TEST")
+											ui.addStyledText(pos + Vector2(label_offset, 0), ui.anchor.left, ui.anchor.center, body.label , colors.frame, ui.fonts.pionillium.medium)
 										end
 									end
 			end)

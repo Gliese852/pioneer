@@ -1137,12 +1137,14 @@ vector3d SystemView::Project(const Body *body, vector3d position)
 	vector3d orbital(0, 0, 0);
 	double t = (m_time - m_game->GetTime());
 	vector3d p;
-	Frame *rootFrame = Pi::game->GetSpace()->GetRootFrame();
+	FrameId rootFrameId = Pi::game->GetSpace()->GetRootFrame();
+	Frame *rootFrame = Frame::GetFrame(rootFrameId);
 	SystemBody *rootSystemBody = rootFrame->GetSystemBody();
 	if (body && body->GetType() == Object::SHIP) {
 		Orbit orbit = static_cast<const Ship *>(body)->ComputeOrbit();
 		orbital = orbit.OrbitalPosAtTime(t);
-		Frame *frame = body->GetFrame();
+		FrameId frameId = body->GetFrame();
+		Frame *frame = Frame::GetFrame(frameId);
 		SystemBody *parent = frame->GetSystemBody();
 		if (parent)
 			position = vector3d(0, 0, 0);
@@ -1150,8 +1152,8 @@ vector3d SystemView::Project(const Body *body, vector3d position)
 			position += parent->GetOrbit().OrbitalPosAtTime(t);
 			parent = parent->GetParent();
 		}
-		if (frame != Pi::game->GetSpace()->GetRootFrame()) {
-			// o	rbit is relative to non-root frame, add position
+		if (frameId != Pi::game->GetSpace()->GetRootFrame()) {
+			// orbit is relative to non-root frame, add position
 			p = (position + orbital) * static_cast<double>(m_zoom) + offset;
 		} else {
 			// orbit	 is relative to root frame, already includes position
