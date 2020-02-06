@@ -44,7 +44,8 @@ local gameView = {
 
 import("pigui.libs.view-util").mixin_modules(gameView)
 
-local function getBodyIcon(body)
+
+function gameView.getBodyIcon(body)
 	local st = body.superType
 	local t = body.type
 	if st == "STARPORT" then
@@ -150,7 +151,7 @@ local function displayOnScreenObjects()
 		local mainBody = group.mainBody
 		local mainCoords = group.screenCoordinates
 
-		ui.addIcon(mainCoords, getBodyIcon(mainBody), colors.frame, iconsize, ui.anchor.center, ui.anchor.center)
+		ui.addIcon(mainCoords, gameView.getBodyIcon(mainBody), colors.frame, iconsize, ui.anchor.center, ui.anchor.center)
 
 		if should_show_label then
 			local label = mainBody:GetLabel()
@@ -198,7 +199,7 @@ local function displayOnScreenObjects()
 		ui.popup("navtarget" .. mainBody:GetLabel(), function()
 			local small_iconsize = Vector2(16,16)
 			for _,b in pairs(group.bodies) do
-				ui.icon(getBodyIcon(b), small_iconsize, colors.frame)
+				ui.icon(gameView.getBodyIcon(b), small_iconsize, colors.frame)
 				ui.sameLine()
 				if ui.selectable(b:GetLabel(), b == navTarget, {}) then
 					if b:IsShip() then

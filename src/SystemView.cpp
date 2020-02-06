@@ -1075,6 +1075,8 @@ void SystemView::DrawShips(const double t, const vector3d &offset)
 		const bool isNavTarget = Pi::player->GetNavTarget() == (*s).first;
 		PutSelectionBox(pos, isNavTarget ? Color::GREEN : Color::BLUE);
 		LabelShip((*s).first, pos);
+
+		if (isNavTarget) PutSelectionBox(pos, Color::GREEN);
 		if (m_shipDrawing == ORBITS && (*s).first->GetFlightState() == Ship::FlightState::FLYING)
 			PutOrbit(&(*s).second, offset, isNavTarget ? Color::GREEN : Color::BLUE, 0);
 	}
@@ -1190,7 +1192,7 @@ vector3d SystemView::Project(const Body *body, vector3d position)
 			}
 		}
 	}
-	if (!Gui::Screen::Project(p, pos))
+	if (!Gui::Screen::Project(p, pos) || pos.z > 1)
 		pos = vector3d(0, 0, 0);
 	Gui::Screen::LeaveOrtho();
 	return pos;
