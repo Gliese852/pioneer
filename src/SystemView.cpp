@@ -674,7 +674,8 @@ void SystemView::PutLabel(const SystemBody *b, const vector3d &offset)
 	vector3d pos;
 	if (Gui::Screen::Project(offset, pos) && pos.z < 1) {
 		// libsigc++ is a beautiful thing
-		m_objectLabels->Add(b->GetName(), sigc::bind(sigc::mem_fun(this, &SystemView::OnClickObject), b), pos.x, pos.y);
+		//m_objectLabels->Add(b->GetName(), sigc::bind(sigc::mem_fun(this, &SystemView::OnClickObject), b), pos.x, pos.y);
+		AddProjectedBody(b->GetBodyObject(), vector2d(pos.x, pos.y), offset/m_zoom);
 	}
 
 	Gui::Screen::LeaveOrtho();
@@ -686,7 +687,8 @@ void SystemView::LabelShip(Ship *s, const vector3d &offset)
 
 	vector3d pos;
 	if (Gui::Screen::Project(offset, pos) && pos.z < 1) {
-		m_shipLabels->Add(s->GetLabel(), sigc::bind(sigc::mem_fun(this, &SystemView::OnClickShip), s), pos.x, pos.y);
+		//m_shipLabels->Add(s->GetLabel(), sigc::bind(sigc::mem_fun(this, &SystemView::OnClickShip), s), pos.x, pos.y);
+		AddProjectedBody(static_cast<Body *>(s), vector2d(pos.x, pos.y), offset / m_zoom);
 	}
 
 	Gui::Screen::LeaveOrtho();
@@ -879,7 +881,7 @@ void SystemView::GetTransformTo(const SystemBody *b, vector3d &pos)
 void SystemView::Draw3D()
 {
 	PROFILE_SCOPED()
-	m_renderer->SetPerspectiveProjection(50.f, m_renderer->GetDisplayAspect(), 1.f, 1000.f * m_zoom * float(AU) + DEFAULT_VIEW_DISTANCE * 2);
+	m_renderer->SetPerspectiveProjection(m_camera_fov, m_renderer->GetDisplayAspect(), 1.f, 1000.f * m_zoom * float(AU) + DEFAULT_VIEW_DISTANCE * 2);
 	m_renderer->ClearScreen();
 
 	SystemPath path = m_game->GetSectorView()->GetSelected().SystemOnly();
@@ -889,6 +891,8 @@ void SystemView::Draw3D()
 			ResetViewpoint();
 		}
 	}
+
+	m_projectedBodies.clear();
 
 	if (m_realtime) {
 		m_time = m_game->GetTime();
@@ -903,11 +907,11 @@ void SystemView::Draw3D()
 		m_unexplored = m_system->GetUnexplored();
 	}
 
-	matrix4x4f trans = matrix4x4f::Identity();
-	trans.Translate(0, 0, -DEFAULT_VIEW_DISTANCE);
-	trans.Rotate(DEG2RAD(m_rot_x), 1, 0, 0);
-	trans.Rotate(DEG2RAD(m_rot_z), 0, 1, 0);
-	m_renderer->SetTransform(trans);
+	m_trans = matrix4x4f::Identity();
+	m_trans.Translate(0, 0, -DEFAULT_VIEW_DISTANCE);
+	m_trans.Rotate(DEG2RAD(m_rot_x), 1, 0, 0);
+	m_trans.Rotate(DEG2RAD(m_rot_z), 0, 1, 0);
+	m_renderer->SetTransform(m_trans);
 
 	vector3d pos(0, 0, 0);
 	if (m_selectedObject) GetTransformTo(m_selectedObject, pos);
@@ -918,7 +922,7 @@ void SystemView::Draw3D()
 		m_infoLabel->SetText(Lang::UNEXPLORED_SYSTEM_NO_SYSTEM_VIEW);
 	else {
 		if (m_system->GetRootBody()) {
-			PutBody(m_system->GetRootBody().Get(), pos, trans);
+			PutBody(m_system->GetRootBody().Get(), pos, m_trans);
 			if (m_game->GetSpace()->GetStarSystem() == m_system) {
 				const Body *navTarget = Pi::player->GetNavTarget();
 				const SystemBody *navTargetSystemBody = navTarget ? navTarget->GetSystemBody() : 0;
@@ -1073,7 +1077,7 @@ void SystemView::DrawShips(const double t, const vector3d &offset)
 			pos += (bpos + (*s).second.OrbitalPosAtTime(t)) * double(m_zoom);
 		}
 		const bool isNavTarget = Pi::player->GetNavTarget() == (*s).first;
-		PutSelectionBox(pos, isNavTarget ? Color::GREEN : Color::BLUE);
+		//PutSelectionBox(pos, isNavTarget ? Color::GREEN : Color::BLUE);
 		LabelShip((*s).first, pos);
 
 		if (isNavTarget) PutSelectionBox(pos, Color::GREEN);
@@ -1215,4 +1219,32 @@ BodyPositionVector SystemView::GetBodyPositions()
 
 	Gui::Screen::LeaveOrtho();
 	return result;
+}
+
+void SystemView::AddProjectedBody(Body *b, vector2d pos, vector3d worldpos)
+{
+	float scale[2];
+	Gui::Screen::GetCoords2Pixels(scale);
+	pos.x = pos.x / scale[0];
+	pos.y = pos.y / scale[1];
+	m_projectedBodies.push_back(TScreenSpace(true, pos, vector3d(0, 0, 0)));
+	m_projectedBodies.back()._body = b;
+	m_projectedBodies.back()._worldpos = worldpos;
+}
+
+double SystemView::GetProjectedRadius(double radius, vector3d pos)
+{
+	radius = radius * m_zoom;
+	pos = pos * m_zoom;
+	matrix4x4d dtrans;
+	matrix4x4ftod(m_trans, dtrans);
+	//printf("drans:\n");
+	//dtrans.Print();
+	pos = dtrans * pos; //position in camera space to know distance
+//	printf("| radius: %f poslen: %f ", radius, pos.Length());
+	//works fine for pretty far object
+	double result = radius * 57.295779513082 / pos.Length() / m_camera_fov;
+//	printf("result: %f ", result);
+	return result;
+	
 }

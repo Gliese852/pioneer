@@ -27,7 +27,8 @@ SystemBody::SystemBody(const SystemPath &path, StarSystem *system) :
 	m_isCustomBody(false),
 	m_heightMapFractal(0),
 	m_atmosDensity(0.0),
-	m_system(system)
+	m_system(system),
+	m_body_object(nullptr)
 {
 }
 

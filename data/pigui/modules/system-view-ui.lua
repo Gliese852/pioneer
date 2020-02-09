@@ -212,25 +212,79 @@ local function showTargetInfoWindow(systemBody, body)
 	end)
 end
 
+local function setTarget(body)
+		player:SetNavTarget(body)
+end
+
 local function showLabels()
 	local label_offset = 14
 	ui.setNextWindowPos(Vector2(0, 0), "Always")
 	ui.setNextWindowSize(Vector2(ui.screenWidth, ui.screenHeight), "Always")
 	ui.withStyleColors({ ["WindowBg"] = colors.transparent }, function()
-			ui.window("Labels", {"NoTitleBar", "NoResize", "NoMove", "NoInputs", "NoSavedSettings", "NoFocusOnAppearing", "NoBringToFrontOnFocus"}, function()
-									for _,body in pairs(Space.GetBodies()) do
-										if body and (body:IsShip() and ship_drawing ~= "off" or body:GetSystemBody()) then
-											local pos3d = Engine.SystemMapProject(body, body:GetPositionRelTo(Space.GetRootBody()))
-											local pos = Vector2(pos3d.x, pos3d.y)
-											pos.x = pos.x / 800.0 * ui.screenWidth
-											pos.y = pos.y / 600.0 * ui.screenHeight
-											ui.addIcon(pos, gameView.getBodyIcon(body), colors.white, Vector2(32,32), ui.anchor.center, ui.anchor.center, "TEST")
-											ui.addStyledText(pos + Vector2(label_offset, 0), ui.anchor.left, ui.anchor.center, body.label , colors.frame, ui.fonts.pionillium.medium)
-										end
-									end
-			end)
+		ui.window("Labels", {"NoTitleBar", "NoResize", "NoMove", "NoInputs", "NoSavedSettings", "NoFocusOnAppearing", "NoBringToFrontOnFocus"}, function()
+	--		for _,body in pairs(Space.GetBodies()) do
+	--			if body and (body:IsShip() and ship_drawing ~= "off" or body:GetSystemBody()) then
+	--				local pos3d = Engine.SystemMapProject(body, body:GetPositionRelTo(Space.GetRootBody()))
+	--				local pos = Vector2(pos3d.x, pos3d.y)
+	--				pos.x = pos.x / 800.0 * ui.screenWidth
+	--				pos.y = pos.y / 600.0 * ui.screenHeight
+	--				ui.addIcon(pos, gameView.getBodyIcon(body), colors.white, Vector2(32,32), ui.anchor.center, ui.anchor.center, "TEST")
+	--				ui.addStyledText(pos + Vector2(label_offset, 0), ui.anchor.left, ui.anchor.center, body.label , colors.frame, ui.fonts.pionillium.medium)
+	--			end
+	--		end
+			for _,screenbody in ipairs(Engine.SystemMapGetProjectedBodies()) do
+				local pos = Vector2(screenbody.pos.x, screenbody.pos.y)
+				pos.x = pos.x / 800.0 * ui.screenWidth
+				pos.y = pos.y / 600.0 * ui.screenHeight
+				local hint
+				if screenbody.obj:IsShip() then
+					hint = screenbody.obj:GetShipType()
+				else
+					hint = "systembody"
+				end
+				-- ui.addIcon(pos, gameView.getBodyIcon(screenbody.obj), colors.white, Vector2(32,32), ui.anchor.center, ui.anchor.center, hint)
+				-- ui.addStyledText(pos + Vector2(label_offset, 0), ui.anchor.left, ui.anchor.center, screenbody.obj.label , colors.frame, ui.fonts.pionillium.medium)
+				-- from views/game.lua
+		local mainBody = screenbody.obj
+		local mainCoords = pos
+		local click_radius = 20
+		local mp = ui.getMousePos()
+		-- mouse release handler for radial menu
+		if (mp - mainCoords):length() < click_radius then
+			if not ui.isAnyWindowHovered() and ui.isMouseClicked(1) then
+				local body = mainBody
+				ui.openDefaultRadialMenu(body)
+			end
+		end
+		-- mouse release handler
+		if (mp - mainCoords):length() < click_radius then
+			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0) then
+				if false then
+					-- if clicked and has nav target, unset nav target
+					player:SetNavTarget(nil)
+					navTarget = nil
+				elseif combatTarget == mainBody then
+					-- if clicked and has combat target, unset nav target
+					player:SetCombatTarget(nil)
+					combatTarget = nil
+				else
+					-- clicked on single, just set navtarget/combatTarget
+					setTarget(mainBody)
+					if ui.ctrlHeld() then
+						local target = mainBody
+						if target == player:GetSetSpeedTarget() then
+							target = nil
+						end
+						player:SetSetSpeedTarget(target)
+					end
+				end
+			end
+		end
+			end
+		end)
 	end)
 end
+
 local function displaySystemViewUI()
 	player = Game.player
 	local current_view = Game.CurrentView()

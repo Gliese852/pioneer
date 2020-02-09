@@ -9,6 +9,8 @@
 #include "graphics/Drawables.h"
 #include "matrix4x4.h"
 #include "vector3.h"
+#include "LuaTable.h"
+#include "LuaPiGui.h"
 
 class StarSystem;
 class SystemBody;
@@ -91,9 +93,13 @@ public:
 	void OnClickRealt();
 	vector3d Project(const Body *body, vector3d offset);
 	BodyPositionVector GetBodyPositions();
+	TSS_vector GetProjectedBodies() const { return m_projectedBodies; }
+	double GetProjectedRadius(double radius, vector3d pos); // the radius is returned in fractions of the screen width
 private:
+	TSS_vector m_projectedBodies;
 	static const double PICK_OBJECT_RECT_SIZE;
 	static const Uint16 N_VERTICES_MAX;
+	const double m_camera_fov = 50.f;
 	void PutOrbit(const Orbit *orb, const vector3d &offset, const Color &color, const double planetRadius = 0.0, const bool showLagrange = false);
 	void PutBody(const SystemBody *b, const vector3d &offset, const matrix4x4f &trans);
 	void PutLabel(const SystemBody *b, const vector3d &offset);
@@ -115,6 +121,7 @@ private:
 	void DrawGrid();
 	void LabelShip(Ship *s, const vector3d &offset);
 	void OnClickShip(Ship *s);
+	void AddProjectedBody(Body *b, vector2d pos, vector3d worldpos);
 
 	Game *m_game;
 	RefCountedPtr<StarSystem> m_system;
@@ -134,6 +141,7 @@ private:
 	double m_time;
 	bool m_realtime;
 	double m_timeStep;
+	matrix4x4f m_trans;
 	Gui::ImageButton *m_zoomInButton;
 	Gui::ImageButton *m_zoomOutButton;
 	Gui::ImageButton *m_toggleShipsButton;

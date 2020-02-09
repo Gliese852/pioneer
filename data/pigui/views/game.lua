@@ -29,7 +29,7 @@ ui.reticuleCircleThickness = reticuleCircleThickness
 
 -- settings
 local ASTEROID_RADIUS = 1500000 -- rocky planets smaller than this (in meters) are considered an asteroid, not a planet
-local IN_SPACE_INDICATOR_SHIP_MAX_DISTANCE = 1000000 -- ships farther away than this don't show up on as in-space indicators
+local IN_SPACE_INDICATOR_SHIP_MAX_DISTANCE = 1e64 -- ships farther away than this don't show up on as in-space indicators
 -- center of screen, set each frame by the handler
 local center = nil
 
@@ -144,8 +144,13 @@ local function displayOnScreenObjects()
 	local click_radius = collapse:length() * 0.5
 	-- make click_radius sufficiently smaller than the cluster size
 	-- to prevent overlap of selection regions
-
-	local bodies_grouped = ui.getProjectedBodiesGrouped(collapse, IN_SPACE_INDICATOR_SHIP_MAX_DISTANCE)
+	--
+	local bodies_grouped
+	if Game.CurrentView() == "system" then
+		bodies_grouped = Engine.SystemMapGetProjectedBodiesGrouped(collapse, IN_SPACE_INDICATOR_SHIP_MAX_DISTANCE)
+	else
+		bodies_grouped = ui.getProjectedBodiesGrouped(collapse, IN_SPACE_INDICATOR_SHIP_MAX_DISTANCE)
+	end
 
 	for _,group in ipairs(bodies_grouped) do
 		local mainBody = group.mainBody
@@ -270,6 +275,11 @@ ui.registerHandler('game', function(delta_t)
 					if Game.CurrentView() == "world" then
 						drawGameModules(gameView.modules)
 						ui.radialMenu("worldloopworld")
+					elseif Game.CurrentView() == "system" then
+						if not Game.InHyperspace() then
+							gameView.modules["onscreen-objects"]:draw(delta_t)
+							gameView.modules["reticule"]:draw(delta_t)
+						end
 					else
 						ui.radialMenu("worldloopnotworld")
 					end

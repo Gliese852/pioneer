@@ -1083,6 +1083,117 @@ static int l_engine_get_sector_map_factions(lua_State *l)
 	return 1;
 }
 
+static int l_engine_system_map_get_projected_bodies_grouped(lua_State *l)
+{
+	SystemView *sv = Pi::game->GetSystemView();
+	const vector2d gap = LuaPull<vector2d>(l, 1);
+
+	TSS_vector filtered = sv->GetProjectedBodies();
+
+	struct GroupInfo {
+		TScreenSpace m_mainBody;
+		TSS_vector m_bodies; // to not forget screen coords
+		bool m_hasNavTarget;
+
+		GroupInfo(TScreenSpace b, bool isNavTarget) :
+			m_mainBody(b),
+			m_hasNavTarget(isNavTarget)
+		{
+			m_bodies.push_back(b);
+		}
+	};
+
+	std::vector<GroupInfo> groups;
+	groups.reserve(filtered.size());
+	const Body *nav_target = Pi::game->GetPlayer()->GetNavTarget();
+	const Body *combat_target = Pi::game->GetPlayer()->GetCombatTarget();
+
+	for (TScreenSpace &obj : filtered) {
+		bool inserted = false;
+
+		// never collapse combat target
+		if (obj._body != combat_target) {
+			for (GroupInfo &group : groups) {
+				//3d distance from main body, in screen pixels 
+				double dist = sv->GetProjectedRadius((obj._worldpos - group.m_mainBody._worldpos).Length(), obj._worldpos) * Graphics::GetScreenWidth();
+				if (dist < gap.x){
+					// body inside group boundaries: insert into group
+					// printf("%s - %s: dist=%f, gap=%f\n", group.m_mainBody._body->GetLabel().c_str(), obj._body->GetLabel().c_str(), dist, gap.x);
+					group.m_bodies.push_back(obj);
+					if (obj._body == nav_target) {
+						group.m_hasNavTarget = true;
+						// nav target becomes main body
+						group.m_mainBody = obj;
+					}
+					inserted = true;
+					break;
+				}
+			}
+		}
+		if (!inserted) {
+			// create new group
+			GroupInfo newgroup(obj, obj._body == nav_target ? true : false);
+			groups.push_back(std::move(newgroup));
+		}
+	}
+
+	// Sort each groups member according to a given function
+	for (GroupInfo &group : groups) {
+		std::sort(begin(group.m_bodies), end(group.m_bodies),
+			[](TScreenSpace a, TScreenSpace b) {
+				return first_body_is_more_important_than(a._body, b._body);
+			});
+		if (!group.m_hasNavTarget) {
+			// make most important body the main body
+			group.m_mainBody = group.m_bodies.front();
+		}
+	}
+
+	LuaTable result(l, groups.size(), 0);
+	int index = 1;
+
+	for (GroupInfo &group : groups) {
+		LuaTable info_table(l, 0, 5);
+		LuaTable bodies_table(l, group.m_bodies.size(), 0);
+
+		info_table.Set("screenCoordinates", group.m_mainBody._screenPosition);
+		info_table.Set("mainBody", group.m_mainBody._body);
+
+		std::vector<Body *> bodies_only;
+		bodies_only.reserve(group.m_bodies.size());
+		for(TScreenSpace b : group.m_bodies)
+			bodies_only.emplace_back(b._body);
+		bodies_table.LoadVector(bodies_only.begin(), bodies_only.end());
+
+		info_table.Set("bodies", bodies_table);
+		lua_pop(l, 1);
+		info_table.Set("multiple", group.m_bodies.size() > 1 ? true : false);
+		info_table.Set("hasNavTarget", group.m_hasNavTarget);
+		result.Set(index++, info_table);
+		lua_pop(l, 1);
+	}
+	LuaPush(l, result);
+	return 1;
+}
+
+static int l_engine_system_map_get_projected_bodies(lua_State *l)
+{
+	SystemView *sv = Pi::game->GetSystemView();
+	TSS_vector pb = sv->GetProjectedBodies();
+	LuaTable result(l, pb.size(), 0);
+	int index = 1;
+	for(TScreenSpace b : pb)
+	{
+		LuaTable one_body(l, 0, 2);
+		one_body.Set("obj", b._body);
+		one_body.Set("pos", b._screenPosition);
+		result.Set(index++, one_body);
+		lua_pop(l, 1);
+	}
+	LuaPush(l, result);
+	return 1;
+}
+
 static int l_engine_system_map_selected_object(lua_State *l)
 {
 	SystemView *sv = Pi::game->GetSystemView();
@@ -1362,6 +1473,8 @@ void LuaEngine::Register()
 		{ "SectorMapRemoveRouteItem", l_engine_sector_map_remove_route_item },
 		{ "SectorMapClearRoute", l_engine_sector_map_clear_route },
 		{ "SectorMapAddToRoute", l_engine_sector_map_add_to_route },
+		{ "SystemMapGetProjectedBodies", l_engine_system_map_get_projected_bodies },
+		{ "SystemMapGetProjectedBodiesGrouped", l_engine_system_map_get_projected_bodies_grouped },
 		{ "SystemMapSelectedObject", l_engine_system_map_selected_object },
 		{ "SystemMapSetShipDrawing", l_engine_system_map_set_ship_drawing },
 		{ "SystemMapSetShowLagrange", l_engine_system_map_set_show_lagrange },
