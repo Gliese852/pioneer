@@ -82,7 +82,7 @@ public:
 	virtual ~SystemView();
 	virtual void Update();
 	virtual void Draw3D();
-	const SystemBody *GetSelectedObject() const { return m_selectedObject; }
+	const Body *GetSelectedObject() const { return m_selectedObject; }
 	void SetShipDrawing(ShipDrawing drawing);
 	void SetShowLagrange(ShowLagrange lagrange) { m_showL4L5 = lagrange; }
 	void ZoomIn();
@@ -95,6 +95,7 @@ public:
 	BodyPositionVector GetBodyPositions();
 	TSS_vector GetProjectedBodies() const { return m_projectedBodies; }
 	double GetProjectedRadius(double radius, vector3d pos); // the radius is returned in fractions of the screen width
+	bool SetSelectedObject(Body* b);
 private:
 	TSS_vector m_projectedBodies;
 	static const double PICK_OBJECT_RECT_SIZE;
@@ -106,6 +107,7 @@ private:
 	void PutSelectionBox(const SystemBody *b, const vector3d &rootPos, const Color &col);
 	void PutSelectionBox(const vector3d &worldPos, const Color &col);
 	void GetTransformTo(const SystemBody *b, vector3d &pos);
+	void GetTransformTo(const Body *b, vector3d &pos);
 	void OnClickObject(const SystemBody *b);
 	void OnClickLagrange();
 	void OnIncreaseFactorButtonClick(void), OnResetFactorButtonClick(void), OnDecreaseFactorButtonClick(void);
@@ -125,7 +127,7 @@ private:
 
 	Game *m_game;
 	RefCountedPtr<StarSystem> m_system;
-	const SystemBody *m_selectedObject;
+	const Body *m_selectedObject;
 	std::vector<SystemBody *> m_displayed_sbody;
 	bool m_unexplored;
 	ShowLagrange m_showL4L5;

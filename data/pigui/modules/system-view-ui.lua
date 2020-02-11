@@ -48,7 +48,7 @@ local function showDvLine(rightIcon, resetIcon, leftIcon, key, Formatter, rightT
 	ui.text(speed .. " " .. speed_unit)
 	return 0
 end
-local time_selected_button_icon
+local time_selected_button_icon = icons.time_center
 local function timeButton(icon, tooltip, factor)
 	if ui.coloredSelectedIconButton(icon, mainButtonSize, false, mainButtonFramePadding, colors.buttonBlue, colors.white, tooltip) then
 		time_selected_button_icon = icon
@@ -65,10 +65,10 @@ local show_lagrange = "off"
 local nextShipDrawings = { ["off"] = "boxes", ["boxes"] = "orbits", ["orbits"] = "off" }
 local nextShowLagrange = { ["off"] = "icon", ["icon"] = "icontext", ["icontext"] = "off" }
 local function showOrbitPlannerWindow()
-	ui.setNextWindowSize(Vector2(ui.screenWidth / 5, (ui.screenHeight / 5) * 2), "Always")
+	ui.setNextWindowSize(Vector2(ui.screenWidth / 5, 0), "Always")
 	ui.setNextWindowPos(Vector2(ui.screenWidth - ui.screenWidth / 5 - 10, (ui.screenHeight / 5) * 2 + 20), "Always")
 	ui.withStyleColors({["WindowBg"] = colors.lightBlackBackground}, function()
-			ui.window("OrbitPlannerWindow", {"NoTitleBar", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus"},
+			ui.window("OrbitPlannerWindow", {"NoTitleBar", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings", "AlwaysAutoResize"},
 								function()
 									ui.text("Orbit planner")
 									ui.separator()
@@ -145,12 +145,14 @@ local function tabular(data)
 		ui.columns(1, "NoAttributes", false)
 	end
 end
-local function showTargetInfoWindow(systemBody, body)
+local function showTargetInfoWindow(body)
+	local systemBody
+	if body then systemBody = body:GetSystemBody() else return end
 	local width = ui.screenWidth / 5
-	ui.setNextWindowSize(Vector2(width, (ui.screenHeight / 5) * 2), "Always")
+	ui.setNextWindowSize(Vector2(width, 0), "Always")
 	ui.setNextWindowPos(Vector2(20, (ui.screenHeight / 5) * 2 + 20), "Always")
 	ui.withStyleColors({["WindowBg"] = colors.lightBlackBackground}, function()
-			ui.window("TargetInfoWindow", {"NoTitleBar", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus"},
+			ui.window("TargetInfoWindow", {"NoTitleBar", "AlwaysAutoResize", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings"},
 								function()
 									local data
 									if systemBody then
@@ -212,77 +214,23 @@ local function showTargetInfoWindow(systemBody, body)
 	end)
 end
 
-local function setTarget(body)
-		player:SetNavTarget(body)
+local function showIndicators()
+	local size = Vector2(30 , 30)
+	local navTarget = player:GetNavTarget()
+	local combatTarget = player:GetCombatTarget()
+	for _,group in ipairs(gameView.bodies_grouped) do
+		local mainBody = group.mainBody
+		local mainCoords = group.screenCoordinates
+		if mainBody == navTarget then
+			ui.addIcon(mainCoords, icons.square, colors.navTarget, size, ui.anchor.center, ui.anchor.center)
+		elseif mainBody == combatTarget then
+			ui.addIcon(mainCoords, icons.square, colors.combatTarget, size, ui.anchor.center, ui.anchor.center)
+		end
+	end
 end
 
-local function showLabels()
-	local label_offset = 14
-	ui.setNextWindowPos(Vector2(0, 0), "Always")
-	ui.setNextWindowSize(Vector2(ui.screenWidth, ui.screenHeight), "Always")
-	ui.withStyleColors({ ["WindowBg"] = colors.transparent }, function()
-		ui.window("Labels", {"NoTitleBar", "NoResize", "NoMove", "NoInputs", "NoSavedSettings", "NoFocusOnAppearing", "NoBringToFrontOnFocus"}, function()
-	--		for _,body in pairs(Space.GetBodies()) do
-	--			if body and (body:IsShip() and ship_drawing ~= "off" or body:GetSystemBody()) then
-	--				local pos3d = Engine.SystemMapProject(body, body:GetPositionRelTo(Space.GetRootBody()))
-	--				local pos = Vector2(pos3d.x, pos3d.y)
-	--				pos.x = pos.x / 800.0 * ui.screenWidth
-	--				pos.y = pos.y / 600.0 * ui.screenHeight
-	--				ui.addIcon(pos, gameView.getBodyIcon(body), colors.white, Vector2(32,32), ui.anchor.center, ui.anchor.center, "TEST")
-	--				ui.addStyledText(pos + Vector2(label_offset, 0), ui.anchor.left, ui.anchor.center, body.label , colors.frame, ui.fonts.pionillium.medium)
-	--			end
-	--		end
-			for _,screenbody in ipairs(Engine.SystemMapGetProjectedBodies()) do
-				local pos = Vector2(screenbody.pos.x, screenbody.pos.y)
-				pos.x = pos.x / 800.0 * ui.screenWidth
-				pos.y = pos.y / 600.0 * ui.screenHeight
-				local hint
-				if screenbody.obj:IsShip() then
-					hint = screenbody.obj:GetShipType()
-				else
-					hint = "systembody"
-				end
-				-- ui.addIcon(pos, gameView.getBodyIcon(screenbody.obj), colors.white, Vector2(32,32), ui.anchor.center, ui.anchor.center, hint)
-				-- ui.addStyledText(pos + Vector2(label_offset, 0), ui.anchor.left, ui.anchor.center, screenbody.obj.label , colors.frame, ui.fonts.pionillium.medium)
-				-- from views/game.lua
-		local mainBody = screenbody.obj
-		local mainCoords = pos
-		local click_radius = 20
-		local mp = ui.getMousePos()
-		-- mouse release handler for radial menu
-		if (mp - mainCoords):length() < click_radius then
-			if not ui.isAnyWindowHovered() and ui.isMouseClicked(1) then
-				local body = mainBody
-				ui.openDefaultRadialMenu(body)
-			end
-		end
-		-- mouse release handler
-		if (mp - mainCoords):length() < click_radius then
-			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0) then
-				if false then
-					-- if clicked and has nav target, unset nav target
-					player:SetNavTarget(nil)
-					navTarget = nil
-				elseif combatTarget == mainBody then
-					-- if clicked and has combat target, unset nav target
-					player:SetCombatTarget(nil)
-					combatTarget = nil
-				else
-					-- clicked on single, just set navtarget/combatTarget
-					setTarget(mainBody)
-					if ui.ctrlHeld() then
-						local target = mainBody
-						if target == player:GetSetSpeedTarget() then
-							target = nil
-						end
-						player:SetSetSpeedTarget(target)
-					end
-				end
-			end
-		end
-			end
-		end)
-	end)
+local function setTarget(body)
+		player:SetNavTarget(body)
 end
 
 local function displaySystemViewUI()
@@ -292,8 +240,8 @@ local function displaySystemViewUI()
 	if current_view == "system" and not Game.InHyperspace() then
 		ui.withFont(ui.fonts.pionillium.medium.name, ui.fonts.pionillium.medium.size, function()
 									showOrbitPlannerWindow()
-									showTargetInfoWindow(Engine.SystemMapSelectedObject(), player:GetNavTarget())
-									showLabels()
+									showIndicators()
+									showTargetInfoWindow(Engine.SystemMapSelectedObject())
 		end)
 	end
 end

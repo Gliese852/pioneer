@@ -1083,6 +1083,14 @@ static int l_engine_get_sector_map_factions(lua_State *l)
 	return 1;
 }
 
+static int l_engine_system_map_center_body(lua_State *l)
+{
+	SystemView *sv = Pi::game->GetSystemView();
+	Body *b = LuaObject<Body>::CheckFromLua(1);
+	lua_pushboolean(l, sv->SetSelectedObject(b));
+	return 1;
+}
+
 static int l_engine_system_map_get_projected_bodies_grouped(lua_State *l)
 {
 	SystemView *sv = Pi::game->GetSystemView();
@@ -1197,9 +1205,9 @@ static int l_engine_system_map_get_projected_bodies(lua_State *l)
 static int l_engine_system_map_selected_object(lua_State *l)
 {
 	SystemView *sv = Pi::game->GetSystemView();
-	SystemBody *sb = const_cast<SystemBody *>(sv->GetSelectedObject());
-	if (sb) {
-		LuaObject<SystemBody>::PushToLua(sb);
+	const Body *b = sv->GetSelectedObject();
+	if (b) {
+		LuaObject<Body>::PushToLua(b);
 		return 1;
 	}
 	return 0;
@@ -1483,6 +1491,7 @@ void LuaEngine::Register()
 		{ "SystemMapGetOrbitPlannerTime", l_engine_system_map_get_orbit_planner_time },
 		{ "SystemMapAccelerateTime", l_engine_system_map_accelerate_time },
 		{ "SystemMapProject", l_engine_system_map_project },
+		{ "SystemMapCenterBody", l_engine_system_map_center_body },
 		{ "TransferPlannerAdd", l_engine_transfer_planner_add },
 		{ "TransferPlannerGet", l_engine_transfer_planner_get },
 		{ "TransferPlannerReset", l_engine_transfer_planner_reset },

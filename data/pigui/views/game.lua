@@ -125,6 +125,8 @@ local radial_menu_actions_orbital = {
 	 action=function(target) Game.player:SetFlightControlState("CONTROL_FIXHEADING_FORWARD") end},
 }
 
+gameView.bodies_grouped = {}
+
 local function displayOnScreenObjects()
 	if ui.altHeld() and not ui.isAnyWindowHovered() and ui.isMouseClicked(1) then
 		local frame = player.frameBody
@@ -145,14 +147,14 @@ local function displayOnScreenObjects()
 	-- make click_radius sufficiently smaller than the cluster size
 	-- to prevent overlap of selection regions
 	--
-	local bodies_grouped
 	if Game.CurrentView() == "system" then
-		bodies_grouped = Engine.SystemMapGetProjectedBodiesGrouped(collapse, IN_SPACE_INDICATOR_SHIP_MAX_DISTANCE)
+		gameView.bodies_grouped = Engine.SystemMapGetProjectedBodiesGrouped(collapse, 1e64)
 	else
-		bodies_grouped = ui.getProjectedBodiesGrouped(collapse, IN_SPACE_INDICATOR_SHIP_MAX_DISTANCE)
+		gameView.bodies_grouped = ui.getProjectedBodiesGrouped(collapse, IN_SPACE_INDICATOR_SHIP_MAX_DISTANCE)
 	end
 
-	for _,group in ipairs(bodies_grouped) do
+
+	for _,group in ipairs(gameView.bodies_grouped) do
 		local mainBody = group.mainBody
 		local mainCoords = group.screenCoordinates
 
@@ -175,7 +177,9 @@ local function displayOnScreenObjects()
 		end
 		-- mouse release handler
 		if (mp - mainCoords):length() < click_radius then
-			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0) then
+			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0)
+				 and (Game.CurrentView() ~= "system" or Engine.SystemMapCenterBody(mainBody))
+				then
 				if group.hasNavTarget then
 					-- if clicked and has nav target, unset nav target
 					player:SetNavTarget(nil)
@@ -277,8 +281,7 @@ ui.registerHandler('game', function(delta_t)
 						ui.radialMenu("worldloopworld")
 					elseif Game.CurrentView() == "system" then
 						if not Game.InHyperspace() then
-							gameView.modules["onscreen-objects"]:draw(delta_t)
-							gameView.modules["reticule"]:draw(delta_t)
+							 gameView.modules["onscreen-objects"]:draw(delta_t)
 						end
 					else
 						ui.radialMenu("worldloopnotworld")

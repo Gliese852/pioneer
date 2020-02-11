@@ -617,7 +617,7 @@ static int l_game_get_hyperspace_travelled_percentage(lua_State *l)
 
 static int l_game_get_parts_from_date_time(lua_State *l)
 {
-	float time = LuaPull<float>(l, 1);
+	double time = LuaPull<double>(l, 1);
 	Time::DateTime t(time);
 	int year, month, day, hour, minute, second;
 	t.GetDateParts(&year, &month, &day);

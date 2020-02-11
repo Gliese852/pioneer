@@ -617,7 +617,7 @@ void SystemView::PutOrbit(const Orbit *orbit, const vector3d &offset, const Colo
 
 void SystemView::OnClickObject(const SystemBody *b)
 {
-	m_selectedObject = b;
+	m_selectedObject = b->GetBodyObject();
 	std::string desc;
 	std::string data;
 
@@ -696,6 +696,7 @@ void SystemView::LabelShip(Ship *s, const vector3d &offset)
 
 void SystemView::OnClickShip(Ship *s)
 {
+	printf("clickship!");
 	if (!s) {
 		printf("clicked on ship label but ship wasn't there\n");
 		return;
@@ -878,6 +879,25 @@ void SystemView::GetTransformTo(const SystemBody *b, vector3d &pos)
 	}
 }
 
+void SystemView::GetTransformTo(const Body *b, vector3d &pos)
+{
+	const SystemBody* sbody = b->GetSystemBody();
+	if (sbody)
+		GetTransformTo(sbody, pos);
+	else  //if not systembody, then 100% dynamic body?
+	{
+		const DynamicBody *db = static_cast<const DynamicBody *>(b);
+		pos = vector3d(0., 0., 0.);
+		//frame position in which the body is located relative to the root frame
+		if (db->GetFrame() != Pi::game->GetSpace()->GetRootFrame())
+			pos -= Frame::GetFrame(db->GetFrame())->GetPositionRelTo(Pi::game->GetSpace()->GetRootFrame());
+		//body position in its frame at a given time (may be future)
+		pos -= db->ComputeOrbit().OrbitalPosAtTime(m_time - m_game->GetTime());
+		//scaling to camera scale
+		pos *= double(m_zoom);
+	}
+}
+
 void SystemView::Draw3D()
 {
 	PROFILE_SCOPED()
@@ -923,12 +943,12 @@ void SystemView::Draw3D()
 	else {
 		if (m_system->GetRootBody()) {
 			PutBody(m_system->GetRootBody().Get(), pos, m_trans);
-			if (m_game->GetSpace()->GetStarSystem() == m_system) {
-				const Body *navTarget = Pi::player->GetNavTarget();
-				const SystemBody *navTargetSystemBody = navTarget ? navTarget->GetSystemBody() : 0;
-				if (navTargetSystemBody)
-					PutSelectionBox(navTargetSystemBody, pos, Color::GREEN);
-			}
+	//		if (m_game->GetSpace()->GetStarSystem() == m_system) {
+	//			const Body *navTarget = Pi::player->GetNavTarget();
+	//			const SystemBody *navTargetSystemBody = navTarget ? navTarget->GetSystemBody() : 0;
+			//	if (navTargetSystemBody)
+		//			PutSelectionBox(navTargetSystemBody, pos, Color::GREEN);
+			//}
 		}
 	}
 	// glLineWidth(1);
@@ -1076,13 +1096,13 @@ void SystemView::DrawShips(const double t, const vector3d &offset)
 			}
 			pos += (bpos + (*s).second.OrbitalPosAtTime(t)) * double(m_zoom);
 		}
-		const bool isNavTarget = Pi::player->GetNavTarget() == (*s).first;
+		const bool isSelected = m_selectedObject == (*s).first;
 		//PutSelectionBox(pos, isNavTarget ? Color::GREEN : Color::BLUE);
 		LabelShip((*s).first, pos);
 
-		if (isNavTarget) PutSelectionBox(pos, Color::GREEN);
+		//if (isNavTarget) PutSelectionBox(pos, Color::GREEN);
 		if (m_shipDrawing == ORBITS && (*s).first->GetFlightState() == Ship::FlightState::FLYING)
-			PutOrbit(&(*s).second, offset, isNavTarget ? Color::GREEN : Color::BLUE, 0);
+			PutOrbit(&(*s).second, offset, isSelected ? Color::GREEN : Color::BLUE, 0);
 	}
 }
 
@@ -1247,4 +1267,10 @@ double SystemView::GetProjectedRadius(double radius, vector3d pos)
 //	printf("result: %f ", result);
 	return result;
 	
+}
+
+bool SystemView::SetSelectedObject(Body *b)
+{
+	if (m_selectedObject == b) return true;
+	m_selectedObject = b; return false;
 }
