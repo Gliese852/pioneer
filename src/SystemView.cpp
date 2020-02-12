@@ -886,11 +886,13 @@ void SystemView::GetTransformTo(const Body *b, vector3d &pos)
 		GetTransformTo(sbody, pos);
 	else  //if not systembody, then 100% dynamic body?
 	{
-		const DynamicBody *db = static_cast<const DynamicBody *>(b);
+		const DynamicBody *db = static_cast<const DynamicBody*>(b);
 		pos = vector3d(0., 0., 0.);
+		FrameId bodyFrameId = Pi::game->GetSpace()->GetRootFrame();
+		FrameId rootFrameId = db->GetFrame();
 		//frame position in which the body is located relative to the root frame
-		if (db->GetFrame() != Pi::game->GetSpace()->GetRootFrame())
-			pos -= Frame::GetFrame(db->GetFrame())->GetPositionRelTo(Pi::game->GetSpace()->GetRootFrame());
+		if (bodyFrameId != rootFrameId)
+			pos -= Frame::GetFrame(bodyFrameId)->GetPositionRelTo(rootFrameId);
 		//body position in its frame at a given time (may be future)
 		pos -= db->ComputeOrbit().OrbitalPosAtTime(m_time - m_game->GetTime());
 		//scaling to camera scale

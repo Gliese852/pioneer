@@ -229,7 +229,7 @@ theme.icons = {
    message = 157,
    message_open = 158,
    search_binoculars = 159,
-   -- eleventh row
+   -- eleventh row (160 - 175)
    planet_grid = 160,
    bookmarks = 161,
    unlocked = 162,
@@ -240,8 +240,14 @@ theme.icons = {
    hud = 168,
    factory = 169,
    star = 170,
+	 orbit_delta = 171,
+	 orbit_start_time = 172,
+	 orbit_prograde = 173,
+	 orbit_normal = 174,
+	 orbit_radial = 175,
+	 -- twelfth row (176 - 191)
    view_flyby = 191,
-    -- eleventh row
+	 -- thirteenth row (192 - 207)
    gender = 193,
    nose = 194,
    mouth = 195,
@@ -249,6 +255,14 @@ theme.icons = {
    clothes = 197,
    accessories = 198,
    random = 199,
+	 -- empty 200
+	 -- empty 201
+	 systemmap_reset_view = 202,
+	 systemmap_toggle_grid = 203,
+	 systemmap_toggle_lagrange = 204,
+	 systemmap_toggle_ships = 205,
+	 orbit_reduce = 206,
+	 orbit_increase = 207,
    -- TODO: manual / autopilot
 	 -- dummy, until actually defined correctly
 	 mouse_move_direction = 14,

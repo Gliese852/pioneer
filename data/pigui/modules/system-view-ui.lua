@@ -15,10 +15,10 @@ local player = nil
 local colors = ui.theme.colors
 local icons = ui.theme.icons
 
-local mainButtonSize = Vector2(24,24) * (ui.screenHeight / 1200)
-local mainButtonFramePadding = 3
+local mainButtonSize = Vector2(24,24) -- * (ui.screenHeight / 1200)
+local mainButtonFramePadding = 1
 
-local function showDvLine(rightIcon, resetIcon, leftIcon, key, Formatter, rightTooltip, resetTooltip, leftTooltip)
+local function showDvLine(leftIcon, resetIcon, rightIcon, key, Formatter, leftTooltip, resetTooltip, rightTooltip)
 	local wheel = function()
 		if ui.isItemHovered() then
 			local w = ui.getMouseWheel()
@@ -50,14 +50,14 @@ local function showDvLine(rightIcon, resetIcon, leftIcon, key, Formatter, rightT
 end
 local time_selected_button_icon = icons.time_center
 local function timeButton(icon, tooltip, factor)
-	if ui.coloredSelectedIconButton(icon, mainButtonSize, false, mainButtonFramePadding, colors.buttonBlue, colors.white, tooltip) then
+	if ui.coloredSelectedIconButton(icon, mainButtonSize, false, 0, colors.lightBlackBackground, colors.white, tooltip) then
 		time_selected_button_icon = icon
 	end
 	local active = ui.isItemActive()
 	if active then
 		Engine.SystemMapAccelerateTime(factor)
 	end
-	ui.sameLine()
+	ui.sameLine(0,0)
 	return active
 end
 local ship_drawing = "off"
@@ -65,24 +65,30 @@ local show_lagrange = "off"
 local nextShipDrawings = { ["off"] = "boxes", ["boxes"] = "orbits", ["orbits"] = "off" }
 local nextShowLagrange = { ["off"] = "icon", ["icon"] = "icontext", ["icontext"] = "off" }
 local function showOrbitPlannerWindow()
-	ui.setNextWindowSize(Vector2(ui.screenWidth / 5, 0), "Always")
+	-- ui.setNextWindowSize(Vector2(ui.screenWidth / 5, 0), "Always")
 	ui.setNextWindowPos(Vector2(ui.screenWidth - ui.screenWidth / 5 - 10, (ui.screenHeight / 5) * 2 + 20), "Always")
-	ui.withStyleColors({["WindowBg"] = colors.lightBlackBackground}, function()
+	ui.withStyleColors({["WindowBg"] = colors.blueBackground}, function()
 			ui.window("OrbitPlannerWindow", {"NoTitleBar", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings", "AlwaysAutoResize"},
 								function()
 									ui.text("Orbit planner")
 									ui.separator()
-									if ui.coloredSelectedIconButton(icons.ship, mainButtonSize, showShips, mainButtonFramePadding, colors.buttonBlue, colors.white, "Show ships") then
+									if ui.coloredSelectedIconButton(icons.systemmap_reset_view, mainButtonSize, showShips, mainButtonFramePadding, colors.buttonBlue, colors.white, "Reset view") then
+									end
+									ui.sameLine()
+									if ui.coloredSelectedIconButton(icons.systemmap_toggle_grid, mainButtonSize, showShips, mainButtonFramePadding, colors.buttonBlue, colors.white, "Show grid") then
+									end
+									ui.sameLine()
+									if ui.coloredSelectedIconButton(icons.systemmap_toggle_ships, mainButtonSize, showShips, mainButtonFramePadding, colors.buttonBlue, colors.white, "Show ships") then
 										ship_drawing = nextShipDrawings[ship_drawing]
 										Engine.SystemMapSetShipDrawing(ship_drawing);
 									end
 									ui.sameLine()
-									if ui.coloredSelectedIconButton(icons.autopilot_medium_orbit, mainButtonSize, showLagrangePoints, mainButtonFramePadding, colors.buttonBlue, colors.white, "Show Lagrange points") then
+									if ui.coloredSelectedIconButton(icons.systemmap_toggle_lagrange, mainButtonSize, showLagrangePoints, mainButtonFramePadding, colors.buttonBlue, colors.white, "Show Lagrange points") then
 										show_lagrange = nextShowLagrange[show_lagrange]
 										Engine.SystemMapSetShowLagrange(show_lagrange);
 									end
 									ui.sameLine()
-									ui.coloredSelectedIconButton(icons.zoom_in, mainButtonSize, false, mainButtonFramePadding, colors.buttonBlue, colors.white, "Zoom in")
+									ui.coloredSelectedIconButton(icons.zoom_in,mainButtonSize, false, mainButtonFramePadding, colors.buttonBlue, colors.white, "Zoom in")
 									if ui.isItemActive() then
 										Engine.SystemMapZoom("in")
 									end
@@ -93,8 +99,8 @@ local function showOrbitPlannerWindow()
 									end
 									ui.separator()
 
-									showDvLine(icons.left, icons.maneuver, icons.right, "factor", function(i) return i, "x" end, "Increase delta factor", "Reset delta factor", "Decrease delta factor")
-									showDvLine(icons.left, icons.eta, icons.right, "starttime",
+									showDvLine(icons.orbit_reduce, icons.orbit_delta, icons.orbit_increase, "factor", function(i) return i, "x" end, "Decrease delta factor", "Reset delta factor", "Increase delta factor")
+									showDvLine(icons.orbit_reduce, icons.orbit_start_time, icons.orbit_increase, "starttime",
 														 function(i)
 															 local now = Game.time
 															 local start = Engine.SystemMapGetOrbitPlannerStartTime()
@@ -104,10 +110,10 @@ local function showOrbitPlannerWindow()
 																 return "now", ""
 															 end
 														 end,
-														 "Increase time", "Reset time", "Decrease time")
-									showDvLine(icons.prograde, icons.maneuver, icons.retrograde, "prograde", ui.Format.Speed, "Thrust prograde", "Reset prograde thrust", "Thrust retrograde")
-									showDvLine(icons.normal, icons.maneuver, icons.antinormal, "normal", ui.Format.Speed, "Thrust normal", "Reset normal thrust", "Thrust antinormal")
-									showDvLine(icons.radial_in, icons.maneuver, icons.radial_out, "radial", ui.Format.Speed, "Thrust radially in", "Reset radial thrust", "Thrust radially out")
+														 "Decrease time", "Reset time", "Increase time")
+									showDvLine(icons.orbit_reduce, icons.orbit_prograde, icons.orbit_increase, "prograde", ui.Format.Speed, "Thrust retrograde", "Reset prograde thrust", "Thrust prograde")
+									showDvLine(icons.orbit_reduce, icons.orbit_normal, icons.orbit_increase, "normal", ui.Format.Speed, "Thrust antinormal", "Reset normal thrust", "Thrust normal")
+									showDvLine(icons.orbit_reduce, icons.orbit_radial, icons.orbit_increase, "radial", ui.Format.Speed, "Thrust radially out", "Reset radial thrust", "Thrust radially in")
 
 									ui.separator()
 									local t = Engine.SystemMapGetOrbitPlannerTime()
