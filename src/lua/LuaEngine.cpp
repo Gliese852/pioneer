@@ -1123,8 +1123,11 @@ static int l_engine_system_map_get_projected_bodies_grouped(lua_State *l)
 		if (obj._body != combat_target) {
 			for (GroupInfo &group : groups) {
 				//3d distance from main body, in screen pixels 
-				double dist = sv->GetProjectedRadius((obj._worldpos - group.m_mainBody._worldpos).Length(), obj._worldpos) * Graphics::GetScreenWidth();
-				if (dist < gap.x){
+				//double dist = sv->GetProjectedRadius((obj._worldpos - group.m_mainBody._worldpos).Length(), obj._worldpos) * Graphics::GetScreenWidth();
+				if (std::abs(obj._screenPosition.x - group.m_mainBody._screenPosition.x) < gap.x
+						&& std::abs(obj._screenPosition.y - group.m_mainBody._screenPosition.y) < gap.y
+						&& std::abs(obj._NDC_z - group.m_mainBody._NDC_z) * Graphics::GetScreenWidth() * 10 < gap.x)
+				{
 					// body inside group boundaries: insert into group
 					// printf("%s - %s: dist=%f, gap=%f\n", group.m_mainBody._body->GetLabel().c_str(), obj._body->GetLabel().c_str(), dist, gap.x);
 					group.m_bodies.push_back(obj);
@@ -1184,28 +1187,10 @@ static int l_engine_system_map_get_projected_bodies_grouped(lua_State *l)
 	return 1;
 }
 
-static int l_engine_system_map_get_projected_bodies(lua_State *l)
-{
-	SystemView *sv = Pi::game->GetSystemView();
-	TSS_vector pb = sv->GetProjectedBodies();
-	LuaTable result(l, pb.size(), 0);
-	int index = 1;
-	for(TScreenSpace b : pb)
-	{
-		LuaTable one_body(l, 0, 2);
-		one_body.Set("obj", b._body);
-		one_body.Set("pos", b._screenPosition);
-		result.Set(index++, one_body);
-		lua_pop(l, 1);
-	}
-	LuaPush(l, result);
-	return 1;
-}
-
 static int l_engine_system_map_selected_object(lua_State *l)
 {
 	SystemView *sv = Pi::game->GetSystemView();
-	const Body *b = sv->GetSelectedObject();
+	Body *b = const_cast<Body*>(sv->GetSelectedObject());
 	if (b) {
 		LuaObject<Body>::PushToLua(b);
 		return 1;
@@ -1213,53 +1198,9 @@ static int l_engine_system_map_selected_object(lua_State *l)
 	return 0;
 }
 
-static int l_engine_system_map_set_show_lagrange(lua_State *l)
+static int l_engine_system_map_set_visibility(lua_State *l)
 {
-	SystemView *sv = Pi::game->GetSystemView();
-	std::string state = LuaPull<std::string>(l, 1);
-	ShowLagrange draw = ShowLagrange::LAG_OFF;
-	if (state == "off") {
-		draw = ShowLagrange::LAG_OFF;
-	} else if (state == "icon") {
-		draw = ShowLagrange::LAG_ICON;
-	} else if (state == "icontext") {
-		draw = ShowLagrange::LAG_ICONTEXT;
-	} else {
-		Warning("Unknown Lagrange show state %s\n", state.c_str());
-	}
-	sv->SetShowLagrange(draw);
-	return 0;
-}
-
-static int l_engine_system_map_set_ship_drawing(lua_State *l)
-{
-	SystemView *sv = Pi::game->GetSystemView();
-	std::string state = LuaPull<std::string>(l, 1);
-	ShipDrawing draw = ShipDrawing::OFF;
-	if (state == "off") {
-		draw = ShipDrawing::OFF;
-	} else if (state == "boxes") {
-		draw = ShipDrawing::BOXES;
-	} else if (state == "orbits") {
-		draw = ShipDrawing::ORBITS;
-	} else {
-		Warning("Unknown ship drawing state %s\n", state.c_str());
-	}
-	sv->SetShipDrawing(draw);
-	return 0;
-}
-
-static int l_engine_system_map_zoom(lua_State *l)
-{
-	SystemView *sv = Pi::game->GetSystemView();
-	std::string state = LuaPull<std::string>(l, 1);
-	if (state == "in") {
-		sv->ZoomIn();
-	} else if (state == "out") {
-		sv->ZoomOut();
-	} else {
-		Warning("Unknown zoom state %s\n", state.c_str());
-	}
+	Pi::game->GetSystemView()->SetVisibility(LuaPull<std::string>(l, 1));
 	return 0;
 }
 
@@ -1292,15 +1233,6 @@ static int l_engine_system_map_accelerate_time(lua_State *l)
 		sv->OnClickAccel(step);
 	}
 	return 0;
-}
-
-static int l_engine_system_map_project(lua_State *l)
-{
-	SystemView *sv = Pi::game->GetSystemView();
-	Body *b = LuaObject<Body>::CheckFromLua(1);
-	vector3d v = LuaPull<vector3d>(l, 2);
-	LuaPush<vector3d>(l, sv->Project(b, v));
-	return 1;
 }
 
 static int l_engine_transfer_planner_get(lua_State *l)
@@ -1481,17 +1413,13 @@ void LuaEngine::Register()
 		{ "SectorMapRemoveRouteItem", l_engine_sector_map_remove_route_item },
 		{ "SectorMapClearRoute", l_engine_sector_map_clear_route },
 		{ "SectorMapAddToRoute", l_engine_sector_map_add_to_route },
-		{ "SystemMapGetProjectedBodies", l_engine_system_map_get_projected_bodies },
 		{ "SystemMapGetProjectedBodiesGrouped", l_engine_system_map_get_projected_bodies_grouped },
 		{ "SystemMapSelectedObject", l_engine_system_map_selected_object },
-		{ "SystemMapSetShipDrawing", l_engine_system_map_set_ship_drawing },
-		{ "SystemMapSetShowLagrange", l_engine_system_map_set_show_lagrange },
-		{ "SystemMapZoom", l_engine_system_map_zoom },
 		{ "SystemMapGetOrbitPlannerStartTime", l_engine_system_map_get_orbit_planner_start_time },
 		{ "SystemMapGetOrbitPlannerTime", l_engine_system_map_get_orbit_planner_time },
 		{ "SystemMapAccelerateTime", l_engine_system_map_accelerate_time },
-		{ "SystemMapProject", l_engine_system_map_project },
 		{ "SystemMapCenterBody", l_engine_system_map_center_body },
+		{ "SystemMapSetVisibility", l_engine_system_map_set_visibility },
 		{ "TransferPlannerAdd", l_engine_transfer_planner_add },
 		{ "TransferPlannerGet", l_engine_transfer_planner_get },
 		{ "TransferPlannerReset", l_engine_transfer_planner_reset },

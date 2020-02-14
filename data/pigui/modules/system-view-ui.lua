@@ -15,8 +15,9 @@ local player = nil
 local colors = ui.theme.colors
 local icons = ui.theme.icons
 
-local mainButtonSize = Vector2(24,24) -- * (ui.screenHeight / 1200)
-local mainButtonFramePadding = 1
+local mainButtonSize = Vector2(32,32)  * (ui.screenHeight / 1200)
+local mainButtonFramePadding = 3
+local itemSpacing = Vector2(8,4) -- couldn't get default from ui
 
 local function showDvLine(leftIcon, resetIcon, rightIcon, key, Formatter, leftTooltip, resetTooltip, rightTooltip)
 	local wheel = function()
@@ -50,52 +51,72 @@ local function showDvLine(leftIcon, resetIcon, rightIcon, key, Formatter, leftTo
 end
 local time_selected_button_icon = icons.time_center
 local function timeButton(icon, tooltip, factor)
-	if ui.coloredSelectedIconButton(icon, mainButtonSize, false, 0, colors.lightBlackBackground, colors.white, tooltip) then
+	if ui.coloredSelectedIconButton(icon, mainButtonSize, false, mainButtonFramePadding, colors.buttonBlue, colors.white, tooltip) then
 		time_selected_button_icon = icon
 	end
 	local active = ui.isItemActive()
 	if active then
 		Engine.SystemMapAccelerateTime(factor)
 	end
-	ui.sameLine(0,0)
+	ui.sameLine()
 	return active
 end
-local ship_drawing = "off"
-local show_lagrange = "off"
-local nextShipDrawings = { ["off"] = "boxes", ["boxes"] = "orbits", ["orbits"] = "off" }
-local nextShowLagrange = { ["off"] = "icon", ["icon"] = "icontext", ["icontext"] = "off" }
+local function VisibilityCircle(a, b, c) return { [a] = b, [b] = c, [c] = a } end
+local ship_drawing = "SHIPS_OFF"
+local show_lagrange = "LAG_OFF"
+local show_grid = "GRID_OFF"
+local nextShipDrawings = VisibilityCircle("SHIPS_OFF", "SHIPS_ON", "SHIPS_ORBITS")
+local nextShowLagrange = VisibilityCircle("LAG_OFF", "LAG_ICON", "LAG_ICONTEXT")
+local nextShowGrid = VisibilityCircle("GRID_OFF", "GRID_ON", "GRID_AND_LEGS")
+
+local function calcWindowWidth(buttons)
+	return (mainButtonSize.y + mainButtonFramePadding * 2) * buttons
+	+ itemSpacing.x * (buttons + 1)
+end
+
+local function calcWindowHeight(buttons, separators, texts)
+	return
+	(mainButtonSize.y + mainButtonFramePadding * 2) * buttons
+	+ separators * itemSpacing.y
+	+ texts * ui.fonts.pionillium.medium.size
+	+ (buttons + texts - 1) * itemSpacing.y
+	+ itemSpacing.x * 2
+end
+
 local function showOrbitPlannerWindow()
-	-- ui.setNextWindowSize(Vector2(ui.screenWidth / 5, 0), "Always")
-	ui.setNextWindowPos(Vector2(ui.screenWidth - ui.screenWidth / 5 - 10, (ui.screenHeight / 5) * 2 + 20), "Always")
-	ui.withStyleColors({["WindowBg"] = colors.blueBackground}, function()
+	ui.setNextWindowPos(Vector2(ui.screenWidth - calcWindowWidth(7), ui.screenHeight - calcWindowHeight(7, 3, 2)), "Always")
+	ui.withStyleColors({["WindowBg"] = colors.lightBlackBackground}, function()
 			ui.window("OrbitPlannerWindow", {"NoTitleBar", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings", "AlwaysAutoResize"},
 								function()
 									ui.text("Orbit planner")
 									ui.separator()
 									if ui.coloredSelectedIconButton(icons.systemmap_reset_view, mainButtonSize, showShips, mainButtonFramePadding, colors.buttonBlue, colors.white, "Reset view") then
+										Engine.SystemMapSetVisibility("RESET_VIEW")
 									end
 									ui.sameLine()
 									if ui.coloredSelectedIconButton(icons.systemmap_toggle_grid, mainButtonSize, showShips, mainButtonFramePadding, colors.buttonBlue, colors.white, "Show grid") then
+										show_grid = nextShowGrid[show_grid]
+										Engine.SystemMapSetVisibility(show_grid);
 									end
 									ui.sameLine()
 									if ui.coloredSelectedIconButton(icons.systemmap_toggle_ships, mainButtonSize, showShips, mainButtonFramePadding, colors.buttonBlue, colors.white, "Show ships") then
 										ship_drawing = nextShipDrawings[ship_drawing]
-										Engine.SystemMapSetShipDrawing(ship_drawing);
+										Engine.SystemMapSetVisibility(ship_drawing);
 									end
 									ui.sameLine()
 									if ui.coloredSelectedIconButton(icons.systemmap_toggle_lagrange, mainButtonSize, showLagrangePoints, mainButtonFramePadding, colors.buttonBlue, colors.white, "Show Lagrange points") then
 										show_lagrange = nextShowLagrange[show_lagrange]
-										Engine.SystemMapSetShowLagrange(show_lagrange);
+										Engine.SystemMapSetVisibility(show_lagrange);
 									end
 									ui.sameLine()
 									ui.coloredSelectedIconButton(icons.zoom_in,mainButtonSize, false, mainButtonFramePadding, colors.buttonBlue, colors.white, "Zoom in")
 									if ui.isItemActive() then
-										Engine.SystemMapZoom("in")
+										Engine.SystemMapSetVisibility("ZOOM_IN");
 									end
 									ui.sameLine()
 									ui.coloredSelectedIconButton(icons.zoom_out, mainButtonSize, false, mainButtonFramePadding, colors.buttonBlue, colors.white, "Zoom out")
 									if ui.isItemActive() then
-										Engine.SystemMapZoom("out")
+										Engine.SystemMapSetVisibility("ZOOM_OUT");
 									end
 									ui.separator()
 

@@ -16,6 +16,7 @@
 #include "Player.h"
 #include "SpaceStation.h"
 #include "Star.h"
+#include "SystemView.h"
 #include "collider/CollisionContact.h"
 #include "collider/CollisionSpace.h"
 #include "galaxy/Galaxy.h"
@@ -1007,6 +1008,7 @@ void Space::UpdateBodies()
 		rmb->SetFrame(FrameId::Invalid);
 		for (Body *b : m_bodies)
 			b->NotifyRemoved(rmb);
+		Pi::game->GetSystemView()->BodyInaccessible(rmb);
 		m_bodies.remove(rmb);
 	}
 	m_removeBodies.clear();
@@ -1014,6 +1016,7 @@ void Space::UpdateBodies()
 	for (Body *killb : m_killBodies) {
 		for (Body *b : m_bodies)
 			b->NotifyRemoved(killb);
+		Pi::game->GetSystemView()->BodyInaccessible(killb);
 		m_bodies.remove(killb);
 		delete killb;
 	}

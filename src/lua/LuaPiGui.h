@@ -20,6 +20,7 @@ struct TScreenSpace
 	vector2d _screenPosition;
 	vector3d _direction;
 	vector3d _worldpos;
+	double _NDC_z;
 	Body *_body;
 };
 

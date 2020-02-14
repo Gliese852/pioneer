@@ -83,19 +83,15 @@ public:
 	virtual void Update();
 	virtual void Draw3D();
 	const Body *GetSelectedObject() const { return m_selectedObject; }
-	void SetShipDrawing(ShipDrawing drawing);
-	void SetShowLagrange(ShowLagrange lagrange) { m_showL4L5 = lagrange; }
-	void ZoomIn();
-	void ZoomOut();
 	double GetOrbitPlannerStartTime() const { return m_planner->GetStartTime(); }
 	double GetOrbitPlannerTime() const { return m_time; }
 	void OnClickAccel(float step);
 	void OnClickRealt();
-	vector3d Project(const Body *body, vector3d offset);
-	BodyPositionVector GetBodyPositions();
 	TSS_vector GetProjectedBodies() const { return m_projectedBodies; }
 	double GetProjectedRadius(double radius, vector3d pos); // the radius is returned in fractions of the screen width
 	bool SetSelectedObject(Body* b);
+	void BodyInaccessible(Body *b);
+	void SetVisibility(std::string param);
 private:
 	TSS_vector m_projectedBodies;
 	static const double PICK_OBJECT_RECT_SIZE;
@@ -123,7 +119,7 @@ private:
 	void DrawGrid();
 	void LabelShip(Ship *s, const vector3d &offset);
 	void OnClickShip(Ship *s);
-	void AddProjectedBody(Body *b, vector2d pos, vector3d worldpos);
+	void AddProjectedBody(Body *b, vector3d pos, vector3d worldpos);
 
 	Game *m_game;
 	RefCountedPtr<StarSystem> m_system;

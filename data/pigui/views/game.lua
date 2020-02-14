@@ -282,6 +282,7 @@ ui.registerHandler('game', function(delta_t)
 					elseif Game.CurrentView() == "system" then
 						if not Game.InHyperspace() then
 							 gameView.modules["onscreen-objects"]:draw(delta_t)
+						   ui.radialMenu("worldloopworld")
 						end
 					else
 						ui.radialMenu("worldloopnotworld")

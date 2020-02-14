@@ -244,29 +244,29 @@ SystemView::SystemView(Game *game) :
 	Gui::Screen::PopFont();
 
 	m_timePoint = (new Gui::Label(""))->Color(178, 178, 178);
-	Add(m_timePoint, 2, Gui::Screen::GetHeight() - Gui::Screen::GetFontHeight() - 66);
+	//Add(m_timePoint, 2, Gui::Screen::GetHeight() - Gui::Screen::GetFontHeight() - 66);
 
 	m_infoLabel = (new Gui::Label(""))->Color(178, 178, 178);
-	Add(m_infoLabel, 2, 0);
+	//Add(m_infoLabel, 2, 0);
 
 	m_infoText = (new Gui::Label(""))->Color(178, 178, 178);
-	Add(m_infoText, 200, 0);
+	//Add(m_infoText, 200, 0);
 
 	m_zoomOutButton = new Gui::ImageButton("icons/zoom_out.png");
 	m_zoomOutButton->SetToolTip(Lang::ZOOM_OUT);
 	m_zoomOutButton->SetRenderDimensions(30, 22);
-	Add(m_zoomOutButton, 700, 5);
+	//Add(m_zoomOutButton, 700, 5);
 
 	m_zoomInButton = new Gui::ImageButton("icons/zoom_in.png");
 	m_zoomInButton->SetToolTip(Lang::ZOOM_IN);
 	m_zoomInButton->SetRenderDimensions(30, 22);
-	Add(m_zoomInButton, 732, 5);
+	//Add(m_zoomInButton, 732, 5);
 
 	m_toggleShipsButton = new Gui::ImageButton("icons/toggle_ships_display.png");
 	m_toggleShipsButton->SetToolTip(Lang::SHIPS_DISPLAY_MODE_TOGGLE);
 	m_toggleShipsButton->SetRenderDimensions(30, 22);
 	m_toggleShipsButton->onClick.connect(sigc::mem_fun(this, &SystemView::OnToggleShipsButtonClick));
-	Add(m_toggleShipsButton, 660, 5);
+	//Add(m_toggleShipsButton, 660, 5);
 
 	// Add the 3 Lagrange button stations
 	m_toggleL4L5Button = new Gui::MultiStateImageButton();
@@ -276,20 +276,20 @@ SystemView::SystemView(Game *game) :
 	m_toggleL4L5Button->SetToolTip(Lang::L4L5_DISPLAY_MODE_TOGGLE);
 	m_toggleL4L5Button->SetRenderDimensions(30, 22);
 	m_toggleL4L5Button->onClick.connect(sigc::mem_fun(this, &SystemView::OnToggleL4L5ButtonClick));
-	Add(m_toggleL4L5Button, 628, 5);
+	//Add(m_toggleL4L5Button, 628, 5);
 	m_toggleL4L5Button->SetActiveState(LAG_OFF);
 
 	m_toggleGridButton = new Gui::ImageButton("icons/toggle_grid_display.png");
 	m_toggleGridButton->SetToolTip(Lang::GRID_DISPLAY_MODE_TOGGLE);
 	m_toggleGridButton->SetRenderDimensions(30, 22);
 	m_toggleGridButton->onClick.connect(sigc::mem_fun(this, &SystemView::OnToggleGridButtonClick));
-	Add(m_toggleGridButton, 596, 5);
+	//Add(m_toggleGridButton, 596, 5);
 
 	m_ResetOrientButton = new Gui::ImageButton("icons/reset_orient_and_zoom.png");
 	m_ResetOrientButton->SetToolTip(Lang::RESET_ORIENTATION_AND_ZOOM);
 	m_ResetOrientButton->SetRenderDimensions(30, 22);
 	m_ResetOrientButton->onClick.connect(sigc::mem_fun(this, &SystemView::ResetViewpoint));
-	Add(m_ResetOrientButton, 564, 5);
+	//Add(m_ResetOrientButton, 564, 5);
 
 	// orbital transfer planner UI
 	int dx = 670;
@@ -298,85 +298,85 @@ SystemView::SystemView(Game *game) :
 	m_plannerIncreaseFactorButton = new Gui::ImageButton("icons/orbit_increase_big.png");
 	m_plannerIncreaseFactorButton->SetRenderDimensions(18, 18);
 	m_plannerIncreaseFactorButton->onClick.connect(sigc::mem_fun(this, &SystemView::OnIncreaseFactorButtonClick));
-	Add(m_plannerIncreaseFactorButton, dx + 40, dy);
+	//Add(m_plannerIncreaseFactorButton, dx + 40, dy);
 
 	m_plannerResetFactorButton = new Gui::ImageButton("icons/orbit_factor_big.png");
 	m_plannerResetFactorButton->SetRenderDimensions(18, 18);
 	m_plannerResetFactorButton->SetToolTip(Lang::PLANNER_RESET_FACTOR);
 	m_plannerResetFactorButton->onClick.connect(sigc::mem_fun(this, &SystemView::OnResetFactorButtonClick));
-	Add(m_plannerResetFactorButton, dx + 20, dy);
+	//Add(m_plannerResetFactorButton, dx + 20, dy);
 
 	m_plannerDecreaseFactorButton = new Gui::ImageButton("icons/orbit_reduce_big.png");
 	m_plannerDecreaseFactorButton->SetRenderDimensions(18, 18);
 	m_plannerDecreaseFactorButton->onClick.connect(sigc::mem_fun(this, &SystemView::OnDecreaseFactorButtonClick));
-	Add(m_plannerDecreaseFactorButton, dx, dy);
+	//Add(m_plannerDecreaseFactorButton, dx, dy);
 
 	m_plannerFactorText = (new Gui::Label(""))->Color(178, 178, 178);
-	Add(m_plannerFactorText, dx + 60 + 7, dy);
+	//Add(m_plannerFactorText, dx + 60 + 7, dy);
 
 	m_plannerIncreaseStartTimeButton = new Gui::ImageButton("icons/orbit_increase_big.png");
 	m_plannerIncreaseStartTimeButton->SetRenderDimensions(18, 18);
-	Add(m_plannerIncreaseStartTimeButton, dx + 40, dy + 20);
+	//Add(m_plannerIncreaseStartTimeButton, dx + 40, dy + 20);
 
 	m_plannerResetStartTimeButton = new Gui::ImageButton("icons/orbit_start_big.png");
 	m_plannerResetStartTimeButton->SetRenderDimensions(18, 18);
 	m_plannerResetStartTimeButton->SetToolTip(Lang::PLANNER_RESET_START);
-	Add(m_plannerResetStartTimeButton, dx + 20, dy + 20);
+	//Add(m_plannerResetStartTimeButton, dx + 20, dy + 20);
 
 	m_plannerDecreaseStartTimeButton = new Gui::ImageButton("icons/orbit_reduce_big.png");
 	m_plannerDecreaseStartTimeButton->SetRenderDimensions(18, 18);
-	Add(m_plannerDecreaseStartTimeButton, dx, dy + 20);
+	//Add(m_plannerDecreaseStartTimeButton, dx, dy + 20);
 
 	m_plannerStartTimeText = (new Gui::Label(""))->Color(178, 178, 178);
-	Add(m_plannerStartTimeText, dx + 60, dy + 20);
+	//Add(m_plannerStartTimeText, dx + 60, dy + 20);
 
 	m_plannerAddProgradeVelButton = new Gui::ImageButton("icons/orbit_increase_big.png");
 	m_plannerAddProgradeVelButton->SetRenderDimensions(18, 18);
-	Add(m_plannerAddProgradeVelButton, dx + 40, dy + 40);
+	//Add(m_plannerAddProgradeVelButton, dx + 40, dy + 40);
 
 	m_plannerZeroProgradeVelButton = new Gui::ImageButton("icons/orbit_proretro_big.png");
 	m_plannerZeroProgradeVelButton->SetRenderDimensions(18, 18);
 	m_plannerZeroProgradeVelButton->SetToolTip(Lang::PLANNER_RESET_PROGRADE);
-	Add(m_plannerZeroProgradeVelButton, dx + 20, dy + 40);
+	//Add(m_plannerZeroProgradeVelButton, dx + 20, dy + 40);
 
 	m_plannerAddRetrogradeVelButton = new Gui::ImageButton("icons/orbit_reduce_big.png");
 	m_plannerAddRetrogradeVelButton->SetRenderDimensions(18, 18);
-	Add(m_plannerAddRetrogradeVelButton, dx, dy + 40);
+	//Add(m_plannerAddRetrogradeVelButton, dx, dy + 40);
 
 	m_plannerProgradeDvText = (new Gui::Label(""))->Color(178, 178, 178);
-	Add(m_plannerProgradeDvText, dx + 60, dy + 40);
+	//Add(m_plannerProgradeDvText, dx + 60, dy + 40);
 
 	m_plannerAddNormalVelButton = new Gui::ImageButton("icons/orbit_increase_big.png");
 	m_plannerAddNormalVelButton->SetRenderDimensions(18, 18);
-	Add(m_plannerAddNormalVelButton, dx + 40, dy + 60);
+	//Add(m_plannerAddNormalVelButton, dx + 40, dy + 60);
 
 	m_plannerZeroNormalVelButton = new Gui::ImageButton("icons/orbit_normal_big.png");
 	m_plannerZeroNormalVelButton->SetRenderDimensions(18, 18);
 	m_plannerZeroNormalVelButton->SetToolTip(Lang::PLANNER_RESET_NORMAL);
-	Add(m_plannerZeroNormalVelButton, dx + 20, dy + 60);
+	//Add(m_plannerZeroNormalVelButton, dx + 20, dy + 60);
 
 	m_plannerAddAntiNormalVelButton = new Gui::ImageButton("icons/orbit_reduce_big.png");
 	m_plannerAddAntiNormalVelButton->SetRenderDimensions(18, 18);
-	Add(m_plannerAddAntiNormalVelButton, dx, dy + 60);
+	//Add(m_plannerAddAntiNormalVelButton, dx, dy + 60);
 
 	m_plannerNormalDvText = (new Gui::Label(""))->Color(178, 178, 178);
-	Add(m_plannerNormalDvText, dx + 60, dy + 60);
+	//Add(m_plannerNormalDvText, dx + 60, dy + 60);
 
 	m_plannerAddRadiallyInVelButton = new Gui::ImageButton("icons/orbit_increase_big.png");
 	m_plannerAddRadiallyInVelButton->SetRenderDimensions(18, 18);
-	Add(m_plannerAddRadiallyInVelButton, dx + 40, dy + 80);
+	//Add(m_plannerAddRadiallyInVelButton, dx + 40, dy + 80);
 
 	m_plannerZeroRadialVelButton = new Gui::ImageButton("icons/orbit_radial_big.png");
 	m_plannerZeroRadialVelButton->SetRenderDimensions(18, 18);
 	m_plannerZeroRadialVelButton->SetToolTip(Lang::PLANNER_RESET_RADIAL);
-	Add(m_plannerZeroRadialVelButton, dx + 20, dy + 80);
+	//Add(m_plannerZeroRadialVelButton, dx + 20, dy + 80);
 
 	m_plannerAddRadiallyOutVelButton = new Gui::ImageButton("icons/orbit_reduce_big.png");
 	m_plannerAddRadiallyOutVelButton->SetRenderDimensions(18, 18);
-	Add(m_plannerAddRadiallyOutVelButton, dx, dy + 80);
+	//Add(m_plannerAddRadiallyOutVelButton, dx, dy + 80);
 
 	m_plannerRadialDvText = (new Gui::Label(""))->Color(178, 178, 178);
-	Add(m_plannerRadialDvText, dx + 60, dy + 80);
+	//Add(m_plannerRadialDvText, dx + 60, dy + 80);
 
 	const int time_controls_left = Gui::Screen::GetWidth() - 150;
 	const int time_controls_top = Gui::Screen::GetHeight() - 86;
@@ -385,42 +385,42 @@ SystemView::SystemView(Game *game) :
 	b->onPress.connect(sigc::bind(sigc::mem_fun(this, &SystemView::OnClickAccel), -10000000.f));
 	b->onRelease.connect(sigc::bind(sigc::mem_fun(this, &SystemView::OnClickAccel), 0.0f));
 	b->SetRenderDimensions(26, 17);
-	Add(b, time_controls_left + 0, time_controls_top);
+	//Add(b, time_controls_left + 0, time_controls_top);
 
 	b = new Gui::ImageButton("icons/sysview_accel_r2.png", "icons/sysview_accel_r2_on.png");
 	b->onPress.connect(sigc::bind(sigc::mem_fun(this, &SystemView::OnClickAccel), -100000.f));
 	b->onRelease.connect(sigc::bind(sigc::mem_fun(this, &SystemView::OnClickAccel), 0.0f));
 	b->SetRenderDimensions(19, 17);
-	Add(b, time_controls_left + 26, time_controls_top);
+	//Add(b, time_controls_left + 26, time_controls_top);
 
 	b = new Gui::ImageButton("icons/sysview_accel_r1.png", "icons/sysview_accel_r1_on.png");
 	b->onPress.connect(sigc::bind(sigc::mem_fun(this, &SystemView::OnClickAccel), -1000.f));
 	b->onRelease.connect(sigc::bind(sigc::mem_fun(this, &SystemView::OnClickAccel), 0.0f));
 	b->SetRenderDimensions(19, 17);
-	Add(b, time_controls_left + 45, time_controls_top);
+	//Add(b, time_controls_left + 45, time_controls_top);
 
 	b = new Gui::ImageButton("icons/sysview_accel_rl.png", "icons/sysview_accel_rl_on.png");
 	b->onPress.connect(sigc::mem_fun(this, &SystemView::OnClickRealt));
 	b->SetRenderDimensions(19, 17);
-	Add(b, time_controls_left + 64, time_controls_top);
+	//Add(b, time_controls_left + 64, time_controls_top);
 
 	b = new Gui::ImageButton("icons/sysview_accel_f1.png", "icons/sysview_accel_f1_on.png");
 	b->onPress.connect(sigc::bind(sigc::mem_fun(this, &SystemView::OnClickAccel), 1000.f));
 	b->onRelease.connect(sigc::bind(sigc::mem_fun(this, &SystemView::OnClickAccel), 0.0f));
 	b->SetRenderDimensions(19, 17);
-	Add(b, time_controls_left + 83, time_controls_top);
+	//Add(b, time_controls_left + 83, time_controls_top);
 
 	b = new Gui::ImageButton("icons/sysview_accel_f2.png", "icons/sysview_accel_f2_on.png");
 	b->onPress.connect(sigc::bind(sigc::mem_fun(this, &SystemView::OnClickAccel), 100000.f));
 	b->onRelease.connect(sigc::bind(sigc::mem_fun(this, &SystemView::OnClickAccel), 0.0f));
 	b->SetRenderDimensions(19, 17);
-	Add(b, time_controls_left + 102, time_controls_top);
+	//Add(b, time_controls_left + 102, time_controls_top);
 
 	b = new Gui::ImageButton("icons/sysview_accel_f3.png", "icons/sysview_accel_f3_on.png");
 	b->onPress.connect(sigc::bind(sigc::mem_fun(this, &SystemView::OnClickAccel), 10000000.f));
 	b->onRelease.connect(sigc::bind(sigc::mem_fun(this, &SystemView::OnClickAccel), 0.0f));
 	b->SetRenderDimensions(26, 17);
-	Add(b, time_controls_left + 121, time_controls_top);
+	//Add(b, time_controls_left + 121, time_controls_top);
 
 	m_onMouseWheelCon =
 		Pi::input.onMouseWheel.connect(sigc::mem_fun(this, &SystemView::MouseWheel));
@@ -459,16 +459,6 @@ void SystemView::OnClickAccel(float step)
 void SystemView::OnIncreaseFactorButtonClick(void) { m_planner->IncreaseFactor(); }
 void SystemView::OnResetFactorButtonClick(void) { m_planner->ResetFactor(); }
 void SystemView::OnDecreaseFactorButtonClick(void) { m_planner->DecreaseFactor(); }
-
-void SystemView::SetShipDrawing(ShipDrawing drawing)
-{
-	m_shipDrawing = drawing;
-	switch (m_shipDrawing) {
-	case OFF: m_shipLabels->Clear(); break;
-	case BOXES: RefreshShips(); break;
-	case ORBITS: RefreshShips(); break;
-	}
-}
 
 void SystemView::OnToggleShipsButtonClick(void)
 {
@@ -675,7 +665,7 @@ void SystemView::PutLabel(const SystemBody *b, const vector3d &offset)
 	if (Gui::Screen::Project(offset, pos) && pos.z < 1) {
 		// libsigc++ is a beautiful thing
 		//m_objectLabels->Add(b->GetName(), sigc::bind(sigc::mem_fun(this, &SystemView::OnClickObject), b), pos.x, pos.y);
-		AddProjectedBody(b->GetBodyObject(), vector2d(pos.x, pos.y), offset/m_zoom);
+		AddProjectedBody(b->GetBodyObject(), pos, offset/m_zoom);
 	}
 
 	Gui::Screen::LeaveOrtho();
@@ -688,7 +678,7 @@ void SystemView::LabelShip(Ship *s, const vector3d &offset)
 	vector3d pos;
 	if (Gui::Screen::Project(offset, pos) && pos.z < 1) {
 		//m_shipLabels->Add(s->GetLabel(), sigc::bind(sigc::mem_fun(this, &SystemView::OnClickShip), s), pos.x, pos.y);
-		AddProjectedBody(static_cast<Body *>(s), vector2d(pos.x, pos.y), offset / m_zoom);
+		AddProjectedBody(static_cast<Body *>(s), pos, offset / m_zoom);
 	}
 
 	Gui::Screen::LeaveOrtho();
@@ -881,20 +871,23 @@ void SystemView::GetTransformTo(const SystemBody *b, vector3d &pos)
 
 void SystemView::GetTransformTo(const Body *b, vector3d &pos)
 {
+	pos = vector3d(0, 0, 0);
 	const SystemBody* sbody = b->GetSystemBody();
 	if (sbody)
 		GetTransformTo(sbody, pos);
-	else  //if not systembody, then 100% dynamic body?
+	else
 	{
-		const DynamicBody *db = static_cast<const DynamicBody*>(b);
-		pos = vector3d(0., 0., 0.);
-		FrameId bodyFrameId = Pi::game->GetSpace()->GetRootFrame();
-		FrameId rootFrameId = db->GetFrame();
-		//frame position in which the body is located relative to the root frame
-		if (bodyFrameId != rootFrameId)
-			pos -= Frame::GetFrame(bodyFrameId)->GetPositionRelTo(rootFrameId);
-		//body position in its frame at a given time (may be future)
-		pos -= db->ComputeOrbit().OrbitalPosAtTime(m_time - m_game->GetTime());
+		FrameId rootFrameId = Pi::game->GetSpace()->GetRootFrame();
+		FrameId bodyFrameId = b->GetFrame();
+		if (b->GetType() == Object::Type::SHIP
+				&& static_cast<const Ship*>(b)->GetFlightState() != Ship::FlightState::FLYING)
+			pos -= b->GetPositionRelTo(rootFrameId);
+		else
+		{
+			if (bodyFrameId != rootFrameId)
+				pos -= Frame::GetFrame(bodyFrameId)->GetPositionRelTo(rootFrameId);
+			pos -= static_cast<const DynamicBody*>(b)->ComputeOrbit().OrbitalPosAtTime(m_time - m_game->GetTime());
+		}
 		//scaling to camera scale
 		pos *= double(m_zoom);
 	}
@@ -966,17 +959,6 @@ void SystemView::Draw3D()
 
 	UIView::Draw3D();
 }
-void SystemView::ZoomIn()
-{
-	const float ft = Pi::GetFrameTime();
-	m_zoomTo *= pow(ZOOM_IN_SPEED * Pi::GetMoveSpeedShiftModifier(), ft);
-}
-
-void SystemView::ZoomOut()
-{
-	const float ft = Pi::GetFrameTime();
-	m_zoomTo *= pow(ZOOM_OUT_SPEED / Pi::GetMoveSpeedShiftModifier(), ft);
-}
 
 void SystemView::Update()
 {
@@ -985,10 +967,10 @@ void SystemView::Update()
 	if (!Pi::IsConsoleActive()) {
 		if (Pi::input.KeyState(SDLK_EQUALS) ||
 			m_zoomInButton->IsPressed())
-			ZoomIn();
+			m_zoomTo *= pow(ZOOM_IN_SPEED * Pi::GetMoveSpeedShiftModifier(), ft);
 		if (Pi::input.KeyState(SDLK_MINUS) ||
 			m_zoomOutButton->IsPressed())
-			ZoomOut();
+			m_zoomTo *= pow(ZOOM_IN_SPEED * Pi::GetMoveSpeedShiftModifier(), ft);
 
 		// transfer planner buttons
 		if (m_plannerIncreaseStartTimeButton->IsPressed()) {
@@ -1155,103 +1137,16 @@ void SystemView::DrawGrid()
 	m_lines.Draw(Pi::renderer, m_lineState);
 }
 
-vector3d SystemView::Project(const Body *body, vector3d position)
-{
-	// TODO: orbital adjustment for moons
-	Gui::Screen::EnterOrtho();
-	vector3d pos;
-	vector3d offset(0, 0, 0);
-	if (m_selectedObject) GetTransformTo(m_selectedObject, offset);
-	vector3d orbital(0, 0, 0);
-	double t = (m_time - m_game->GetTime());
-	vector3d p;
-	FrameId rootFrameId = Pi::game->GetSpace()->GetRootFrame();
-	Frame *rootFrame = Frame::GetFrame(rootFrameId);
-	SystemBody *rootSystemBody = rootFrame->GetSystemBody();
-	if (body && body->GetType() == Object::SHIP) {
-		Orbit orbit = static_cast<const Ship *>(body)->ComputeOrbit();
-		orbital = orbit.OrbitalPosAtTime(t);
-		FrameId frameId = body->GetFrame();
-		Frame *frame = Frame::GetFrame(frameId);
-		SystemBody *parent = frame->GetSystemBody();
-		if (parent)
-			position = vector3d(0, 0, 0);
-		while (parent && parent != rootSystemBody) {
-			position += parent->GetOrbit().OrbitalPosAtTime(t);
-			parent = parent->GetParent();
-		}
-		if (frameId != Pi::game->GetSpace()->GetRootFrame()) {
-			// orbit is relative to non-root frame, add position
-			p = (position + orbital) * static_cast<double>(m_zoom) + offset;
-		} else {
-			// orbit	 is relative to root frame, already includes position
-			p = orbital * static_cast<double>(m_zoom) + offset;
-		}
-	} else {
-		const SystemBody *sb = body->GetSystemBody();
-		if (sb) {
-			// TODO: this needs to be a hierarchical recursion
-			// Each body is interpolated along it's orbit, but offset by its parent's
-			// interpolated position. The following code does *NOT* work correctly, and still
-			// needs to be adjusted.
-			orbital = sb->GetOrbit().OrbitalPosAtTime(t);
-			const SystemBody *parent = sb->GetParent();
-			if (parent)
-				position = vector3d(0, 0, 0);
-			while (parent && parent != rootSystemBody) {
-				position += parent->GetOrbit().OrbitalPosAtTime(t);
-				parent = parent->GetParent();
-			}
-			// if(parent) {
-			// 	position = parent->GetOrbit().OrbitalPosAtTime(t);
-			// 	parent = parent->GetParent();
-			// 	if(parent && parent != rootSystemBody) {
-			// 	  position += parent->GetOrbit().OrbitalPosAtTime(t);
-			// 	}
-			// }
-			if (sb->GetParent() != rootSystemBody) {
-				// orbit is relative to non-root frame, add position
-				p = (position + orbital) * static_cast<double>(m_zoom) + offset;
-			} else {
-				// orbit is relative to root frame, already includes position
-				p = orbital * static_cast<double>(m_zoom) + offset;
-			}
-		}
-	}
-	if (!Gui::Screen::Project(p, pos) || pos.z > 1)
-		pos = vector3d(0, 0, 0);
-	Gui::Screen::LeaveOrtho();
-	return pos;
-}
-
-static void CalculateBodyPosition(SystemBody *sb, vector3d offset, BodyPositionVector &result)
-{
-}
-
-BodyPositionVector SystemView::GetBodyPositions()
-{
-	Gui::Screen::EnterOrtho();
-	vector3d pos(0, 0, 0);
-	BodyPositionVector result;
-	if (m_selectedObject) GetTransformTo(m_selectedObject, pos);
-
-	if (m_system->GetRootBody()) {
-		CalculateBodyPosition(m_system->GetRootBody().Get(), pos, result);
-	}
-
-	Gui::Screen::LeaveOrtho();
-	return result;
-}
-
-void SystemView::AddProjectedBody(Body *b, vector2d pos, vector3d worldpos)
+void SystemView::AddProjectedBody(Body *b, vector3d pos, vector3d worldpos)
 {
 	float scale[2];
 	Gui::Screen::GetCoords2Pixels(scale);
 	pos.x = pos.x / scale[0];
 	pos.y = pos.y / scale[1];
-	m_projectedBodies.push_back(TScreenSpace(true, pos, vector3d(0, 0, 0)));
+	m_projectedBodies.push_back(TScreenSpace(true, vector2d(pos.x, pos.y), vector3d(0, 0, 0)));
 	m_projectedBodies.back()._body = b;
 	m_projectedBodies.back()._worldpos = worldpos;
+	m_projectedBodies.back()._NDC_z = pos.z;
 }
 
 double SystemView::GetProjectedRadius(double radius, vector3d pos)
@@ -1260,19 +1155,38 @@ double SystemView::GetProjectedRadius(double radius, vector3d pos)
 	pos = pos * m_zoom;
 	matrix4x4d dtrans;
 	matrix4x4ftod(m_trans, dtrans);
-	//printf("drans:\n");
-	//dtrans.Print();
 	pos = dtrans * pos; //position in camera space to know distance
-//	printf("| radius: %f poslen: %f ", radius, pos.Length());
 	//works fine for pretty far object
 	double result = radius * 57.295779513082 / pos.Length() / m_camera_fov;
-//	printf("result: %f ", result);
 	return result;
-	
 }
 
 bool SystemView::SetSelectedObject(Body *b)
 {
 	if (m_selectedObject == b) return true;
 	m_selectedObject = b; return false;
+}
+
+void SystemView::BodyInaccessible(Body *b)
+{
+	if (m_selectedObject == b) m_selectedObject = nullptr;
+}
+
+void SystemView::SetVisibility(std::string param)
+{
+	if (param == "RESET_VIEW") ResetViewpoint();
+	else if (param == "GRID_OFF") m_gridDrawing = GridDrawing::OFF;
+	else if (param == "GRID_ON") m_gridDrawing = GridDrawing::GRID;
+	else if (param == "GRID_AND_LEGS") m_gridDrawing = GridDrawing::GRID_AND_LEGS;
+	else if (param == "LAG_OFF") m_showL4L5 = LAG_OFF;
+	else if (param == "LAG_ICON") m_showL4L5 = LAG_ICON;
+	else if (param == "LAG_ICONTEXT") m_showL4L5 = LAG_ICONTEXT;
+	else if (param == "SHIPS_OFF") m_shipDrawing = OFF;
+	else if (param == "SHIPS_ON") m_shipDrawing = BOXES;
+	else if (param == "SHIPS_ORBITS") m_shipDrawing = ORBITS;
+	else if (param == "ZOOM_IN") 
+		m_zoomTo *= pow(ZOOM_IN_SPEED * Pi::GetMoveSpeedShiftModifier(), Pi::GetFrameTime());
+	else if (param == "ZOOM_OUT") 
+		m_zoomTo *= pow(ZOOM_OUT_SPEED * Pi::GetMoveSpeedShiftModifier(), Pi::GetFrameTime());
+	else Output("Unknown visibility: %s\n", param.c_str());
 }
