@@ -19,8 +19,7 @@ struct TScreenSpace
 	bool _onScreen;
 	vector2d _screenPosition;
 	vector3d _direction;
-	vector3d _worldpos;
-	double _NDC_z;
+	double _NDC_z; // z in Normalized Device Coordinates (for 3d grouping objects)
 	Body *_body;
 };
 

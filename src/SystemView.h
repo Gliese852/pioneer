@@ -88,7 +88,6 @@ public:
 	void OnClickAccel(float step);
 	void OnClickRealt();
 	TSS_vector GetProjectedBodies() const { return m_projectedBodies; }
-	double GetProjectedRadius(double radius, vector3d pos); // the radius is returned in fractions of the screen width
 	bool SetSelectedObject(Body* b);
 	void BodyInaccessible(Body *b);
 	void SetVisibility(std::string param);
@@ -104,13 +103,7 @@ private:
 	void PutSelectionBox(const vector3d &worldPos, const Color &col);
 	void GetTransformTo(const SystemBody *b, vector3d &pos);
 	void GetTransformTo(const Body *b, vector3d &pos);
-	void OnClickObject(const SystemBody *b);
 	void OnClickLagrange();
-	void OnIncreaseFactorButtonClick(void), OnResetFactorButtonClick(void), OnDecreaseFactorButtonClick(void);
-	void OnIncreaseStartTimeButtonClick(void), OnResetStartTimeButtonClick(void), OnDecreaseStartTimeButtonClick(void);
-	void OnToggleShipsButtonClick(void);
-	void OnToggleGridButtonClick(void);
-	void OnToggleL4L5ButtonClick(Gui::MultiStateImageButton *);
 	void ResetViewpoint();
 	void MouseWheel(bool up);
 	void RefreshShips(void);
@@ -118,7 +111,6 @@ private:
 	void PrepareGrid();
 	void DrawGrid();
 	void LabelShip(Ship *s, const vector3d &offset);
-	void OnClickShip(Ship *s);
 	void AddProjectedBody(Body *b, vector3d pos, vector3d worldpos);
 
 	Game *m_game;
@@ -129,36 +121,17 @@ private:
 	ShowLagrange m_showL4L5;
 	TransferPlanner *m_planner;
 	std::list<std::pair<Ship *, Orbit>> m_contacts;
-	Gui::LabelSet *m_shipLabels;
 	ShipDrawing m_shipDrawing;
 	GridDrawing m_gridDrawing;
 	int m_grid_lines;
-	float m_rot_x, m_rot_z;
-	float m_rot_x_to, m_rot_z_to;
+	float m_rot_x, m_rot_y;
+	float m_rot_x_to, m_rot_y_to;
 	float m_zoom, m_zoomTo;
 	double m_time;
 	bool m_realtime;
 	double m_timeStep;
-	matrix4x4f m_trans;
-	Gui::ImageButton *m_zoomInButton;
-	Gui::ImageButton *m_zoomOutButton;
-	Gui::ImageButton *m_toggleShipsButton;
-	Gui::ImageButton *m_toggleGridButton;
-	Gui::ImageButton *m_ResetOrientButton;
-	Gui::MultiStateImageButton *m_toggleL4L5Button;
-	Gui::ImageButton *m_plannerIncreaseStartTimeButton, *m_plannerResetStartTimeButton, *m_plannerDecreaseStartTimeButton;
-	Gui::ImageButton *m_plannerIncreaseFactorButton, *m_plannerResetFactorButton, *m_plannerDecreaseFactorButton;
-	Gui::ImageButton *m_plannerAddProgradeVelButton;
-	Gui::ImageButton *m_plannerAddRetrogradeVelButton;
-	Gui::ImageButton *m_plannerAddNormalVelButton;
-	Gui::ImageButton *m_plannerAddAntiNormalVelButton;
-	Gui::ImageButton *m_plannerAddRadiallyInVelButton;
-	Gui::ImageButton *m_plannerAddRadiallyOutVelButton;
-	Gui::ImageButton *m_plannerZeroProgradeVelButton, *m_plannerZeroNormalVelButton, *m_plannerZeroRadialVelButton;
-	Gui::Label *m_timePoint;
 	Gui::Label *m_infoLabel;
 	Gui::Label *m_infoText;
-	Gui::Label *m_plannerFactorText, *m_plannerStartTimeText, *m_plannerProgradeDvText, *m_plannerNormalDvText, *m_plannerRadialDvText;
 	Gui::LabelSet *m_objectLabels;
 	sigc::connection m_onMouseWheelCon;
 

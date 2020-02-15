@@ -707,14 +707,6 @@ static int l_space_attr_root_system_body(lua_State *l)
 	return 1;
 }
 
-static int l_space_get_root_body(lua_State *l)
-{
-	Frame *frame = Frame::GetFrame(Pi::game->GetSpace()->GetRootFrame());
-	Body *body = frame->GetBody();
-	LuaObject<Body>::PushToLua(body);
-	return 1;
-}
-
 void LuaSpace::Register()
 {
 	lua_State *l = Lua::manager->GetLuaState();
@@ -731,8 +723,9 @@ void LuaSpace::Register()
 
 		{ "GetBody", l_space_get_body },
 		{ "GetBodies", l_space_get_bodies },
+
+
 		{ "DbgDumpFrames", l_space_dump_frames },
-		{ "GetRootBody", l_space_get_root_body },
 		{ 0, 0 }
 	};
 

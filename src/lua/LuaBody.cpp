@@ -278,14 +278,6 @@ static int l_body_get_position_rel_to(lua_State *l)
 	return 1;
 }
 
-static int l_body_get_position(lua_State *l)
-{
-	Body *b = LuaObject<Body>::CheckFromLua(1);
-	vector3d position = b->GetPosition();
-	LuaPush(l, position);
-	return 1;
-}
-
 /*
  * Method: GetAltitudeRelTo
  *
@@ -783,7 +775,6 @@ void LuaObject<Body>::RegisterClass()
 		{ "GetVelocityRelTo", l_body_get_velocity_rel_to },
 		{ "GetPositionRelTo", l_body_get_position_rel_to },
 		{ "GetAltitudeRelTo", l_body_get_altitude_rel_to },
-		{ "GetPosition", l_body_get_position },
 		{ "GetProjectedScreenPosition", l_body_get_projected_screen_position },
 		{ "GetTargetIndicatorScreenPosition", l_body_get_target_indicator_screen_position },
 		{ "GetPhysicalRadius", l_body_get_phys_radius },

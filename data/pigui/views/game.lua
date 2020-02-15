@@ -29,7 +29,7 @@ ui.reticuleCircleThickness = reticuleCircleThickness
 
 -- settings
 local ASTEROID_RADIUS = 1500000 -- rocky planets smaller than this (in meters) are considered an asteroid, not a planet
-local IN_SPACE_INDICATOR_SHIP_MAX_DISTANCE = 1e64 -- ships farther away than this don't show up on as in-space indicators
+local IN_SPACE_INDICATOR_SHIP_MAX_DISTANCE = 1000000 -- ships farther away than this don't show up on as in-space indicators
 -- center of screen, set each frame by the handler
 local center = nil
 
@@ -45,7 +45,7 @@ local gameView = {
 import("pigui.libs.view-util").mixin_modules(gameView)
 
 
-function gameView.getBodyIcon(body)
+local function getBodyIcon(body)
 	local st = body.superType
 	local t = body.type
 	if st == "STARPORT" then
@@ -146,7 +146,6 @@ local function displayOnScreenObjects()
 	local click_radius = collapse:length() * 0.5
 	-- make click_radius sufficiently smaller than the cluster size
 	-- to prevent overlap of selection regions
-	--
 	if Game.CurrentView() == "system" then
 		gameView.bodies_grouped = Engine.SystemMapGetProjectedBodiesGrouped(collapse, 1e64)
 	else
@@ -158,7 +157,7 @@ local function displayOnScreenObjects()
 		local mainBody = group.mainBody
 		local mainCoords = group.screenCoordinates
 
-		ui.addIcon(mainCoords, gameView.getBodyIcon(mainBody), colors.frame, iconsize, ui.anchor.center, ui.anchor.center)
+		ui.addIcon(mainCoords, getBodyIcon(mainBody), colors.frame, iconsize, ui.anchor.center, ui.anchor.center)
 
 		if should_show_label then
 			local label = mainBody:GetLabel()
@@ -178,6 +177,7 @@ local function displayOnScreenObjects()
 		-- mouse release handler
 		if (mp - mainCoords):length() < click_radius then
 			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0)
+				-- if in systemview, first click: center object, second: select object
 				 and (Game.CurrentView() ~= "system" or Engine.SystemMapCenterBody(mainBody))
 				then
 				if group.hasNavTarget then
@@ -208,7 +208,7 @@ local function displayOnScreenObjects()
 		ui.popup("navtarget" .. mainBody:GetLabel(), function()
 			local small_iconsize = Vector2(16,16)
 			for _,b in pairs(group.bodies) do
-				ui.icon(gameView.getBodyIcon(b), small_iconsize, colors.frame)
+				ui.icon(getBodyIcon(b), small_iconsize, colors.frame)
 				ui.sameLine()
 				if ui.selectable(b:GetLabel(), b == navTarget, {}) then
 					if b:IsShip() then

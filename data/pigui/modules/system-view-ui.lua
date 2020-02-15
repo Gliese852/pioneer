@@ -3,13 +3,8 @@ local Game = import('Game')
 local gameView = import('pigui.views.game')
 local ui = import('pigui/pigui.lua')
 local Vector2 = _G.Vector2
-local Event = import('Event')
 local Lang = import("Lang")
 local lc = Lang.GetResource("core")
-local lui = Lang.GetResource("ui-core");
-local Equipment = import("Equipment")
-local Space = import("Space")
-local utils = import('utils')
 
 local player = nil
 local colors = ui.theme.colors
@@ -17,7 +12,8 @@ local icons = ui.theme.icons
 
 local mainButtonSize = Vector2(32,32)  * (ui.screenHeight / 1200)
 local mainButtonFramePadding = 3
-local itemSpacing = Vector2(8,4) -- couldn't get default from ui
+local itemSpacing = Vector2(8, 4) -- couldn't get default from ui
+local indicatorSize = Vector2(30 , 30)
 
 local function showDvLine(leftIcon, resetIcon, rightIcon, key, Formatter, leftTooltip, resetTooltip, rightTooltip)
 	local wheel = function()
@@ -49,7 +45,9 @@ local function showDvLine(leftIcon, resetIcon, rightIcon, key, Formatter, leftTo
 	ui.text(speed .. " " .. speed_unit)
 	return 0
 end
+
 local time_selected_button_icon = icons.time_center
+
 local function timeButton(icon, tooltip, factor)
 	if ui.coloredSelectedIconButton(icon, mainButtonSize, false, mainButtonFramePadding, colors.buttonBlue, colors.white, tooltip) then
 		time_selected_button_icon = icon
@@ -61,7 +59,9 @@ local function timeButton(icon, tooltip, factor)
 	ui.sameLine()
 	return active
 end
+
 local function VisibilityCircle(a, b, c) return { [a] = b, [b] = c, [c] = a } end
+
 local ship_drawing = "SHIPS_OFF"
 local show_lagrange = "LAG_OFF"
 local show_grid = "GRID_OFF"
@@ -83,13 +83,17 @@ local function calcWindowHeight(buttons, separators, texts)
 	+ itemSpacing.x * 2
 end
 
+local orbitPlannerWindowPos = Vector2(ui.screenWidth - calcWindowWidth(7), ui.screenHeight - calcWindowHeight(7, 3, 2))
+
 local function showOrbitPlannerWindow()
-	ui.setNextWindowPos(Vector2(ui.screenWidth - calcWindowWidth(7), ui.screenHeight - calcWindowHeight(7, 3, 2)), "Always")
+	ui.setNextWindowPos(orbitPlannerWindowPos, "Always")
 	ui.withStyleColors({["WindowBg"] = colors.lightBlackBackground}, function()
 			ui.window("OrbitPlannerWindow", {"NoTitleBar", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings", "AlwaysAutoResize"},
 								function()
 									ui.text("Orbit planner")
+
 									ui.separator()
+
 									if ui.coloredSelectedIconButton(icons.systemmap_reset_view, mainButtonSize, showShips, mainButtonFramePadding, colors.buttonBlue, colors.white, "Reset view") then
 										Engine.SystemMapSetVisibility("RESET_VIEW")
 									end
@@ -118,6 +122,7 @@ local function showOrbitPlannerWindow()
 									if ui.isItemActive() then
 										Engine.SystemMapSetVisibility("ZOOM_OUT");
 									end
+
 									ui.separator()
 
 									showDvLine(icons.orbit_reduce, icons.orbit_delta, icons.orbit_increase, "factor", function(i) return i, "x" end, "Decrease delta factor", "Reset delta factor", "Increase delta factor")
@@ -137,6 +142,7 @@ local function showOrbitPlannerWindow()
 									showDvLine(icons.orbit_reduce, icons.orbit_radial, icons.orbit_increase, "radial", ui.Format.Speed, "Thrust radially out", "Reset radial thrust", "Thrust radially in")
 
 									ui.separator()
+
 									local t = Engine.SystemMapGetOrbitPlannerTime()
 									ui.text(t and ui.Format.Datetime(t) or "now")
 									local r = false
@@ -157,11 +163,11 @@ local function showOrbitPlannerWindow()
 			end)
 	end)
 end
+
 local function tabular(data)
 	if data and #data > 0 then
 		ui.columns(2, "Attributes", true)
 		for _,item in pairs(data) do
-			-- ui.setColumnOffset(1, width / 4)
 			if item.value then
 				ui.text(item.name)
 				ui.nextColumn()
@@ -172,11 +178,11 @@ local function tabular(data)
 		ui.columns(1, "NoAttributes", false)
 	end
 end
+
 local function showTargetInfoWindow(body)
 	local systemBody
 	if body then systemBody = body:GetSystemBody() else return end
-	local width = ui.screenWidth / 5
-	ui.setNextWindowSize(Vector2(width, 0), "Always")
+	ui.setNextWindowSize(Vector2(ui.screenWidth / 5, 0), "Always")
 	ui.setNextWindowPos(Vector2(20, (ui.screenHeight / 5) * 2 + 20), "Always")
 	ui.withStyleColors({["WindowBg"] = colors.lightBlackBackground}, function()
 			ui.window("TargetInfoWindow", {"NoTitleBar", "AlwaysAutoResize", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings"},
@@ -242,22 +248,17 @@ local function showTargetInfoWindow(body)
 end
 
 local function showIndicators()
-	local size = Vector2(30 , 30)
 	local navTarget = player:GetNavTarget()
 	local combatTarget = player:GetCombatTarget()
 	for _,group in ipairs(gameView.bodies_grouped) do
 		local mainBody = group.mainBody
 		local mainCoords = group.screenCoordinates
 		if mainBody == navTarget then
-			ui.addIcon(mainCoords, icons.square, colors.navTarget, size, ui.anchor.center, ui.anchor.center)
+			ui.addIcon(mainCoords, icons.square, colors.navTarget, indicatorSize, ui.anchor.center, ui.anchor.center)
 		elseif mainBody == combatTarget then
-			ui.addIcon(mainCoords, icons.square, colors.combatTarget, size, ui.anchor.center, ui.anchor.center)
+			ui.addIcon(mainCoords, icons.square, colors.combatTarget, indicatorSize, ui.anchor.center, ui.anchor.center)
 		end
 	end
-end
-
-local function setTarget(body)
-		player:SetNavTarget(body)
 end
 
 local function displaySystemViewUI()

@@ -1122,14 +1122,12 @@ static int l_engine_system_map_get_projected_bodies_grouped(lua_State *l)
 		// never collapse combat target
 		if (obj._body != combat_target) {
 			for (GroupInfo &group : groups) {
-				//3d distance from main body, in screen pixels 
-				//double dist = sv->GetProjectedRadius((obj._worldpos - group.m_mainBody._worldpos).Length(), obj._worldpos) * Graphics::GetScreenWidth();
+				//3d distance from main body, in screen pixels
 				if (std::abs(obj._screenPosition.x - group.m_mainBody._screenPosition.x) < gap.x
 						&& std::abs(obj._screenPosition.y - group.m_mainBody._screenPosition.y) < gap.y
 						&& std::abs(obj._NDC_z - group.m_mainBody._NDC_z) * Graphics::GetScreenWidth() * 10 < gap.x)
 				{
 					// body inside group boundaries: insert into group
-					// printf("%s - %s: dist=%f, gap=%f\n", group.m_mainBody._body->GetLabel().c_str(), obj._body->GetLabel().c_str(), dist, gap.x);
 					group.m_bodies.push_back(obj);
 					if (obj._body == nav_target) {
 						group.m_hasNavTarget = true;
