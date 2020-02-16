@@ -1091,48 +1091,67 @@ static int l_engine_system_map_center_body(lua_State *l)
 	return 1;
 }
 
-static int l_engine_system_map_get_projected_bodies_grouped(lua_State *l)
+LuaTable l_engine_projectable_to_lua_row(Projectable p, lua_State *l)
+{
+	LuaTable proj_table(l, 0, 2);
+	switch (p.type)
+	{
+		case Projectable::OBJECT: proj_table.Set("type", "OBJECT"); break;
+		case Projectable::L4: proj_table.Set("type", "L4"); break;
+		case Projectable::L5: proj_table.Set("type", "L5"); break;
+		case Projectable::APOAPSIS: proj_table.Set("type", "APOAPSIS"); break;
+		case Projectable::PERIAPSIS: proj_table.Set("type", "PERIAPSIS"); break;
+	}
+	switch (p.reftype)
+	{
+		case Projectable::BODY: proj_table.Set("body", const_cast<Body*>(p.ref.body)); break;
+		case Projectable::SYSTEMBODY: proj_table.Set("sbody", const_cast<SystemBody*>(p.ref.sbody)); break;
+	}
+	return proj_table;
+}
+
+static int l_engine_system_map_get_projected_grouped(lua_State *l)
 {
 	SystemView *sv = Pi::game->GetSystemView();
 	const vector2d gap = LuaPull<vector2d>(l, 1);
 
-	TSS_vector filtered = sv->GetProjectedBodies();
+	std::vector<Projectable> projected = sv->GetProjected();
 
 	struct GroupInfo {
-		TScreenSpace m_mainBody;
-		TSS_vector m_bodies; // to not forget screen coords
+		Projectable m_mainObject;
+		std::vector<Projectable> m_objects;
 		bool m_hasNavTarget;
 
-		GroupInfo(TScreenSpace b, bool isNavTarget) :
-			m_mainBody(b),
+		GroupInfo(Projectable p, bool isNavTarget) :
+			m_mainObject(p),
 			m_hasNavTarget(isNavTarget)
 		{
-			m_bodies.push_back(b);
+			m_objects.push_back(p);
 		}
 	};
 
 	std::vector<GroupInfo> groups;
-	groups.reserve(filtered.size());
+	groups.reserve(projected.size());
 	const Body *nav_target = Pi::game->GetPlayer()->GetNavTarget();
 	const Body *combat_target = Pi::game->GetPlayer()->GetCombatTarget();
 
-	for (TScreenSpace &obj : filtered) {
+	for (Projectable &p : projected) {
 		bool inserted = false;
 
 		// never collapse combat target
-		if (obj._body != combat_target) {
+		if (p.reftype == Projectable::BODY && p.ref.body != combat_target) {
 			for (GroupInfo &group : groups) {
 				//3d distance from main body, in screen pixels
-				if (std::abs(obj._screenPosition.x - group.m_mainBody._screenPosition.x) < gap.x
-						&& std::abs(obj._screenPosition.y - group.m_mainBody._screenPosition.y) < gap.y
-						&& std::abs(obj._NDC_z - group.m_mainBody._NDC_z) * Graphics::GetScreenWidth() * 10 < gap.x)
+				if (std::abs(p.screenpos.x - group.m_mainObject.screenpos.x) < gap.x
+						&& std::abs(p.screenpos.y - group.m_mainObject.screenpos.y) < gap.y
+						&& std::abs(p.screenpos.z - group.m_mainObject.screenpos.z) * Graphics::GetScreenWidth() * 10 < gap.x)
 				{
-					// body inside group boundaries: insert into group
-					group.m_bodies.push_back(obj);
-					if (obj._body == nav_target) {
+					// object inside group boundaries: insert into group
+					group.m_objects.push_back(p);
+					if (p.reftype == Projectable::BODY && p.ref.body == nav_target) {
 						group.m_hasNavTarget = true;
 						// nav target becomes main body
-						group.m_mainBody = obj;
+						group.m_mainObject = p;
 					}
 					inserted = true;
 					break;
@@ -1141,42 +1160,45 @@ static int l_engine_system_map_get_projected_bodies_grouped(lua_State *l)
 		}
 		if (!inserted) {
 			// create new group
-			GroupInfo newgroup(obj, obj._body == nav_target ? true : false);
+			GroupInfo newgroup(p, p.reftype == Projectable::BODY && p.ref.body == nav_target ? true : false);
 			groups.push_back(std::move(newgroup));
 		}
 	}
 
+	//TODO sorting func
 	// Sort each groups member according to a given function
+	/*
 	for (GroupInfo &group : groups) {
-		std::sort(begin(group.m_bodies), end(group.m_bodies),
-			[](TScreenSpace a, TScreenSpace b) {
-				return first_body_is_more_important_than(a._body, b._body);
+		std::sort(begin(group.m_all), end(group.m_all),
+			[](Projectable a, Projectable b) {
+				return first_is_more_important_than(a, b);
 			});
 		if (!group.m_hasNavTarget) {
 			// make most important body the main body
-			group.m_mainBody = group.m_bodies.front();
+			group.m_main = group.m_all.front();
 		}
 	}
+	*/
 
 	LuaTable result(l, groups.size(), 0);
 	int index = 1;
 
 	for (GroupInfo &group : groups) {
 		LuaTable info_table(l, 0, 5);
-		LuaTable bodies_table(l, group.m_bodies.size(), 0);
+		LuaTable objects_table(l, group.m_objects.size(), 0);
 
-		info_table.Set("screenCoordinates", group.m_mainBody._screenPosition);
-		info_table.Set("mainBody", group.m_mainBody._body);
-
-		std::vector<Body *> bodies_only;
-		bodies_only.reserve(group.m_bodies.size());
-		for(TScreenSpace b : group.m_bodies)
-			bodies_only.emplace_back(b._body);
-		bodies_table.LoadVector(bodies_only.begin(), bodies_only.end());
-
-		info_table.Set("bodies", bodies_table);
+		info_table.Set("screenCoordinates", group.m_mainObject.screenpos);
+		info_table.Set("mainObject", l_engine_projectable_to_lua_row(group.m_mainObject, l));
 		lua_pop(l, 1);
-		info_table.Set("multiple", group.m_bodies.size() > 1 ? true : false);
+		int objects_table_index = 1;
+		for(Projectable p : group.m_objects)
+		{
+			objects_table.Set(objects_table_index++, l_engine_projectable_to_lua_row(p, l));
+			lua_pop(l, 1);
+		}
+		info_table.Set("objects", objects_table);
+		lua_pop(l, 1);
+		info_table.Set("multiple", group.m_objects.size() > 1 ? true : false);
 		info_table.Set("hasNavTarget", group.m_hasNavTarget);
 		result.Set(index++, info_table);
 		lua_pop(l, 1);
@@ -1184,6 +1206,7 @@ static int l_engine_system_map_get_projected_bodies_grouped(lua_State *l)
 	LuaPush(l, result);
 	return 1;
 }
+
 
 static int l_engine_system_map_selected_object(lua_State *l)
 {
@@ -1411,7 +1434,7 @@ void LuaEngine::Register()
 		{ "SectorMapRemoveRouteItem", l_engine_sector_map_remove_route_item },
 		{ "SectorMapClearRoute", l_engine_sector_map_clear_route },
 		{ "SectorMapAddToRoute", l_engine_sector_map_add_to_route },
-		{ "SystemMapGetProjectedBodiesGrouped", l_engine_system_map_get_projected_bodies_grouped },
+		{ "SystemMapGetProjectedGrouped", l_engine_system_map_get_projected_grouped },
 		{ "SystemMapSelectedObject", l_engine_system_map_selected_object },
 		{ "SystemMapGetOrbitPlannerStartTime", l_engine_system_map_get_orbit_planner_start_time },
 		{ "SystemMapGetOrbitPlannerTime", l_engine_system_map_get_orbit_planner_time },

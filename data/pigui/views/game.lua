@@ -147,7 +147,7 @@ local function displayOnScreenObjects()
 	-- make click_radius sufficiently smaller than the cluster size
 	-- to prevent overlap of selection regions
 	if Game.CurrentView() == "system" then
-		gameView.bodies_grouped = Engine.SystemMapGetProjectedBodiesGrouped(collapse, 1e64)
+		 -- gameView.bodies_grouped = Engine.SystemMapGetProjectedBodiesGrouped(collapse, 1e64)
 	else
 		gameView.bodies_grouped = ui.getProjectedBodiesGrouped(collapse, IN_SPACE_INDICATOR_SHIP_MAX_DISTANCE)
 	end
@@ -178,7 +178,7 @@ local function displayOnScreenObjects()
 		if (mp - mainCoords):length() < click_radius then
 			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0)
 				-- if in systemview, first click: center object, second: select object
-				 and (Game.CurrentView() ~= "system" or Engine.SystemMapCenterBody(mainBody))
+				 -- and (Game.CurrentView() ~= "system" or Engine.SystemMapCenterBody(mainBody))
 				then
 				if group.hasNavTarget then
 					-- if clicked and has nav target, unset nav target
@@ -281,8 +281,8 @@ ui.registerHandler('game', function(delta_t)
 						ui.radialMenu("worldloopworld")
 					elseif Game.CurrentView() == "system" then
 						if not Game.InHyperspace() then
-							 gameView.modules["onscreen-objects"]:draw(delta_t)
-						   ui.radialMenu("worldloopworld")
+							--  gameView.modules["onscreen-objects"]:draw(delta_t)
+						   -- ui.radialMenu("worldloopworld")
 						end
 					else
 						ui.radialMenu("worldloopnotworld")

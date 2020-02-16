@@ -76,23 +76,46 @@ private:
 
 typedef std::vector<std::pair<std::pair<const Body*,const SystemBody*>, vector3d>> BodyPositionVector;
 
+struct Projectable
+{
+	enum types { NONE, OBJECT, L4, L5, APOAPSIS, PERIAPSIS } type;
+	enum reftypes { BODY, SYSTEMBODY } reftype;
+	union{
+		const Body* body;
+		const SystemBody* sbody;
+	} ref;
+	vector3d screenpos;
+
+	Projectable(const types t, const Body* b, vector3d spos) : type(t), screenpos(spos)
+	{
+		reftype = BODY;
+		ref.body = b;
+	}
+	Projectable(const types t, const SystemBody* sb, vector3d spos) : type(t), screenpos(spos)
+	{
+		reftype = SYSTEMBODY;
+		ref.sbody = sb;
+	}
+	Projectable() : type(NONE) {}
+};
+
 class SystemView: public UIView {
 public:
 	SystemView(Game *game);
 	virtual ~SystemView();
 	virtual void Update();
 	virtual void Draw3D();
-	const Body *GetSelectedObject() const { return m_selectedObject; }
+	const Body *GetSelectedObject();
 	double GetOrbitPlannerStartTime() const { return m_planner->GetStartTime(); }
 	double GetOrbitPlannerTime() const { return m_time; }
 	void OnClickAccel(float step);
 	void OnClickRealt();
-	TSS_vector GetProjectedBodies() const { return m_projectedBodies; }
+	std::vector<Projectable> GetProjected() const { return m_projected; }
 	bool SetSelectedObject(Body* b);
 	void BodyInaccessible(Body *b);
 	void SetVisibility(std::string param);
 private:
-	TSS_vector m_projectedBodies;
+	std::vector<Projectable> m_projected;
 	static const double PICK_OBJECT_RECT_SIZE;
 	static const Uint16 N_VERTICES_MAX;
 	const double m_camera_fov = 50.f;
@@ -102,7 +125,7 @@ private:
 	void PutSelectionBox(const SystemBody *b, const vector3d &rootPos, const Color &col);
 	void PutSelectionBox(const vector3d &worldPos, const Color &col);
 	void GetTransformTo(const SystemBody *b, vector3d &pos);
-	void GetTransformTo(const Body *b, vector3d &pos);
+	void GetTransformTo(Projectable p, vector3d &pos);
 	void OnClickLagrange();
 	void ResetViewpoint();
 	void MouseWheel(bool up);
@@ -111,12 +134,13 @@ private:
 	void PrepareGrid();
 	void DrawGrid();
 	void LabelShip(Ship *s, const vector3d &offset);
-	void AddProjectedBody(Body *b, vector3d pos, vector3d worldpos);
+	void AddProjected(Projectable p);
 
 	Game *m_game;
 	RefCountedPtr<StarSystem> m_system;
-	const Body *m_selectedObject;
+	Projectable m_selectedObject;
 	std::vector<SystemBody *> m_displayed_sbody;
+	std::vector<Body *> m_farSystemBodyObjects;
 	bool m_unexplored;
 	ShowLagrange m_showL4L5;
 	TransferPlanner *m_planner;

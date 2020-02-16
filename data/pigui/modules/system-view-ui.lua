@@ -15,6 +15,8 @@ local mainButtonFramePadding = 3
 local itemSpacing = Vector2(8, 4) -- couldn't get default from ui
 local indicatorSize = Vector2(30 , 30)
 
+local pionillium = ui.fonts.pionillium
+
 local function showDvLine(leftIcon, resetIcon, rightIcon, key, Formatter, leftTooltip, resetTooltip, rightTooltip)
 	local wheel = function()
 		if ui.isItemHovered() then
@@ -164,6 +166,141 @@ local function showOrbitPlannerWindow()
 	end)
 end
 
+local function getBodyIcon(obj)
+	-- print("obj" .. obj);
+	if obj.sbody then
+		local body = obj.sbody
+		local st =body.superType
+		local t = body.type
+		if st == "STARPORT" then
+			if t == "STARPORT_ORBITAL" then
+				return icons.spacestation
+			elseif body.type == "STARPORT_SURFACE" then
+				return icons.starport
+			end
+		elseif st == "GAS_GIANT" then
+			return icons.gas_giant
+		elseif st == "STAR" then
+			return icons.sun
+		elseif st == "ROCKY_PLANET" then
+	--		if body:IsMoon() then
+				return icons.moon
+	--		else
+	--			local sb = body:GetSystemBody()
+	--			if sb.radius < ASTEROID_RADIUS then
+	--				return icons.asteroid_hollow
+	--			else
+	--				return icons.rocky_planet
+	--			end
+	--		end
+		end -- st
+	else
+		local body = obj.body
+		if body:IsShip() then
+			local shipClass = body:GetShipClass()
+			if icons[shipClass] then
+				return icons[shipClass]
+			else
+				print("data/pigui/game.lua: getBodyIcon unknown ship class " .. (shipClass and shipClass or "nil"))
+				return icons.ship -- TODO: better icon
+			end
+		elseif body:IsHyperspaceCloud() then
+			return icons.hyperspace -- TODO: better icon
+		elseif body:IsMissile() then
+			return icons.bullseye -- TODO: better icon
+		elseif body:IsCargoContainer() then
+			return icons.rocky_planet -- TODO: better icon
+		else
+			print("data/pigui/game.lua: getBodyIcon not sure how to process body, supertype: " .. (st and st or "nil") .. ", type: " .. (t and t or "nil"))
+			utils.print_r(body)
+			return icons.ship
+		end
+	end
+end
+
+local function getLabel(obj)
+	if obj.body then return obj.body:GetLabel() else return obj.sbody.name end
+end
+
+local function displayOnScreenObjects()
+	if ui.altHeld() and not ui.isAnyWindowHovered() and ui.isMouseClicked(1) then
+		local frame = player.frameBody
+		if frame then
+			ui.openRadialMenu(frame, 1, 30, radial_menu_actions_orbital)
+		end
+	end
+	local navTarget = player:GetNavTarget()
+	local combatTarget = player:GetCombatTarget()
+
+	ui.radialMenu("onscreenobjects")
+
+	local should_show_label = ui.shouldShowLabels()
+	local iconsize = Vector2(18 , 18)
+	local label_offset = 14 -- enough so that the target rectangle fits
+	local collapse = iconsize -- size of clusters to be collapsed into single bodies
+	local click_radius = collapse:length() * 0.5
+	-- make click_radius sufficiently smaller than the cluster size
+	-- to prevent overlap of selection regions
+	local bodies_grouped = Engine.SystemMapGetProjectedGrouped(collapse, 1e64)
+
+
+	for _,group in ipairs(bodies_grouped) do
+		local mainObject = group.mainObject
+		local mainBody
+		if mainObject.body then mainBody = mainObject.body else mainBody = mainObject.sbody end
+		local mainCoords = Vector2(group.screenCoordinates.x, group.screenCoordinates.y)
+
+		ui.addIcon(mainCoords, getBodyIcon(mainObject), colors.frame, iconsize, ui.anchor.center, ui.anchor.center)
+
+		if should_show_label then
+			local label = getLabel(mainObject)
+			if group.multiple then
+				label = label .. " (" .. #group.bodies .. ")"
+			end
+			ui.addStyledText(mainCoords + Vector2(label_offset,0), ui.anchor.left, ui.anchor.center, label , colors.frame, pionillium.small)
+		end
+		local mp = ui.getMousePos()
+		-- mouse release handler for radial menu
+		if (mp - mainCoords):length() < click_radius then
+			if not ui.isAnyWindowHovered() and ui.isMouseClicked(1) then
+				-- local body = mainBody
+				-- ui.openDefaultRadialMenu(body)
+			end
+		end
+		-- mouse release handler
+		if (mp - mainCoords):length() < click_radius then
+			if false -- not ui.isAnyWindowHovered() and ui.isMouseReleased(0)
+				-- if in systemview, first click: center object, second: select object
+			--	 and (Game.CurrentView() ~= "system" or Engine.SystemMapCenterBody(mainBody))
+				then
+				if group.hasNavTarget then
+					-- if clicked and has nav target, unset nav target
+					player:SetNavTarget(nil)
+					navTarget = nil
+				elseif combatTarget == mainBody then
+					-- if clicked and has combat target, unset nav target
+					player:SetCombatTarget(nil)
+					combatTarget = nil
+				elseif not group.multiple then
+					-- clicked on single, just set navtarget/combatTarget
+					setTarget(mainBody)
+					if ui.ctrlHeld() then
+						local target = mainBody
+						if target == player:GetSetSpeedTarget() then
+							target = nil
+						end
+						player:SetSetSpeedTarget(target)
+					end
+				else
+					-- clicked on group, show popup
+					ui.openPopup("navtarget" .. mainBody:GetLabel())
+				end
+			end
+		end
+		-- popup content
+	end
+end
+
 local function tabular(data)
 	if data and #data > 0 then
 		ui.columns(2, "Attributes", true)
@@ -267,9 +404,10 @@ local function displaySystemViewUI()
 
 	if current_view == "system" and not Game.InHyperspace() then
 		ui.withFont(ui.fonts.pionillium.medium.name, ui.fonts.pionillium.medium.size, function()
-									showOrbitPlannerWindow()
-									showIndicators()
-									showTargetInfoWindow(Engine.SystemMapSelectedObject())
+			displayOnScreenObjects()
+			showOrbitPlannerWindow()
+			showIndicators()
+			showTargetInfoWindow(Engine.SystemMapSelectedObject())
 		end)
 	end
 end

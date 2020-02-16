@@ -28,8 +28,8 @@ const double SystemView::PICK_OBJECT_RECT_SIZE = 12.0;
 const Uint16 SystemView::N_VERTICES_MAX = 100;
 static const float MIN_ZOOM = 1e-30f; // Just to avoid having 0
 static const float MAX_ZOOM = 1e30f;
-static const float ZOOM_IN_SPEED = 2;
-static const float ZOOM_OUT_SPEED = 2;
+static const float ZOOM_IN_SPEED = 3;
+static const float ZOOM_OUT_SPEED = 3;
 static const float WHEEL_SENSITIVITY = .1f; // Should be a variable in user settings.
 static const double DEFAULT_VIEW_DISTANCE = 10.0;
 
@@ -285,7 +285,7 @@ void SystemView::OnClickRealt()
 
 void SystemView::ResetViewpoint()
 {
-	m_selectedObject = 0;
+	m_selectedObject.type = Projectable::NONE;
 	m_rot_y = 0;
 	m_rot_x = 50;
 	m_rot_y_to = m_rot_y;
@@ -381,7 +381,7 @@ void SystemView::PutLabel(const SystemBody *b, const vector3d &offset)
 
 	vector3d pos;
 	if (Gui::Screen::Project(offset, pos) && pos.z < 1) {
-		AddProjectedBody(b->GetBodyObject(), pos, offset/m_zoom);
+		AddProjected(Projectable(Projectable::OBJECT, b, pos));
 	}
 	Gui::Screen::LeaveOrtho();
 }
@@ -392,7 +392,7 @@ void SystemView::LabelShip(Ship *s, const vector3d &offset)
 
 	vector3d pos;
 	if (Gui::Screen::Project(offset, pos) && pos.z < 1) {
-		AddProjectedBody(static_cast<Body *>(s), pos, offset / m_zoom);
+		AddProjected(Projectable(Projectable::OBJECT, static_cast<Body *>(s), pos));
 	}
 
 	Gui::Screen::LeaveOrtho();
@@ -529,14 +529,16 @@ void SystemView::GetTransformTo(const SystemBody *b, vector3d &pos)
 	}
 }
 
-void SystemView::GetTransformTo(const Body *b, vector3d &pos)
+void SystemView::GetTransformTo(Projectable p, vector3d &pos)
 {
 	pos = vector3d(0, 0, 0);
-	const SystemBody* sbody = b->GetSystemBody();
-	if (sbody)
-		GetTransformTo(sbody, pos);
+	if (p.reftype == Projectable::BODY)
+		GetTransformTo(p.ref.sbody, pos);
+	else if (p.reftype == Projectable::BODY && p.ref.body->GetSystemBody())
+		GetTransformTo(p.ref.body->GetSystemBody(), pos);
 	else // if not systembody, then 100% dynamic body?
 	{
+		Body* b = p.ref.body;
 		FrameId rootFrameId = m_game->GetSpace()->GetRootFrame();
 		FrameId bodyFrameId = b->GetFrame();
 		if (b->GetType() == Object::Type::SHIP
@@ -558,6 +560,8 @@ void SystemView::Draw3D()
 	PROFILE_SCOPED()
 	m_renderer->SetPerspectiveProjection(m_camera_fov, m_renderer->GetDisplayAspect(), 1.f, 1000.f * m_zoom * float(AU) + DEFAULT_VIEW_DISTANCE * 2);
 	m_renderer->ClearScreen();
+	m_projected.clear();
+	//TODO add reserve
 
 	SystemPath path = m_game->GetSectorView()->GetSelected().SystemOnly();
 	if (m_system) {
@@ -567,7 +571,6 @@ void SystemView::Draw3D()
 		}
 	}
 
-	m_projectedBodies.clear();
 
 	if (m_realtime) {
 		m_time = m_game->GetTime();
@@ -589,7 +592,7 @@ void SystemView::Draw3D()
 	m_renderer->SetTransform(trans);
 
 	vector3d pos(0, 0, 0);
-	if (m_selectedObject) GetTransformTo(m_selectedObject, pos);
+	if (m_selectedObject.type != Projectable::NONE) GetTransformTo(m_selectedObject, pos);
 
 	// glLineWidth(2);
 	m_objectLabels->Clear();
@@ -680,7 +683,7 @@ void SystemView::DrawShips(const double t, const vector3d &offset)
 			}
 			pos += (bpos + (*s).second.OrbitalPosAtTime(t)) * double(m_zoom);
 		}
-		const bool isSelected = m_selectedObject == (*s).first;
+		const bool isSelected = m_selectedObject.reftype == Projectable::BODY && m_selectedObject.ref.body == (*s).first;
 		LabelShip((*s).first, pos);
 
 		if (m_shipDrawing == ORBITS && (*s).first->GetFlightState() == Ship::FlightState::FLYING)
@@ -709,7 +712,7 @@ void SystemView::DrawGrid()
 
 	float zoom = m_zoom * float(AU);
 	vector3d pos(0.);
-	if (m_selectedObject) GetTransformTo(m_selectedObject, pos);
+	if (m_selectedObject.type != Projectable::NONE) GetTransformTo(m_selectedObject, pos);
 
 	for (int i = -m_grid_lines; i < m_grid_lines + 1; i++) {
 		float z = float(i) * zoom;
@@ -735,26 +738,24 @@ void SystemView::DrawGrid()
 	m_lines.Draw(Pi::renderer, m_lineState);
 }
 
-void SystemView::AddProjectedBody(Body *b, vector3d pos, vector3d worldpos)
+void SystemView::AddProjected(Projectable p)
 {
 	float scale[2];
 	Gui::Screen::GetCoords2Pixels(scale);
-	pos.x = pos.x / scale[0];
-	pos.y = pos.y / scale[1];
-	m_projectedBodies.push_back(TScreenSpace(true, vector2d(pos.x, pos.y), vector3d(0, 0, 0)));
-	m_projectedBodies.back()._body = b;
-	m_projectedBodies.back()._NDC_z = pos.z;
+	p.screenpos.x = p.screenpos.x / scale[0];
+	p.screenpos.y = p.screenpos.y / scale[1];
+	m_projected.push_back(p);
 }
 
 bool SystemView::SetSelectedObject(Body *b)
 {
-	if (m_selectedObject == b) return true;
-	m_selectedObject = b; return false;
+	if (m_selectedObject.reftype == Projectable::BODY && m_selectedObject.ref.body == b) return true;
+	m_selectedObject.reftype = Projectable::BODY; m_selectedObject.ref.body = b; return false;
 }
 
 void SystemView::BodyInaccessible(Body *b)
 {
-	if (m_selectedObject == b) m_selectedObject = nullptr;
+	if (m_selectedObject.reftype == Projectable::BODY && m_selectedObject.ref.body == b) m_selectedObject.type = Projectable::NONE;
 }
 
 void SystemView::SetVisibility(std::string param)
@@ -774,4 +775,11 @@ void SystemView::SetVisibility(std::string param)
 	else if (param == "ZOOM_OUT")
 		m_zoomTo *= pow(ZOOM_OUT_SPEED * Pi::GetMoveSpeedShiftModifier(), Pi::GetFrameTime());
 	else Output("Unknown visibility: %s\n", param.c_str());
+}
+
+const Body* SystemView::GetSelectedObject()
+{
+	if (m_selectedObject.reftype == Projectable::BODY)
+		return m_selectedObject.ref.body;
+	return nullptr;
 }
