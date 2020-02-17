@@ -1083,17 +1083,22 @@ static int l_engine_get_sector_map_factions(lua_State *l)
 	return 1;
 }
 
-static int l_engine_system_map_center_body(lua_State *l)
+static int l_engine_system_map_center_on(lua_State *l)
 {
 	SystemView *sv = Pi::game->GetSystemView();
-	Body *b = LuaObject<Body>::CheckFromLua(1);
-	lua_pushboolean(l, sv->SetSelectedObject(b));
-	return 1;
+	Projectable::types type = static_cast<Projectable::types>(luaL_checkinteger(l, 1));
+	Projectable::reftypes reftype = static_cast<Projectable::reftypes>(luaL_checkinteger(l, 2));
+	if(reftype == Projectable::BODY)
+		sv->CenterOn(Projectable(type, LuaObject<Body>::CheckFromLua(3)));
+	else
+		sv->CenterOn(Projectable(type, LuaObject<SystemBody>::CheckFromLua(3)));
+	return 0;
 }
 
+/*
 LuaTable l_engine_projectable_to_lua_row(Projectable p, lua_State *l)
 {
-	LuaTable proj_table(l, 0, 2);
+	LuaTable proj_table(l, 0, 3);
 	switch (p.type)
 	{
 		case Projectable::OBJECT: proj_table.Set("type", "OBJECT"); break;
@@ -1104,8 +1109,32 @@ LuaTable l_engine_projectable_to_lua_row(Projectable p, lua_State *l)
 	}
 	switch (p.reftype)
 	{
-		case Projectable::BODY: proj_table.Set("body", const_cast<Body*>(p.ref.body)); break;
-		case Projectable::SYSTEMBODY: proj_table.Set("sbody", const_cast<SystemBody*>(p.ref.sbody)); break;
+		case Projectable::BODY:
+			proj_table.Set("reftype", "BODY");
+			proj_table.Set("ref", const_cast<Body*>(p.ref.body));
+			break;
+		case Projectable::SYSTEMBODY:
+			proj_table.Set("reftype", "SYSTEMBODY");
+			proj_table.Set("ref", const_cast<SystemBody*>(p.ref.sbody));
+			break;
+	}
+	return proj_table;
+}
+*/
+
+LuaTable l_engine_projectable_to_lua_row(Projectable p, lua_State *l)
+{
+	LuaTable proj_table(l, 0, 3);
+	proj_table.Set("type", int(p.type));
+	proj_table.Set("reftype", int(p.reftype));
+	switch (p.reftype)
+	{
+		case Projectable::BODY:
+			proj_table.Set("ref", const_cast<Body*>(p.ref.body));
+			break;
+		case Projectable::SYSTEMBODY:
+			proj_table.Set("ref", const_cast<SystemBody*>(p.ref.sbody));
+			break;
 	}
 	return proj_table;
 }
@@ -1139,7 +1168,7 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 		bool inserted = false;
 
 		// never collapse combat target
-		if (p.reftype == Projectable::BODY && p.ref.body != combat_target) {
+		if (!(p.type == Projectable::OBJECT && p.reftype == Projectable::BODY && p.ref.body == combat_target)) {
 			for (GroupInfo &group : groups) {
 				//3d distance from main body, in screen pixels
 				if (std::abs(p.screenpos.x - group.m_mainObject.screenpos.x) < gap.x
@@ -1148,11 +1177,22 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 				{
 					// object inside group boundaries: insert into group
 					group.m_objects.push_back(p);
-					if (p.reftype == Projectable::BODY && p.ref.body == nav_target) {
-						group.m_hasNavTarget = true;
-						// nav target becomes main body
-						group.m_mainObject = p;
-					}
+					if (nav_target && p.type == Projectable::OBJECT)
+						if (p.reftype == Projectable::BODY) 
+						{
+							if (p.ref.body == nav_target) //sub if to get rid of unnecessary calculations
+							{ // I can not come up with an bool expression in one line
+								group.m_hasNavTarget = true;
+								group.m_mainObject = p;
+							}
+						}
+						// this check ONLY if p.reftype != Projectable::BODY
+						else if ( p.ref.sbody == nav_target->GetSystemBody())
+						{
+							group.m_hasNavTarget = true;
+							group.m_mainObject = p;
+						}
+				
 					inserted = true;
 					break;
 				}
@@ -1211,12 +1251,9 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 static int l_engine_system_map_selected_object(lua_State *l)
 {
 	SystemView *sv = Pi::game->GetSystemView();
-	Body *b = const_cast<Body*>(sv->GetSelectedObject());
-	if (b) {
-		LuaObject<Body>::PushToLua(b);
-		return 1;
-	}
-	return 0;
+	Projectable p = sv->GetSelectedObject();
+	LuaPush(l, l_engine_projectable_to_lua_row(p, l));
+	return 1;
 }
 
 static int l_engine_system_map_set_visibility(lua_State *l)
@@ -1439,7 +1476,7 @@ void LuaEngine::Register()
 		{ "SystemMapGetOrbitPlannerStartTime", l_engine_system_map_get_orbit_planner_start_time },
 		{ "SystemMapGetOrbitPlannerTime", l_engine_system_map_get_orbit_planner_time },
 		{ "SystemMapAccelerateTime", l_engine_system_map_accelerate_time },
-		{ "SystemMapCenterBody", l_engine_system_map_center_body },
+		{ "SystemMapCenterOn", l_engine_system_map_center_on },
 		{ "SystemMapSetVisibility", l_engine_system_map_set_visibility },
 		{ "TransferPlannerAdd", l_engine_transfer_planner_add },
 		{ "TransferPlannerGet", l_engine_transfer_planner_get },

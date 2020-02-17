@@ -11,7 +11,6 @@
 #include "galaxy/RingStyle.h"
 #include "galaxy/SystemPath.h"
 #include "gameconsts.h"
-#include "Body.h"
 
 class StarSystem;
 
@@ -219,9 +218,6 @@ public:
 
 	const std::string &GetSpaceStationType() const { return m_space_station_type; }
 
-	Body* GetBodyObject() const { return m_body_object; }
-	void SetBodyObject(Body* b) { m_body_object = b; }
-
 private:
 	friend class StarSystem;
 	friend class ObjectViewerView;
@@ -278,7 +274,6 @@ private:
 	double m_atmosDensity;
 
 	StarSystem *m_system;
-	Body* m_body_object;
 
 	std::string m_space_station_type;
 };

@@ -15,12 +15,11 @@ bool first_body_is_more_important_than(Body* body, Body* other);
 
 struct TScreenSpace
 {
+	TScreenSpace(const bool onScreen, const vector2d &screenPos, const vector3d &direction) : _onScreen(onScreen), _screenPosition(screenPos), _direction(direction) {}
 	bool _onScreen;
 	vector2d _screenPosition;
 	vector3d _direction;
-	double _NDC_z; // z in Normalized Device Coordinates (for 3d grouping objects)
 	Body *_body;
-	TScreenSpace(const bool onScreen, const vector2d &screenPos, const vector3d &direction) : _onScreen(onScreen), _screenPosition(screenPos), _direction(direction) {}
 };
 
 typedef std::vector<TScreenSpace> TSS_vector;

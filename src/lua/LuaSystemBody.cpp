@@ -655,6 +655,12 @@ static int l_sbody_attr_children(lua_State *l)
 	return 1;
 }
 
+static int l_sbody_attr_is_moon(lua_State *l)
+{
+	LuaPush<bool>(l, LuaObject<SystemBody>::CheckFromLua(1)->IsMoon());
+	return 1;
+}
+
 template <>
 const char *LuaObject<SystemBody>::s_type = "SystemBody";
 
@@ -694,6 +700,7 @@ void LuaObject<SystemBody>::RegisterClass()
 		{ "path", l_sbody_attr_path },
 		{ "body", l_sbody_attr_body },
 		{ "children", l_sbody_attr_children },
+		{ "isMoon", l_sbody_attr_is_moon },
 		{ 0, 0 }
 	};
 

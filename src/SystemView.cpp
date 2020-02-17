@@ -532,13 +532,13 @@ void SystemView::GetTransformTo(const SystemBody *b, vector3d &pos)
 void SystemView::GetTransformTo(Projectable p, vector3d &pos)
 {
 	pos = vector3d(0, 0, 0);
-	if (p.reftype == Projectable::BODY)
+	if (p.reftype == Projectable::SYSTEMBODY)
 		GetTransformTo(p.ref.sbody, pos);
 	else if (p.reftype == Projectable::BODY && p.ref.body->GetSystemBody())
 		GetTransformTo(p.ref.body->GetSystemBody(), pos);
 	else // if not systembody, then 100% dynamic body?
 	{
-		Body* b = p.ref.body;
+		const Body* b = p.ref.body;
 		FrameId rootFrameId = m_game->GetSpace()->GetRootFrame();
 		FrameId bodyFrameId = b->GetFrame();
 		if (b->GetType() == Object::Type::SHIP
@@ -747,10 +747,15 @@ void SystemView::AddProjected(Projectable p)
 	m_projected.push_back(p);
 }
 
-bool SystemView::SetSelectedObject(Body *b)
+void SystemView::CenterOn(Projectable p)
 {
-	if (m_selectedObject.reftype == Projectable::BODY && m_selectedObject.ref.body == b) return true;
-	m_selectedObject.reftype = Projectable::BODY; m_selectedObject.ref.body = b; return false;
+	//if (m_selectedObject.reftype == Projectable::BODY && m_selectedObject.ref.body == b) return true;
+	//m_selectedObject.reftype = Projectable::BODY; m_selectedObject.ref.body = b; return false;
+	m_selectedObject.type = p.type;
+	m_selectedObject.reftype = p.reftype;
+	if (p.reftype == Projectable::BODY) m_selectedObject.ref.body = p.ref.body;
+	else m_selectedObject.ref.sbody = p.ref.sbody;
+	Output("selected: %d, %d", m_selectedObject.type, m_selectedObject.reftype);
 }
 
 void SystemView::BodyInaccessible(Body *b)
@@ -777,9 +782,7 @@ void SystemView::SetVisibility(std::string param)
 	else Output("Unknown visibility: %s\n", param.c_str());
 }
 
-const Body* SystemView::GetSelectedObject()
+Projectable SystemView::GetSelectedObject()
 {
-	if (m_selectedObject.reftype == Projectable::BODY)
-		return m_selectedObject.ref.body;
-	return nullptr;
+	return m_selectedObject;
 }

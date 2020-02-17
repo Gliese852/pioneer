@@ -16,6 +16,21 @@ local itemSpacing = Vector2(8, 4) -- couldn't get default from ui
 local indicatorSize = Vector2(30 , 30)
 
 local pionillium = ui.fonts.pionillium
+local ASTEROID_RADIUS = 1500000 -- rocky planets smaller than this (in meters) are considered an asteroid, not a planet
+
+-- fake enum
+local Projectable = { 
+	-- types
+	NONE = 0,
+	OBJECT = 1,
+	L4 = 2,
+	L5 = 3,
+	APOAPSIS = 4,
+	PERIAPSIS = 5,
+	-- reftypes
+	BODY = 0,
+	SYSTEMBODY = 1
+}
 
 local function showDvLine(leftIcon, resetIcon, rightIcon, key, Formatter, leftTooltip, resetTooltip, rightTooltip)
 	local wheel = function()
@@ -168,9 +183,9 @@ end
 
 local function getBodyIcon(obj)
 	-- print("obj" .. obj);
-	if obj.sbody then
-		local body = obj.sbody
-		local st =body.superType
+	if obj.reftype == Projectable.SYSTEMBODY then
+		local body = obj.ref
+		local st = body.superType
 		local t = body.type
 		if st == "STARPORT" then
 			if t == "STARPORT_ORBITAL" then
@@ -183,19 +198,18 @@ local function getBodyIcon(obj)
 		elseif st == "STAR" then
 			return icons.sun
 		elseif st == "ROCKY_PLANET" then
-	--		if body:IsMoon() then
+			if body.IsMoon then
 				return icons.moon
-	--		else
-	--			local sb = body:GetSystemBody()
-	--			if sb.radius < ASTEROID_RADIUS then
-	--				return icons.asteroid_hollow
-	--			else
-	--				return icons.rocky_planet
-	--			end
-	--		end
+			else
+				if body.radius < ASTEROID_RADIUS then
+					return icons.asteroid_hollow
+				else
+					return icons.rocky_planet
+				end
+			end
 		end -- st
 	else
-		local body = obj.body
+		local body = obj.ref
 		if body:IsShip() then
 			local shipClass = body:GetShipClass()
 			if icons[shipClass] then
@@ -219,7 +233,7 @@ local function getBodyIcon(obj)
 end
 
 local function getLabel(obj)
-	if obj.body then return obj.body:GetLabel() else return obj.sbody.name end
+	if obj.reftype == Projectable.BODY then return obj.ref:GetLabel() else return obj.ref.name end
 end
 
 local function displayOnScreenObjects()
@@ -241,38 +255,41 @@ local function displayOnScreenObjects()
 	local click_radius = collapse:length() * 0.5
 	-- make click_radius sufficiently smaller than the cluster size
 	-- to prevent overlap of selection regions
-	local bodies_grouped = Engine.SystemMapGetProjectedGrouped(collapse, 1e64)
+	local objects_grouped = Engine.SystemMapGetProjectedGrouped(collapse, 1e64)
 
-
-	for _,group in ipairs(bodies_grouped) do
+	for _,group in ipairs(objects_grouped) do
 		local mainObject = group.mainObject
-		local mainBody
-		if mainObject.body then mainBody = mainObject.body else mainBody = mainObject.sbody end
 		local mainCoords = Vector2(group.screenCoordinates.x, group.screenCoordinates.y)
+		if mainObject.reftype == Projectable.BODY and mainObject.ref == navTarget
+			or mainObject.reftype == Projectable.SYSTEMBODY and navTarget and mainObject.ref == navTarget:GetSystemBody()
+			then
+			ui.addIcon(mainCoords, icons.square, colors.navTarget, indicatorSize, ui.anchor.center, ui.anchor.center)
+		elseif mainObject.reftype == Projectable.BODY and mainObject.ref == combatTarget then
+			ui.addIcon(mainCoords, icons.square, colors.combatTarget, indicatorSize, ui.anchor.center, ui.anchor.center)
+		end
 
 		ui.addIcon(mainCoords, getBodyIcon(mainObject), colors.frame, iconsize, ui.anchor.center, ui.anchor.center)
 
 		if should_show_label then
 			local label = getLabel(mainObject)
 			if group.multiple then
-				label = label .. " (" .. #group.bodies .. ")"
+				label = label .. " (" .. #group.objects .. ")"
 			end
 			ui.addStyledText(mainCoords + Vector2(label_offset,0), ui.anchor.left, ui.anchor.center, label , colors.frame, pionillium.small)
 		end
 		local mp = ui.getMousePos()
-		-- mouse release handler for radial menu
+		-- mouse release handler for right button
 		if (mp - mainCoords):length() < click_radius then
 			if not ui.isAnyWindowHovered() and ui.isMouseClicked(1) then
-				-- local body = mainBody
-				-- ui.openDefaultRadialMenu(body)
+				-- TODO right button popup
 			end
 		end
 		-- mouse release handler
 		if (mp - mainCoords):length() < click_radius then
-			if false -- not ui.isAnyWindowHovered() and ui.isMouseReleased(0)
-				-- if in systemview, first click: center object, second: select object
-			--	 and (Game.CurrentView() ~= "system" or Engine.SystemMapCenterBody(mainBody))
+			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0)
 				then
+					Engine.SystemMapCenterOn(mainObject.type, mainObject.reftype, mainObject.ref)
+--[[
 				if group.hasNavTarget then
 					-- if clicked and has nav target, unset nav target
 					player:SetNavTarget(nil)
@@ -295,6 +312,7 @@ local function displayOnScreenObjects()
 					-- clicked on group, show popup
 					ui.openPopup("navtarget" .. mainBody:GetLabel())
 				end
+			]]
 			end
 		end
 		-- popup content
@@ -316,16 +334,16 @@ local function tabular(data)
 	end
 end
 
-local function showTargetInfoWindow(body)
-	local systemBody
-	if body then systemBody = body:GetSystemBody() else return end
+local function showTargetInfoWindow(obj)
+	if obj.type == Projectable.NONE then return end
 	ui.setNextWindowSize(Vector2(ui.screenWidth / 5, 0), "Always")
 	ui.setNextWindowPos(Vector2(20, (ui.screenHeight / 5) * 2 + 20), "Always")
 	ui.withStyleColors({["WindowBg"] = colors.lightBlackBackground}, function()
 			ui.window("TargetInfoWindow", {"NoTitleBar", "AlwaysAutoResize", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings"},
 								function()
 									local data
-									if systemBody then
+									if obj.type == Projectable.OBJECT and obj.reftype == Projectable.SYSTEMBODY then
+										local systemBody = obj.ref
 										local name = systemBody.name
 										local rp = systemBody.rotationPeriod * 24 * 60 * 60
 										local r = systemBody.radius
@@ -353,7 +371,8 @@ local function showTargetInfoWindow(body)
 											{ name = lc.ORBITAL_PERIOD,
 												value = op and op > 0 and ui.Format.Duration(op, 2) or nil }
 										}
-									elseif body and body:IsShip() then
+									elseif obj.type == Projectable.OBJECT and obj.reftype == Projectable.BODY and obj.ref:IsShip() then
+										local body = obj.ref
 										local name = body.label
 										data = {{ name = lc.NAME_OBJECT,
 															value = name },
@@ -406,7 +425,6 @@ local function displaySystemViewUI()
 		ui.withFont(ui.fonts.pionillium.medium.name, ui.fonts.pionillium.medium.size, function()
 			displayOnScreenObjects()
 			showOrbitPlannerWindow()
-			showIndicators()
 			showTargetInfoWindow(Engine.SystemMapSelectedObject())
 		end)
 	end

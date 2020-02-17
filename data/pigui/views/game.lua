@@ -44,7 +44,6 @@ local gameView = {
 
 import("pigui.libs.view-util").mixin_modules(gameView)
 
-
 local function getBodyIcon(body)
 	local st = body.superType
 	local t = body.type
@@ -125,8 +124,6 @@ local radial_menu_actions_orbital = {
 	 action=function(target) Game.player:SetFlightControlState("CONTROL_FIXHEADING_FORWARD") end},
 }
 
-gameView.bodies_grouped = {}
-
 local function displayOnScreenObjects()
 	if ui.altHeld() and not ui.isAnyWindowHovered() and ui.isMouseClicked(1) then
 		local frame = player.frameBody
@@ -146,14 +143,10 @@ local function displayOnScreenObjects()
 	local click_radius = collapse:length() * 0.5
 	-- make click_radius sufficiently smaller than the cluster size
 	-- to prevent overlap of selection regions
-	if Game.CurrentView() == "system" then
-		 -- gameView.bodies_grouped = Engine.SystemMapGetProjectedBodiesGrouped(collapse, 1e64)
-	else
-		gameView.bodies_grouped = ui.getProjectedBodiesGrouped(collapse, IN_SPACE_INDICATOR_SHIP_MAX_DISTANCE)
-	end
 
+	local bodies_grouped = ui.getProjectedBodiesGrouped(collapse, IN_SPACE_INDICATOR_SHIP_MAX_DISTANCE)
 
-	for _,group in ipairs(gameView.bodies_grouped) do
+	for _,group in ipairs(bodies_grouped) do
 		local mainBody = group.mainBody
 		local mainCoords = group.screenCoordinates
 
@@ -176,10 +169,7 @@ local function displayOnScreenObjects()
 		end
 		-- mouse release handler
 		if (mp - mainCoords):length() < click_radius then
-			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0)
-				-- if in systemview, first click: center object, second: select object
-				 -- and (Game.CurrentView() ~= "system" or Engine.SystemMapCenterBody(mainBody))
-				then
+			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0) then
 				if group.hasNavTarget then
 					-- if clicked and has nav target, unset nav target
 					player:SetNavTarget(nil)
@@ -279,11 +269,6 @@ ui.registerHandler('game', function(delta_t)
 					if Game.CurrentView() == "world" then
 						drawGameModules(gameView.modules)
 						ui.radialMenu("worldloopworld")
-					elseif Game.CurrentView() == "system" then
-						if not Game.InHyperspace() then
-							--  gameView.modules["onscreen-objects"]:draw(delta_t)
-						   -- ui.radialMenu("worldloopworld")
-						end
 					else
 						ui.radialMenu("worldloopnotworld")
 					end

@@ -11,6 +11,7 @@
 #include "vector3.h"
 #include "LuaTable.h"
 #include "LuaPiGui.h"
+#include "enum_table.h"
 
 class StarSystem;
 class SystemBody;
@@ -78,8 +79,20 @@ typedef std::vector<std::pair<std::pair<const Body*,const SystemBody*>, vector3d
 
 struct Projectable
 {
-	enum types { NONE, OBJECT, L4, L5, APOAPSIS, PERIAPSIS } type;
-	enum reftypes { BODY, SYSTEMBODY } reftype;
+	enum types { // <enum scope='Projectable' public>
+	 	NONE = 0,
+		OBJECT = 1,
+		L4 = 2,
+	 	L5 = 3,
+		APOAPSIS = 4,
+		PERIAPSIS = 5
+	} type;
+
+	enum reftypes { // <enum scope='Projectable' public>
+		BODY = 0,
+		SYSTEMBODY = 1
+	} reftype;
+
 	union{
 		const Body* body;
 		const SystemBody* sbody;
@@ -96,6 +109,16 @@ struct Projectable
 		reftype = SYSTEMBODY;
 		ref.sbody = sb;
 	}
+	Projectable(const types t, const Body* b) : type(t)
+	{
+		reftype = BODY;
+		ref.body = b;
+	}
+	Projectable(const types t, const SystemBody* sb) : type(t)
+	{
+		reftype = SYSTEMBODY;
+		ref.sbody = sb;
+	}
 	Projectable() : type(NONE) {}
 };
 
@@ -105,13 +128,13 @@ public:
 	virtual ~SystemView();
 	virtual void Update();
 	virtual void Draw3D();
-	const Body *GetSelectedObject();
+	Projectable GetSelectedObject();
 	double GetOrbitPlannerStartTime() const { return m_planner->GetStartTime(); }
 	double GetOrbitPlannerTime() const { return m_time; }
 	void OnClickAccel(float step);
 	void OnClickRealt();
 	std::vector<Projectable> GetProjected() const { return m_projected; }
-	bool SetSelectedObject(Body* b);
+	void CenterOn(Projectable p);
 	void BodyInaccessible(Body *b);
 	void SetVisibility(std::string param);
 private:
