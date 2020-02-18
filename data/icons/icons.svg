@@ -881,9 +881,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.3962766"
-     inkscape:cx="2831.0476"
-     inkscape:cy="1022.3925"
+     inkscape:zoom="2.241679"
+     inkscape:cx="2144.4511"
+     inkscape:cy="743.84653"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="true"
@@ -902,7 +902,7 @@
      inkscape:showpageshadow="false"
      borderlayer="true"
      showborder="true"
-     inkscape:snap-nodes="true"
+     inkscape:snap-nodes="false"
      inkscape:snap-others="false"
      inkscape:snap-grids="true"
      inkscape:snap-intersection-paths="true">
@@ -8224,7 +8224,7 @@
          x="8163.7798"
          y="-2575.9844" />
       <path
-         style="fill:#fffff6;fill-opacity:1;stroke:#ffffee;stroke-width:14.17322826;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Send)"
+         style="fill:#fffff6;fill-opacity:1;stroke:#ffffee;stroke-width:14.17322793;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Send)"
          d="m 8277.1656,-2462.5985 87.9272,65.9805"
          id="path1588"
          inkscape:connector-curvature="0"
@@ -8234,7 +8234,7 @@
          inkscape:connector-curvature="0"
          id="path8454"
          d="m 8277.1656,-2462.5985 v -70.8662"
-         style="fill:#ffeeff;fill-opacity:1;stroke:#ffffee;stroke-width:14.17322826;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker8458)" />
+         style="fill:#ffeeff;fill-opacity:1;stroke:#ffffee;stroke-width:14.17322793;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker8458)" />
       <path
          style="fill:#fffffd;fill-opacity:1;stroke:#ffffee;stroke-width:14.17322826;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker8674)"
          d="m 8277.1656,-2462.5985 -78.7663,42.2268"
@@ -8609,6 +8609,92 @@
          id="path2314"
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="cc" />
+    </g>
+    <g
+       inkscape:label="Icon Lagrange"
+       inkscape:export-ydpi="90"
+       inkscape:export-xdpi="90"
+       inkscape:export-filename="D:\work\pioneer\graphics_design\icons\bbs_icons\default.png"
+       id="g2317"
+       transform="matrix(7.0866142,0,0,7.0866142,3174.8033,-1215.3545)">
+      <rect
+         y="0"
+         x="0"
+         height="32"
+         width="32"
+         id="rect2313"
+         style="fill:none;stroke:none" />
+      <circle
+         transform="matrix(0.70083945,0,0,0.70083945,3.6107918,5.9623458)"
+         id="circle2315"
+         style="fill:#ffffff;stroke:#ffffff;stroke-width:0.20134585"
+         cx="17.67767"
+         cy="14.32233"
+         r="9.1923885" />
+    </g>
+    <g
+       transform="matrix(-1,0,0,1,4988.9765,2494.4881)"
+       inkscape:label="Icon Periapsis"
+       id="g4985">
+      <desc
+         id="desc4979">Icon </desc>
+      <rect
+         style="opacity:1;fill:none;fill-opacity:1;stroke:none;stroke-width:14.17322826;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect4981"
+         width="226.77165"
+         height="226.77165"
+         x="2948.0315"
+         y="-2349.2126" />
+      <path
+         sodipodi:type="star"
+         style="opacity:1;fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:69.35007477;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="path4983"
+         sodipodi:sides="3"
+         sodipodi:cx="3174.8032"
+         sodipodi:cy="-2349.2126"
+         sodipodi:r1="226.77165"
+         sodipodi:r2="113.38583"
+         sodipodi:arg1="1.5707963"
+         sodipodi:arg2="2.6179939"
+         inkscape:flatsided="true"
+         inkscape:rounded="0"
+         inkscape:randomized="0"
+         d="m 3174.8032,-2122.441 -196.39,-340.1575 392.78,0 z"
+         inkscape:transform-center-y="11.633394"
+         transform="matrix(0.20645741,0,0,0.20230807,2405.9556,-1764.5035)"
+         inkscape:transform-center-x="7.7831932e-05" />
+    </g>
+    <g
+       id="g4993"
+       inkscape:label="Icon Apoapsis"
+       transform="matrix(1,0,0,-1,-907.08654,-1977.1655)">
+      <desc
+         id="desc4987">Icon </desc>
+      <rect
+         y="-2349.2126"
+         x="2948.0315"
+         height="226.77165"
+         width="226.77165"
+         id="rect4989"
+         style="opacity:1;fill:none;fill-opacity:1;stroke:none;stroke-width:14.17322826;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <path
+         inkscape:transform-center-x="7.7831932e-05"
+         transform="matrix(0.20645741,0,0,0.20230807,2405.9556,-1764.5035)"
+         inkscape:transform-center-y="11.633394"
+         d="m 3174.8032,-2122.441 -196.39,-340.1575 392.78,0 z"
+         inkscape:randomized="0"
+         inkscape:rounded="0"
+         inkscape:flatsided="true"
+         sodipodi:arg2="2.6179939"
+         sodipodi:arg1="1.5707963"
+         sodipodi:r2="113.38583"
+         sodipodi:r1="226.77165"
+         sodipodi:cy="-2349.2126"
+         sodipodi:cx="3174.8032"
+         sodipodi:sides="3"
+         id="path4991"
+         style="opacity:1;fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:69.35007477;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         sodipodi:type="star" />
     </g>
   </g>
 </svg>

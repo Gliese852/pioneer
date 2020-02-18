@@ -22,11 +22,14 @@ local ASTEROID_RADIUS = 1500000 -- rocky planets smaller than this (in meters) a
 local Projectable = { 
 	-- types
 	NONE = 0,
-	OBJECT = 1,
-	L4 = 2,
-	L5 = 3,
-	APOAPSIS = 4,
-	PERIAPSIS = 5,
+	PLAYER = 1,
+	OBJECT = 2,
+	L4 = 3,
+	L5 = 4,
+	APOAPSIS = 5,
+	PERIAPSIS = 6,
+	APSIS_GROUP = 7,
+	LAGRANGE_GROUP = 8,
 	-- reftypes
 	BODY = 0,
 	SYSTEMBODY = 1
@@ -182,8 +185,11 @@ local function showOrbitPlannerWindow()
 end
 
 local function getBodyIcon(obj)
-	-- print("obj" .. obj);
-	if obj.reftype == Projectable.SYSTEMBODY then
+	if obj.type == Projectable.APOAPSIS then return icons.apoapsis
+	elseif obj.type == Projectable.PERIAPSIS then return icons.periapsis
+	elseif obj.type == Projectable.L4 then return icons.lagrange
+	elseif obj.type == Projectable.L5 then return icons.lagrange
+	elseif obj.reftype == Projectable.SYSTEMBODY then
 		local body = obj.ref
 		local st = body.superType
 		local t = body.type
@@ -233,7 +239,21 @@ local function getBodyIcon(obj)
 end
 
 local function getLabel(obj)
-	if obj.reftype == Projectable.BODY then return obj.ref:GetLabel() else return obj.ref.name end
+	if obj.type == Projectable.OBJECT then
+		if obj.reftype == Projectable.BODY then return obj.ref:GetLabel() else return obj.ref.name end
+	elseif obj.type == Projectable.L4 and show_lagrange == "LAG_ICONTEXT" then return "L4"
+	elseif obj.type == Projectable.L5 and show_lagrange == "LAG_ICONTEXT" then return "L5"
+	else return ""
+	end
+end
+
+local function getColor(obj)
+	if obj.type == Projectable.OBJECT then return colors.frame end
+	if obj.type == Projectable.APOAPSIS or obj.type == Projectable.PERIAPSIS then
+		if obj.reftype == Projectable.BODY then return colors.blue end
+		return colors.green
+	end
+	return colors.blue
 end
 
 local function displayOnScreenObjects()
@@ -260,62 +280,47 @@ local function displayOnScreenObjects()
 	for _,group in ipairs(objects_grouped) do
 		local mainObject = group.mainObject
 		local mainCoords = Vector2(group.screenCoordinates.x, group.screenCoordinates.y)
-		if mainObject.reftype == Projectable.BODY and mainObject.ref == navTarget
-			or mainObject.reftype == Projectable.SYSTEMBODY and navTarget and mainObject.ref == navTarget:GetSystemBody()
-			then
-			ui.addIcon(mainCoords, icons.square, colors.navTarget, indicatorSize, ui.anchor.center, ui.anchor.center)
-		elseif mainObject.reftype == Projectable.BODY and mainObject.ref == combatTarget then
-			ui.addIcon(mainCoords, icons.square, colors.combatTarget, indicatorSize, ui.anchor.center, ui.anchor.center)
+
+		-- indicators nav and combat target
+		if mainObject.type == Projectable.OBJECT then
+			if mainObject.reftype == Projectable.BODY and mainObject.ref == navTarget or mainObject.reftype == Projectable.SYSTEMBODY and navTarget and mainObject.ref == navTarget:GetSystemBody() then
+				ui.addIcon(mainCoords, icons.square, colors.navTarget, indicatorSize, ui.anchor.center, ui.anchor.center)
+			elseif mainObject.reftype == Projectable.BODY and mainObject.ref == combatTarget then
+				ui.addIcon(mainCoords, icons.square, colors.combatTarget, indicatorSize, ui.anchor.center, ui.anchor.center)
+			end
 		end
 
-		ui.addIcon(mainCoords, getBodyIcon(mainObject), colors.frame, iconsize, ui.anchor.center, ui.anchor.center)
+		ui.addIcon(mainCoords, getBodyIcon(mainObject), getColor(mainObject), iconsize, ui.anchor.center, ui.anchor.center)
 
 		if should_show_label then
 			local label = getLabel(mainObject)
 			if group.multiple then
 				label = label .. " (" .. #group.objects .. ")"
 			end
-			ui.addStyledText(mainCoords + Vector2(label_offset,0), ui.anchor.left, ui.anchor.center, label , colors.frame, pionillium.small)
+			ui.addStyledText(mainCoords + Vector2(label_offset,0), ui.anchor.left, ui.anchor.center, label , getColor(mainObject), pionillium.small)
 		end
 		local mp = ui.getMousePos()
 		-- mouse release handler for right button
 		if (mp - mainCoords):length() < click_radius then
-			if not ui.isAnyWindowHovered() and ui.isMouseClicked(1) then
-				-- TODO right button popup
+			if not ui.isAnyWindowHovered() and ui.isMouseReleased(1) then
+				ui.openPopup("navtarget" .. getLabel(mainObject))
 			end
 		end
 		-- mouse release handler
 		if (mp - mainCoords):length() < click_radius then
-			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0)
-				then
-					Engine.SystemMapCenterOn(mainObject.type, mainObject.reftype, mainObject.ref)
---[[
-				if group.hasNavTarget then
-					-- if clicked and has nav target, unset nav target
-					player:SetNavTarget(nil)
-					navTarget = nil
-				elseif combatTarget == mainBody then
-					-- if clicked and has combat target, unset nav target
-					player:SetCombatTarget(nil)
-					combatTarget = nil
-				elseif not group.multiple then
-					-- clicked on single, just set navtarget/combatTarget
-					setTarget(mainBody)
-					if ui.ctrlHeld() then
-						local target = mainBody
-						if target == player:GetSetSpeedTarget() then
-							target = nil
-						end
-						player:SetSetSpeedTarget(target)
-					end
-				else
-					-- clicked on group, show popup
-					ui.openPopup("navtarget" .. mainBody:GetLabel())
-				end
-			]]
+			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0) and mainObject.type == Projectable.OBJECT then
+				Engine.SystemMapCenterOn(mainObject.type, mainObject.reftype, mainObject.ref)
 			end
 		end
-		-- popup content
+		ui.popup("navtarget" .. getLabel(mainObject), function()
+			if ui.selectable("set as nav target", false, {}) then
+				if mainObject.reftype == Projectable.BODY then
+					player:SetNavTarget(mainObject.ref)
+				elseif mainObject.ref.physicsBody then
+					player:SetNavTarget(mainObject.ref.physicsBody)
+				end
+			end
+		end)
 	end
 end
 
@@ -403,27 +408,13 @@ local function showTargetInfoWindow(obj)
 	end)
 end
 
-local function showIndicators()
-	local navTarget = player:GetNavTarget()
-	local combatTarget = player:GetCombatTarget()
-	for _,group in ipairs(gameView.bodies_grouped) do
-		local mainBody = group.mainBody
-		local mainCoords = group.screenCoordinates
-		if mainBody == navTarget then
-			ui.addIcon(mainCoords, icons.square, colors.navTarget, indicatorSize, ui.anchor.center, ui.anchor.center)
-		elseif mainBody == combatTarget then
-			ui.addIcon(mainCoords, icons.square, colors.combatTarget, indicatorSize, ui.anchor.center, ui.anchor.center)
-		end
-	end
-end
-
 local function displaySystemViewUI()
 	player = Game.player
 	local current_view = Game.CurrentView()
 
 	if current_view == "system" and not Game.InHyperspace() then
-		ui.withFont(ui.fonts.pionillium.medium.name, ui.fonts.pionillium.medium.size, function()
 			displayOnScreenObjects()
+		ui.withFont(ui.fonts.pionillium.medium.name, ui.fonts.pionillium.medium.size, function()
 			showOrbitPlannerWindow()
 			showTargetInfoWindow(Engine.SystemMapSelectedObject())
 		end)

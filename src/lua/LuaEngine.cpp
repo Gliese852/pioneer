@@ -1160,48 +1160,76 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 	};
 
 	std::vector<GroupInfo> groups;
-	groups.reserve(projected.size());
+	std::vector<GroupInfo> orbitIcons;
+	std::vector<GroupInfo> lagrangeIcons;
+	groups.reserve(projected.size() + 2);
 	const Body *nav_target = Pi::game->GetPlayer()->GetNavTarget();
 	const Body *combat_target = Pi::game->GetPlayer()->GetCombatTarget();
+
 
 	for (Projectable &p : projected) {
 		bool inserted = false;
 
-		// never collapse combat target
-		if (!(p.type == Projectable::OBJECT && p.reftype == Projectable::BODY && p.ref.body == combat_target)) {
-			for (GroupInfo &group : groups) {
-				//3d distance from main body, in screen pixels
-				if (std::abs(p.screenpos.x - group.m_mainObject.screenpos.x) < gap.x
-						&& std::abs(p.screenpos.y - group.m_mainObject.screenpos.y) < gap.y
-						&& std::abs(p.screenpos.z - group.m_mainObject.screenpos.z) * Graphics::GetScreenWidth() * 10 < gap.x)
+		// --- icons---
+		if (p.type == Projectable::APOAPSIS || p.type == Projectable::PERIAPSIS)
+			//just take all
+			orbitIcons.push_back(GroupInfo(p, false));
+		else if(p.type == Projectable::L4 || p.type == Projectable::L5)
+		{
+			//take only those who don't intersect with others
+			bool intersect = false;
+			for (GroupInfo &group : lagrangeIcons) {
 				{
-					// object inside group boundaries: insert into group
-					group.m_objects.push_back(p);
-					if (nav_target && p.type == Projectable::OBJECT)
-						if (p.reftype == Projectable::BODY) 
-						{
-							if (p.ref.body == nav_target) //sub if to get rid of unnecessary calculations
-							{ // I can not come up with an bool expression in one line
+					if (std::abs(p.screenpos.x - group.m_mainObject.screenpos.x) < gap.x
+							&& std::abs(p.screenpos.y - group.m_mainObject.screenpos.y) < gap.y
+							&& std::abs(p.screenpos.z - group.m_mainObject.screenpos.z) * Graphics::GetScreenWidth() * 10 < gap.x)
+					{
+						intersect = true;
+						break;
+					}
+				}
+			}
+			if (!intersect)
+				lagrangeIcons.push_back(GroupInfo(p,false));
+		}
+		// --- real objects ---
+		// never collapse combat target
+		else
+		{	 
+			if (!(p.type == Projectable::OBJECT && p.reftype == Projectable::BODY && p.ref.body == combat_target)) {
+				for (GroupInfo &group : groups) {
+					//3d distance from main body, in screen pixels
+					if (std::abs(p.screenpos.x - group.m_mainObject.screenpos.x) < gap.x
+							&& std::abs(p.screenpos.y - group.m_mainObject.screenpos.y) < gap.y
+							&& std::abs(p.screenpos.z - group.m_mainObject.screenpos.z) * Graphics::GetScreenWidth() * 10 < gap.x)
+					{
+						// object inside group boundaries: insert into group
+						group.m_objects.push_back(p);
+						if (nav_target && p.type == Projectable::OBJECT)
+							if (p.reftype == Projectable::BODY) 
+							{
+								if (p.ref.body == nav_target) //sub if to get rid of unnecessary calculations
+								{ // I can not come up with an bool expression in one line
+									group.m_hasNavTarget = true;
+									group.m_mainObject = p;
+								}
+							}
+						// this check ONLY if p.reftype != Projectable::BODY
+							else if ( p.ref.sbody == nav_target->GetSystemBody())
+							{
 								group.m_hasNavTarget = true;
 								group.m_mainObject = p;
 							}
-						}
-						// this check ONLY if p.reftype != Projectable::BODY
-						else if ( p.ref.sbody == nav_target->GetSystemBody())
-						{
-							group.m_hasNavTarget = true;
-							group.m_mainObject = p;
-						}
-				
-					inserted = true;
-					break;
+						inserted = true;
+						break;
+					}
 				}
 			}
-		}
-		if (!inserted) {
-			// create new group
-			GroupInfo newgroup(p, p.reftype == Projectable::BODY && p.ref.body == nav_target ? true : false);
-			groups.push_back(std::move(newgroup));
+			if (!inserted) {
+				// create new group
+				GroupInfo newgroup(p, p.reftype == Projectable::BODY && p.ref.body == nav_target ? true : false);
+				groups.push_back(std::move(newgroup));
+			}
 		}
 	}
 
@@ -1222,6 +1250,47 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 
 	LuaTable result(l, groups.size(), 0);
 	int index = 1;
+	for (GroupInfo &group : orbitIcons) {
+		LuaTable info_table(l, 0, 5);
+		LuaTable objects_table(l, group.m_objects.size(), 0);
+
+		info_table.Set("screenCoordinates", group.m_mainObject.screenpos);
+		info_table.Set("mainObject", l_engine_projectable_to_lua_row(group.m_mainObject, l));
+		lua_pop(l, 1);
+		int objects_table_index = 1;
+		for(Projectable p : group.m_objects)
+		{
+			objects_table.Set(objects_table_index++, l_engine_projectable_to_lua_row(p, l));
+			lua_pop(l, 1);
+		}
+		info_table.Set("objects", objects_table);
+		lua_pop(l, 1);
+		info_table.Set("multiple", group.m_objects.size() > 1 ? true : false);
+		info_table.Set("hasNavTarget", group.m_hasNavTarget);
+		result.Set(index++, info_table);
+		lua_pop(l, 1);
+	}
+
+	for (GroupInfo &group : lagrangeIcons) {
+		LuaTable info_table(l, 0, 5);
+		LuaTable objects_table(l, group.m_objects.size(), 0);
+
+		info_table.Set("screenCoordinates", group.m_mainObject.screenpos);
+		info_table.Set("mainObject", l_engine_projectable_to_lua_row(group.m_mainObject, l));
+		lua_pop(l, 1);
+		int objects_table_index = 1;
+		for(Projectable p : group.m_objects)
+		{
+			objects_table.Set(objects_table_index++, l_engine_projectable_to_lua_row(p, l));
+			lua_pop(l, 1);
+		}
+		info_table.Set("objects", objects_table);
+		lua_pop(l, 1);
+		info_table.Set("multiple", group.m_objects.size() > 1 ? true : false);
+		info_table.Set("hasNavTarget", group.m_hasNavTarget);
+		result.Set(index++, info_table);
+		lua_pop(l, 1);
+	}
 
 	for (GroupInfo &group : groups) {
 		LuaTable info_table(l, 0, 5);
@@ -1243,6 +1312,7 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 		result.Set(index++, info_table);
 		lua_pop(l, 1);
 	}
+
 	LuaPush(l, result);
 	return 1;
 }

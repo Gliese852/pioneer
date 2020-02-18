@@ -79,34 +79,33 @@ typedef std::vector<std::pair<std::pair<const Body*,const SystemBody*>, vector3d
 
 struct Projectable
 {
-	enum types { // <enum scope='Projectable' public>
+	enum types {
 	 	NONE = 0,
-		OBJECT = 1,
-		L4 = 2,
-	 	L5 = 3,
-		APOAPSIS = 4,
-		PERIAPSIS = 5
+		PLAYER = 1,
+		OBJECT = 2,
+		L4 = 3,
+	 	L5 = 4,
+		APOAPSIS = 5,
+		PERIAPSIS = 6,
+		APSIS_GROUP = 7,
+		LAGRANGE_GROUP = 8
 	} type;
-
-	enum reftypes { // <enum scope='Projectable' public>
+	enum reftypes {
 		BODY = 0,
 		SYSTEMBODY = 1
 	} reftype;
-
 	union{
 		const Body* body;
 		const SystemBody* sbody;
 	} ref;
 	vector3d screenpos;
 
-	Projectable(const types t, const Body* b) : type(t)
+	Projectable(const types t, const Body* b) : type(t), reftype(BODY)
 	{
-		reftype = BODY;
 		ref.body = b;
 	}
-	Projectable(const types t, const SystemBody* sb) : type(t)
+	Projectable(const types t, const SystemBody* sb) : type(t), reftype(SYSTEMBODY)
 	{
-		reftype = SYSTEMBODY;
 		ref.sbody = sb;
 	}
 	Projectable() : type(NONE) {}
@@ -131,7 +130,8 @@ private:
 	static const double PICK_OBJECT_RECT_SIZE;
 	static const Uint16 N_VERTICES_MAX;
 	const double m_camera_fov = 50.f;
-	void PutOrbit(const Orbit *orb, const vector3d &offset, const Color &color, const double planetRadius = 0.0, const bool showLagrange = false);
+	template <typename RefType>
+	void PutOrbit(RefType *ref, const Orbit *orb, const vector3d &offset, const Color &color, const double planetRadius = 0.0, const bool showLagrange = false);
 	void PutBody(const SystemBody *b, const vector3d &offset, const matrix4x4f &trans);
 	void PutLabel(const SystemBody *b, const vector3d &offset);
 	void PutSelectionBox(const SystemBody *b, const vector3d &rootPos, const Color &col);

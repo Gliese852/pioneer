@@ -661,6 +661,12 @@ static int l_sbody_attr_is_moon(lua_State *l)
 	return 1;
 }
 
+static int l_sbody_attr_physics_body(lua_State *l)
+{
+	LuaObject<Body>::PushToLua(LuaObject<SystemBody>::CheckFromLua(1)->GetPhysicsBody());
+	return 1;
+}
+
 template <>
 const char *LuaObject<SystemBody>::s_type = "SystemBody";
 
@@ -701,6 +707,7 @@ void LuaObject<SystemBody>::RegisterClass()
 		{ "body", l_sbody_attr_body },
 		{ "children", l_sbody_attr_children },
 		{ "isMoon", l_sbody_attr_is_moon },
+		{ "physicsBody", l_sbody_attr_physics_body },
 		{ 0, 0 }
 	};
 

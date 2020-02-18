@@ -296,7 +296,8 @@ void SystemView::ResetViewpoint()
 	m_time = m_game->GetTime();
 }
 
-void SystemView::PutOrbit(const Orbit *orbit, const vector3d &offset, const Color &color, const double planetRadius, const bool showLagrange)
+template <typename RefType>
+void SystemView::PutOrbit(RefType *ref, const Orbit *orbit, const vector3d &offset, const Color &color, const double planetRadius, const bool showLagrange)
 {
 	double maxT = 1.;
 	unsigned short num_vertices = 0;
@@ -348,24 +349,28 @@ void SystemView::PutOrbit(const Orbit *orbit, const vector3d &offset, const Colo
 	Gui::Screen::EnterOrtho();
 	vector3d pos;
 	if (Gui::Screen::Project(offset + orbit->Perigeum() * double(m_zoom), pos) && pos.z < 1)
-		m_periapsisIcon->Draw(Pi::renderer, vector2f(pos.x - 3, pos.y - 5), vector2f(6, 10), color);
+		AddProjected<RefType>(Projectable::PERIAPSIS, ref, pos);
+		//m_periapsisIcon->Draw(Pi::renderer, vector2f(pos.x - 3, pos.y - 5), vector2f(6, 10), color);
 	if (Gui::Screen::Project(offset + orbit->Apogeum() * double(m_zoom), pos) && pos.z < 1)
-		m_apoapsisIcon->Draw(Pi::renderer, vector2f(pos.x - 3, pos.y - 5), vector2f(6, 10), color);
+		AddProjected<RefType>(Projectable::APOAPSIS, ref, pos);
+		//m_apoapsisIcon->Draw(Pi::renderer, vector2f(pos.x - 3, pos.y - 5), vector2f(6, 10), color);
 
 	if (showLagrange && m_showL4L5 != LAG_OFF) {
 		const Color LPointColor(0x00d6e2ff);
 		const vector3d posL4 = orbit->EvenSpacedPosTrajectory((1.0 / 360.0) * 60.0, tMinust0);
 		if (Gui::Screen::Project(offset + posL4 * double(m_zoom), pos) && pos.z < 1) {
-			m_l4Icon->Draw(Pi::renderer, vector2f(pos.x - 2, pos.y - 2), vector2f(4, 4), LPointColor);
-			if (m_showL4L5 == LAG_ICONTEXT)
-				m_objectLabels->Add(std::string("L4"), sigc::mem_fun(this, &SystemView::OnClickLagrange), pos.x, pos.y);
+			AddProjected<RefType>(Projectable::L4, ref, pos);
+			//m_l4Icon->Draw(Pi::renderer, vector2f(pos.x - 2, pos.y - 2), vector2f(4, 4), LPointColor);
+			//if (m_showL4L5 == LAG_ICONTEXT)
+				//m_objectLabels->Add(std::string("L4"), sigc::mem_fun(this, &SystemView::OnClickLagrange), pos.x, pos.y);
 		}
 
 		const vector3d posL5 = orbit->EvenSpacedPosTrajectory((1.0 / 360.0) * 300.0, tMinust0);
 		if (Gui::Screen::Project(offset + posL5 * double(m_zoom), pos) && pos.z < 1) {
-			m_l5Icon->Draw(Pi::renderer, vector2f(pos.x - 2, pos.y - 2), vector2f(4, 4), LPointColor);
-			if (m_showL4L5 == LAG_ICONTEXT)
-				m_objectLabels->Add(std::string("L5"), sigc::mem_fun(this, &SystemView::OnClickLagrange), pos.x, pos.y);
+			AddProjected<RefType>(Projectable::L5, ref, pos);
+			//m_l5Icon->Draw(Pi::renderer, vector2f(pos.x - 2, pos.y - 2), vector2f(4, 4), LPointColor);
+			//if (m_showL4L5 == LAG_ICONTEXT)
+			//	m_objectLabels->Add(std::string("L5"), sigc::mem_fun(this, &SystemView::OnClickLagrange), pos.x, pos.y);
 		}
 	}
 	Gui::Screen::LeaveOrtho();
@@ -439,14 +444,14 @@ void SystemView::PutBody(const SystemBody *b, const vector3d &offset, const matr
 		} else {
 			Orbit playerOrbit = Pi::player->ComputeOrbit();
 
-			PutOrbit(&playerOrbit, offset, Color::RED, b->GetRadius());
+			PutOrbit<Body>(static_cast<Body*>(Pi::player), &playerOrbit, offset, Color::RED, b->GetRadius());
 
 			const double plannerStartTime = m_planner->GetStartTime();
 			if (!m_planner->GetPosition().ExactlyEqual(vector3d(0, 0, 0))) {
 				Orbit plannedOrbit = Orbit::FromBodyState(m_planner->GetPosition(),
 					m_planner->GetVel(),
 					frame->GetSystemBody()->GetMass());
-				PutOrbit(&plannedOrbit, offset, Color::STEELBLUE, b->GetRadius());
+				PutOrbit<Body>(static_cast<Body*>(Pi::player), &plannedOrbit, offset, Color::STEELBLUE, b->GetRadius());
 				if (std::fabs(m_time - t0) > 1. && (m_time - plannerStartTime) > 0.)
 					PutSelectionBox(offset + plannedOrbit.OrbitalPosAtTime(m_time - plannerStartTime) * static_cast<double>(m_zoom), Color::STEELBLUE);
 				else
@@ -467,7 +472,7 @@ void SystemView::PutBody(const SystemBody *b, const vector3d &offset, const matr
 			if (axisZoom < DEFAULT_VIEW_DISTANCE) {
 				const SystemBody::BodySuperType bst = kid->GetSuperType();
 				const bool showLagrange = (bst == SystemBody::SUPERTYPE_ROCKY_PLANET || bst == SystemBody::SUPERTYPE_GAS_GIANT);
-				PutOrbit(&(kid->GetOrbit()), offset, Color::GREEN, 0.0, showLagrange);
+				PutOrbit<const SystemBody>(kid, &(kid->GetOrbit()), offset, Color::GREEN, 0.0, showLagrange);
 			}
 
 			// not using current time yet
@@ -687,7 +692,7 @@ void SystemView::DrawShips(const double t, const vector3d &offset)
 		LabelShip((*s).first, pos);
 
 		if (m_shipDrawing == ORBITS && (*s).first->GetFlightState() == Ship::FlightState::FLYING)
-			PutOrbit(&(*s).second, offset, isSelected ? Color::GREEN : Color::BLUE, 0);
+			PutOrbit<Body>(static_cast<Body*>((*s).first), &(*s).second, offset, isSelected ? Color::GREEN : Color::BLUE, 0);
 	}
 }
 

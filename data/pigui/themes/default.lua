@@ -36,6 +36,8 @@ theme.colors = {
 	buttonBlue = Color(150, 150, 200, 255),
 	white = Color(255,255,255,255),
 	grey = Color(120,120,120,255),
+	green = Color(0,255,0),
+	blue = Color(0,0,255),
 	lightGrey = Color(200,200,200,255),
 	gaugeBackground = Color(40, 40, 70),
 	gaugePressure = Color(76,76,158),
@@ -59,7 +61,7 @@ theme.colors = {
 	radarNavTarget = Color(0, 255, 0),
 	radarStation = Color(255, 255, 255),
 	radarCloud = Color(128, 128, 255),
-    gaugeEquipmentMarket = Color(76,76,158),
+  gaugeEquipmentMarket = Color(76,76,158),
 }
 
 theme.icons = {
@@ -177,6 +179,7 @@ theme.icons = {
    filter_bodies = 107,
    filter_stations = 108,
    filter_ships = 109,
+	 lagrange = 110,
    system_overview = 111,
    -- eighth row
    heavy_freighter = 112,
@@ -255,8 +258,8 @@ theme.icons = {
    clothes = 197,
    accessories = 198,
    random = 199,
-	 -- empty 200
-	 -- empty 201
+	 periapsis = 200,
+	 apoapsis = 201,
 	 systemmap_reset_view = 202,
 	 systemmap_toggle_grid = 203,
 	 systemmap_toggle_lagrange = 204,
