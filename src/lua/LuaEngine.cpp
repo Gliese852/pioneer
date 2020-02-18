@@ -1085,13 +1085,13 @@ static int l_engine_get_sector_map_factions(lua_State *l)
 
 static int l_engine_system_map_center_on(lua_State *l)
 {
-	SystemView *sv = Pi::game->GetSystemView();
-	Projectable::types type = static_cast<Projectable::types>(luaL_checkinteger(l, 1));
-	Projectable::reftypes reftype = static_cast<Projectable::reftypes>(luaL_checkinteger(l, 2));
-	if(reftype == Projectable::BODY)
-		sv->CenterOn(Projectable(type, LuaObject<Body>::CheckFromLua(3)));
+	Projectable *p = Pi::game->GetSystemView()->GetSelectedObject();
+	p->type = static_cast<Projectable::types>(luaL_checkinteger(l, 1));
+	p->reftype = static_cast<Projectable::reftypes>(luaL_checkinteger(l, 2));
+	if(p->reftype == Projectable::BODY)
+		p->ref.body = LuaObject<Body>::CheckFromLua(3);
 	else
-		sv->CenterOn(Projectable(type, LuaObject<SystemBody>::CheckFromLua(3)));
+		p->ref.sbody = LuaObject<SystemBody>::CheckFromLua(3);
 	return 0;
 }
 
@@ -1122,7 +1122,7 @@ LuaTable l_engine_projectable_to_lua_row(Projectable p, lua_State *l)
 }
 */
 
-LuaTable l_engine_projectable_to_lua_row(Projectable p, lua_State *l)
+LuaTable l_engine_projectable_to_lua_row(Projectable &p, lua_State *l)
 {
 	LuaTable proj_table(l, 0, 3);
 	proj_table.Set("type", int(p.type));
@@ -1247,12 +1247,10 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 	return 1;
 }
 
-
 static int l_engine_system_map_selected_object(lua_State *l)
 {
-	SystemView *sv = Pi::game->GetSystemView();
-	Projectable p = sv->GetSelectedObject();
-	LuaPush(l, l_engine_projectable_to_lua_row(p, l));
+	Projectable *p = Pi::game->GetSystemView()->GetSelectedObject();
+	LuaPush(l, l_engine_projectable_to_lua_row(*p, l));
 	return 1;
 }
 

@@ -381,7 +381,7 @@ void SystemView::PutLabel(const SystemBody *b, const vector3d &offset)
 
 	vector3d pos;
 	if (Gui::Screen::Project(offset, pos) && pos.z < 1) {
-		AddProjected(Projectable(Projectable::OBJECT, b, pos));
+		AddProjected<const SystemBody>(Projectable::OBJECT, b, pos);
 	}
 	Gui::Screen::LeaveOrtho();
 }
@@ -392,7 +392,7 @@ void SystemView::LabelShip(Ship *s, const vector3d &offset)
 
 	vector3d pos;
 	if (Gui::Screen::Project(offset, pos) && pos.z < 1) {
-		AddProjected(Projectable(Projectable::OBJECT, static_cast<Body *>(s), pos));
+		AddProjected<Body>(Projectable::OBJECT, static_cast<Body *>(s), pos);
 	}
 
 	Gui::Screen::LeaveOrtho();
@@ -529,7 +529,7 @@ void SystemView::GetTransformTo(const SystemBody *b, vector3d &pos)
 	}
 }
 
-void SystemView::GetTransformTo(Projectable p, vector3d &pos)
+void SystemView::GetTransformTo(Projectable &p, vector3d &pos)
 {
 	pos = vector3d(0, 0, 0);
 	if (p.reftype == Projectable::SYSTEMBODY)
@@ -738,26 +738,19 @@ void SystemView::DrawGrid()
 	m_lines.Draw(Pi::renderer, m_lineState);
 }
 
-void SystemView::AddProjected(Projectable p)
+template <typename T>
+void SystemView::AddProjected(Projectable::types type, T *ref, vector3d &pos)
 {
 	float scale[2];
 	Gui::Screen::GetCoords2Pixels(scale);
-	p.screenpos.x = p.screenpos.x / scale[0];
-	p.screenpos.y = p.screenpos.y / scale[1];
+	Projectable p(type, ref);
+	p.screenpos.x = pos.x / scale[0];
+	p.screenpos.y = pos.y / scale[1];
+	p.screenpos.z = pos.z;
 	m_projected.push_back(p);
 }
 
-void SystemView::CenterOn(Projectable p)
-{
-	//if (m_selectedObject.reftype == Projectable::BODY && m_selectedObject.ref.body == b) return true;
-	//m_selectedObject.reftype = Projectable::BODY; m_selectedObject.ref.body = b; return false;
-	m_selectedObject.type = p.type;
-	m_selectedObject.reftype = p.reftype;
-	if (p.reftype == Projectable::BODY) m_selectedObject.ref.body = p.ref.body;
-	else m_selectedObject.ref.sbody = p.ref.sbody;
-	Output("selected: %d, %d", m_selectedObject.type, m_selectedObject.reftype);
-}
-
+// SystemBody can't be inaccessible
 void SystemView::BodyInaccessible(Body *b)
 {
 	if (m_selectedObject.reftype == Projectable::BODY && m_selectedObject.ref.body == b) m_selectedObject.type = Projectable::NONE;
@@ -782,7 +775,7 @@ void SystemView::SetVisibility(std::string param)
 	else Output("Unknown visibility: %s\n", param.c_str());
 }
 
-Projectable SystemView::GetSelectedObject()
+Projectable* SystemView::GetSelectedObject()
 {
-	return m_selectedObject;
+	return &m_selectedObject;
 }

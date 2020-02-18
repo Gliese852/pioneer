@@ -99,16 +99,6 @@ struct Projectable
 	} ref;
 	vector3d screenpos;
 
-	Projectable(const types t, const Body* b, vector3d spos) : type(t), screenpos(spos)
-	{
-		reftype = BODY;
-		ref.body = b;
-	}
-	Projectable(const types t, const SystemBody* sb, vector3d spos) : type(t), screenpos(spos)
-	{
-		reftype = SYSTEMBODY;
-		ref.sbody = sb;
-	}
 	Projectable(const types t, const Body* b) : type(t)
 	{
 		reftype = BODY;
@@ -128,13 +118,12 @@ public:
 	virtual ~SystemView();
 	virtual void Update();
 	virtual void Draw3D();
-	Projectable GetSelectedObject();
+	Projectable* GetSelectedObject();
 	double GetOrbitPlannerStartTime() const { return m_planner->GetStartTime(); }
 	double GetOrbitPlannerTime() const { return m_time; }
 	void OnClickAccel(float step);
 	void OnClickRealt();
 	std::vector<Projectable> GetProjected() const { return m_projected; }
-	void CenterOn(Projectable p);
 	void BodyInaccessible(Body *b);
 	void SetVisibility(std::string param);
 private:
@@ -148,7 +137,7 @@ private:
 	void PutSelectionBox(const SystemBody *b, const vector3d &rootPos, const Color &col);
 	void PutSelectionBox(const vector3d &worldPos, const Color &col);
 	void GetTransformTo(const SystemBody *b, vector3d &pos);
-	void GetTransformTo(Projectable p, vector3d &pos);
+	void GetTransformTo(Projectable &p, vector3d &pos);
 	void OnClickLagrange();
 	void ResetViewpoint();
 	void MouseWheel(bool up);
@@ -157,7 +146,8 @@ private:
 	void PrepareGrid();
 	void DrawGrid();
 	void LabelShip(Ship *s, const vector3d &offset);
-	void AddProjected(Projectable p);
+	template <typename T>
+	void AddProjected(Projectable::types type, T *ref, vector3d &pos);
 
 	Game *m_game;
 	RefCountedPtr<StarSystem> m_system;
