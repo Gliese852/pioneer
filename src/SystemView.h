@@ -81,14 +81,13 @@ struct Projectable
 {
 	enum types {
 	 	NONE = 0,
-		PLAYER = 1,
+		PLAYERSHIP = 1,
 		OBJECT = 2,
 		L4 = 3,
 	 	L5 = 4,
 		APOAPSIS = 5,
 		PERIAPSIS = 6,
-		APSIS_GROUP = 7,
-		LAGRANGE_GROUP = 8
+		PLANNER = 7
 	} type;
 	enum reftypes {
 		BODY = 0,
@@ -118,6 +117,8 @@ public:
 	virtual void Update();
 	virtual void Draw3D();
 	Projectable* GetSelectedObject();
+	void SetSelectedObject(Projectable::types type, SystemBody *sb);
+	void SetSelectedObject(Projectable::types type, Body *b);
 	double GetOrbitPlannerStartTime() const { return m_planner->GetStartTime(); }
 	double GetOrbitPlannerTime() const { return m_time; }
 	void OnClickAccel(float step);
@@ -148,6 +149,8 @@ private:
 	void LabelShip(Ship *s, const vector3d &offset);
 	template <typename T>
 	void AddProjected(Projectable::types type, T *ref, vector3d &pos);
+	template <typename T>
+	void AddNotProjected(Projectable::types type, T *ref, const vector3d &worldscaledpos);
 
 	Game *m_game;
 	RefCountedPtr<StarSystem> m_system;
@@ -164,6 +167,9 @@ private:
 	float m_rot_x, m_rot_y;
 	float m_rot_x_to, m_rot_y_to;
 	float m_zoom, m_zoomTo;
+	int m_animateTransition;
+	vector3d m_trans;
+	vector3d m_transTo;
 	double m_time;
 	bool m_realtime;
 	double m_timeStep;

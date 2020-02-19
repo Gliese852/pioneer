@@ -32,6 +32,7 @@ static const float ZOOM_IN_SPEED = 3;
 static const float ZOOM_OUT_SPEED = 3;
 static const float WHEEL_SENSITIVITY = .1f; // Should be a variable in user settings.
 static const double DEFAULT_VIEW_DISTANCE = 10.0;
+static const int MAX_TRANSITION_FRAMES = 40;
 
 TransferPlanner::TransferPlanner() :
 	m_position(0., 0., 0.),
@@ -225,8 +226,13 @@ SystemView::SystemView(Game *game) :
 	m_game(game),
 	m_gridDrawing(GridDrawing::OFF),
 	m_shipDrawing(OFF),
-	m_showL4L5(LAG_OFF)
+	m_showL4L5(LAG_OFF),
+	m_trans(0.0),
+	m_transTo(0.0)
 {
+	m_rot_y = 0;
+	m_rot_x = 50;
+	m_zoom = 1.0f / float(AU);
 	SetTransparency(true);
 
 	Graphics::RenderStateDesc rsd;
@@ -286,14 +292,12 @@ void SystemView::OnClickRealt()
 void SystemView::ResetViewpoint()
 {
 	m_selectedObject.type = Projectable::NONE;
-	m_rot_y = 0;
-	m_rot_x = 50;
-	m_rot_y_to = m_rot_y;
-	m_rot_x_to = m_rot_x;
-	m_zoom = 1.0f / float(AU);
-	m_zoomTo = m_zoom;
+	m_rot_y_to = 0;
+	m_rot_x_to = 50;
+	m_zoomTo = 1.0f / float(AU);
 	m_timeStep = 1.0f;
 	m_time = m_game->GetTime();
+	m_animateTransition = MAX_TRANSITION_FRAMES;
 }
 
 template <typename RefType>
@@ -436,31 +440,6 @@ void SystemView::PutBody(const SystemBody *b, const vector3d &offset, const matr
 	if (frame->IsRotFrame())
 		frame = Frame::GetFrame(frame->GetNonRotFrame());
 
-	// display the players orbit(?)
-	if (frame->GetSystemBody() == b && frame->GetSystemBody()->GetMass() > 0) {
-		const double t0 = m_game->GetTime();
-		if (Pi::player->IsDocked()) {
-			if (m_time == t0) PutSelectionBox(offset + Pi::player->GetPositionRelTo(frame->GetId()) * static_cast<double>(m_zoom), Color::RED);
-		} else {
-			Orbit playerOrbit = Pi::player->ComputeOrbit();
-
-			PutOrbit<Body>(static_cast<Body*>(Pi::player), &playerOrbit, offset, Color::RED, b->GetRadius());
-
-			const double plannerStartTime = m_planner->GetStartTime();
-			if (!m_planner->GetPosition().ExactlyEqual(vector3d(0, 0, 0))) {
-				Orbit plannedOrbit = Orbit::FromBodyState(m_planner->GetPosition(),
-					m_planner->GetVel(),
-					frame->GetSystemBody()->GetMass());
-				PutOrbit<Body>(static_cast<Body*>(Pi::player), &plannedOrbit, offset, Color::STEELBLUE, b->GetRadius());
-				if (std::fabs(m_time - t0) > 1. && (m_time - plannerStartTime) > 0.)
-					PutSelectionBox(offset + plannedOrbit.OrbitalPosAtTime(m_time - plannerStartTime) * static_cast<double>(m_zoom), Color::STEELBLUE);
-				else
-					PutSelectionBox(offset + m_planner->GetPosition() * static_cast<double>(m_zoom), Color::STEELBLUE);
-			}
-
-			PutSelectionBox(offset + playerOrbit.OrbitalPosAtTime(m_time - t0) * double(m_zoom), Color::RED);
-		}
-	}
 
 	// display all child bodies and their orbits
 	if (b->HasChildren()) {
@@ -478,6 +457,41 @@ void SystemView::PutBody(const SystemBody *b, const vector3d &offset, const matr
 			// not using current time yet
 			const vector3d pos = kid->GetOrbit().OrbitalPosAtTime(m_time) * double(m_zoom);
 			PutBody(kid, offset + pos, trans);
+		}
+	}
+
+	// display the players orbit(?)
+	if (frame->GetSystemBody() == b && frame->GetSystemBody()->GetMass() > 0) {
+		Body* PlayerBody = static_cast<Body*>(Pi::player);
+		const double t0 = m_game->GetTime();
+		if (Pi::player->IsDocked()) {
+			if (m_time == t0)
+			{
+				//project player
+				//PutSelectionBox(offset + Pi::player->GetPositionRelTo(frame->GetId()) * static_cast<double>(m_zoom), Color::RED);
+				AddNotProjected<Body>(Projectable::PLAYERSHIP, PlayerBody, offset + Pi::player->GetPositionRelTo(frame->GetId()) * static_cast<double>(m_zoom));
+			}
+		} else {
+			Orbit playerOrbit = Pi::player->ComputeOrbit();
+
+			PutOrbit<Body>(PlayerBody, &playerOrbit, offset, Color::RED, b->GetRadius());
+
+			const double plannerStartTime = m_planner->GetStartTime();
+			if (!m_planner->GetPosition().ExactlyEqual(vector3d(0, 0, 0))) {
+				Orbit plannedOrbit = Orbit::FromBodyState(m_planner->GetPosition(),
+					m_planner->GetVel(),
+					frame->GetSystemBody()->GetMass());
+				PutOrbit<Body>(PlayerBody, &plannedOrbit, offset, Color::STEELBLUE, b->GetRadius());
+				if (std::fabs(m_time - t0) > 1. && (m_time - plannerStartTime) > 0.)
+					//PutSelectionBox(offset + plannedOrbit.OrbitalPosAtTime(m_time - plannerStartTime) * static_cast<double>(m_zoom), Color::STEELBLUE);
+					AddNotProjected<Body>(Projectable::PLANNER, PlayerBody, offset + plannedOrbit.OrbitalPosAtTime(m_time - plannerStartTime) * static_cast<double>(m_zoom));
+				else
+					//PutSelectionBox(offset + m_planner->GetPosition() * static_cast<double>(m_zoom), Color::STEELBLUE);
+					AddNotProjected<Body>(Projectable::PLANNER, PlayerBody, offset + m_planner->GetPosition() * static_cast<double>(m_zoom));
+			}
+
+			//PutSelectionBox(offset + playerOrbit.OrbitalPosAtTime(m_time - t0) * double(m_zoom), Color::RED);
+			AddNotProjected<Body>(Projectable::PLAYERSHIP, PlayerBody, offset + playerOrbit.OrbitalPosAtTime(m_time - t0) * double(m_zoom));
 		}
 	}
 }
@@ -530,7 +544,7 @@ void SystemView::GetTransformTo(const SystemBody *b, vector3d &pos)
 {
 	if (b->GetParent()) {
 		GetTransformTo(b->GetParent(), pos);
-		pos -= double(m_zoom) * b->GetOrbit().OrbitalPosAtTime(m_time);
+		pos -= b->GetOrbit().OrbitalPosAtTime(m_time);
 	}
 }
 
@@ -555,8 +569,6 @@ void SystemView::GetTransformTo(Projectable &p, vector3d &pos)
 				pos -= Frame::GetFrame(bodyFrameId)->GetPositionRelTo(rootFrameId);
 			pos -= static_cast<const DynamicBody*>(b)->ComputeOrbit().OrbitalPosAtTime(m_time - m_game->GetTime());
 		}
-		//scaling to camera scale
-		pos *= double(m_zoom);
 	}
 }
 
@@ -596,8 +608,20 @@ void SystemView::Draw3D()
 	trans.Rotate(DEG2RAD(m_rot_y), 0, 1, 0);
 	m_renderer->SetTransform(trans);
 
-	vector3d pos(0, 0, 0);
-	if (m_selectedObject.type != Projectable::NONE) GetTransformTo(m_selectedObject, pos);
+	m_transTo *= 0.0;
+	if (m_selectedObject.type != Projectable::NONE) GetTransformTo(m_selectedObject, m_transTo);
+	if(m_animateTransition)
+	{
+		const float ft = Pi::GetFrameTime();
+		m_animateTransition--;
+		AnimationCurves::Approach(m_trans.x, m_transTo.x, ft);
+		AnimationCurves::Approach(m_trans.y, m_transTo.y, ft);
+		AnimationCurves::Approach(m_trans.z, m_transTo.z, ft);
+	} else {
+		m_trans = m_transTo;
+	}
+
+	vector3d pos = m_trans * m_zoom;
 
 	// glLineWidth(2);
 	m_objectLabels->Clear();
@@ -634,6 +658,7 @@ void SystemView::Update()
 
 	AnimationCurves::Approach(m_rot_x, m_rot_x_to, ft);
 	AnimationCurves::Approach(m_rot_y, m_rot_y_to, ft);
+
 
 	if (Pi::input.MouseButtonState(SDL_BUTTON_MIDDLE)) {
 		int motion[2];
@@ -688,7 +713,7 @@ void SystemView::DrawShips(const double t, const vector3d &offset)
 			}
 			pos += (bpos + (*s).second.OrbitalPosAtTime(t)) * double(m_zoom);
 		}
-		const bool isSelected = m_selectedObject.reftype == Projectable::BODY && m_selectedObject.ref.body == (*s).first;
+		const bool isSelected = m_selectedObject.type == Projectable::OBJECT && m_selectedObject.reftype == Projectable::BODY && m_selectedObject.ref.body == (*s).first;
 		LabelShip((*s).first, pos);
 
 		if (m_shipDrawing == ORBITS && (*s).first->GetFlightState() == Ship::FlightState::FLYING)
@@ -718,6 +743,7 @@ void SystemView::DrawGrid()
 	float zoom = m_zoom * float(AU);
 	vector3d pos(0.);
 	if (m_selectedObject.type != Projectable::NONE) GetTransformTo(m_selectedObject, pos);
+	pos *= m_zoom;
 
 	for (int i = -m_grid_lines; i < m_grid_lines + 1; i++) {
 		float z = float(i) * zoom;
@@ -734,6 +760,7 @@ void SystemView::DrawGrid()
 	for (SystemBody *sbody : m_displayed_sbody) {
 		vector3d offset(0.);
 		GetTransformTo(sbody, offset);
+		offset *= m_zoom;
 		m_lineVerts->Add(vector3f(pos - offset), Color::GRAY * 0.5);
 		offset.y = 0.0;
 		m_lineVerts->Add(vector3f(pos - offset), Color::GRAY * 0.5);
@@ -741,6 +768,17 @@ void SystemView::DrawGrid()
 
 	m_lines.SetData(m_lineVerts->GetNumVerts(), &m_lineVerts->position[0], &m_lineVerts->diffuse[0]);
 	m_lines.Draw(Pi::renderer, m_lineState);
+}
+
+template <typename T>
+void SystemView::AddNotProjected(Projectable::types type, T *ref, const vector3d &worldscaledpos)
+{
+	//project and add
+	Gui::Screen::EnterOrtho();
+	vector3d pos;
+	if (Gui::Screen::Project(worldscaledpos, pos) && pos.z < 1)
+		AddProjected<T>(type, ref, pos);
+	Gui::Screen::LeaveOrtho();
 }
 
 template <typename T>
@@ -758,7 +796,7 @@ void SystemView::AddProjected(Projectable::types type, T *ref, vector3d &pos)
 // SystemBody can't be inaccessible
 void SystemView::BodyInaccessible(Body *b)
 {
-	if (m_selectedObject.reftype == Projectable::BODY && m_selectedObject.ref.body == b) m_selectedObject.type = Projectable::NONE;
+	if (m_selectedObject.type == Projectable::OBJECT && m_selectedObject.reftype == Projectable::BODY && m_selectedObject.ref.body == b) m_selectedObject.type = Projectable::NONE;
 }
 
 void SystemView::SetVisibility(std::string param)
@@ -776,11 +814,27 @@ void SystemView::SetVisibility(std::string param)
 	else if (param == "ZOOM_IN")
 		m_zoomTo *= pow(ZOOM_IN_SPEED * Pi::GetMoveSpeedShiftModifier(), Pi::GetFrameTime());
 	else if (param == "ZOOM_OUT")
-		m_zoomTo *= pow(ZOOM_OUT_SPEED * Pi::GetMoveSpeedShiftModifier(), Pi::GetFrameTime());
+		m_zoomTo *= 1 / pow(ZOOM_OUT_SPEED * Pi::GetMoveSpeedShiftModifier(), Pi::GetFrameTime());
 	else Output("Unknown visibility: %s\n", param.c_str());
 }
 
 Projectable* SystemView::GetSelectedObject()
 {
 	return &m_selectedObject;
+}
+
+void SystemView::SetSelectedObject(Projectable::types type, SystemBody *sb)
+{
+	m_selectedObject.type = type;
+	m_selectedObject.reftype = Projectable::SYSTEMBODY;
+	m_selectedObject.ref.sbody = sb;
+	m_animateTransition = MAX_TRANSITION_FRAMES;
+}
+
+void SystemView::SetSelectedObject(Projectable::types type, Body *b)
+{
+	m_selectedObject.type = type;
+	m_selectedObject.reftype = Projectable::BODY;
+	m_selectedObject.ref.body = b;
+	m_animateTransition = MAX_TRANSITION_FRAMES;
 }

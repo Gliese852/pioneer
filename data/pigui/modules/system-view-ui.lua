@@ -22,14 +22,13 @@ local ASTEROID_RADIUS = 1500000 -- rocky planets smaller than this (in meters) a
 local Projectable = { 
 	-- types
 	NONE = 0,
-	PLAYER = 1,
+	PLAYERSHIP = 1,
 	OBJECT = 2,
 	L4 = 3,
 	L5 = 4,
 	APOAPSIS = 5,
 	PERIAPSIS = 6,
-	APSIS_GROUP = 7,
-	LAGRANGE_GROUP = 8,
+	PLANNER = 7,
 	-- reftypes
 	BODY = 0,
 	SYSTEMBODY = 1
@@ -189,6 +188,13 @@ local function getBodyIcon(obj)
 	elseif obj.type == Projectable.PERIAPSIS then return icons.periapsis
 	elseif obj.type == Projectable.L4 then return icons.lagrange
 	elseif obj.type == Projectable.L5 then return icons.lagrange
+	elseif obj.type == Projectable.PLAYERSHIP or obj.type == Projectable.PLANNER then
+		local shipClass = obj.ref:GetShipClass()
+		if icons[shipClass] then
+			return icons[shipClass]
+		else
+			return icons.ship
+		end
 	elseif obj.reftype == Projectable.SYSTEMBODY then
 		local body = obj.ref
 		local st = body.superType
@@ -232,14 +238,14 @@ local function getBodyIcon(obj)
 			return icons.rocky_planet -- TODO: better icon
 		else
 			print("data/pigui/game.lua: getBodyIcon not sure how to process body, supertype: " .. (st and st or "nil") .. ", type: " .. (t and t or "nil"))
-			utils.print_r(body)
+			--utils.print_r(body)
 			return icons.ship
 		end
 	end
 end
 
 local function getLabel(obj)
-	if obj.type == Projectable.OBJECT then
+	if obj.type == Projectable.OBJECT or obj.type == Projectable.PLAYERSHIP then
 		if obj.reftype == Projectable.BODY then return obj.ref:GetLabel() else return obj.ref.name end
 	elseif obj.type == Projectable.L4 and show_lagrange == "LAG_ICONTEXT" then return "L4"
 	elseif obj.type == Projectable.L5 and show_lagrange == "LAG_ICONTEXT" then return "L5"
@@ -248,6 +254,7 @@ local function getLabel(obj)
 end
 
 local function getColor(obj)
+	if obj.type == Projectable.PLAYERSHIP then return colors.green end
 	if obj.type == Projectable.OBJECT then return colors.frame end
 	if obj.type == Projectable.APOAPSIS or obj.type == Projectable.PERIAPSIS then
 		if obj.reftype == Projectable.BODY then return colors.blue end
@@ -281,14 +288,22 @@ local function displayOnScreenObjects()
 		local mainObject = group.mainObject
 		local mainCoords = Vector2(group.screenCoordinates.x, group.screenCoordinates.y)
 
-		-- indicators nav and combat target
-		if mainObject.type == Projectable.OBJECT then
-			if mainObject.reftype == Projectable.BODY and mainObject.ref == navTarget or mainObject.reftype == Projectable.SYSTEMBODY and navTarget and mainObject.ref == navTarget:GetSystemBody() then
-				ui.addIcon(mainCoords, icons.square, colors.navTarget, indicatorSize, ui.anchor.center, ui.anchor.center)
-			elseif mainObject.reftype == Projectable.BODY and mainObject.ref == combatTarget then
-				ui.addIcon(mainCoords, icons.square, colors.combatTarget, indicatorSize, ui.anchor.center, ui.anchor.center)
-			end
+		-- indicators
+		local stackedSize = indicatorSize
+		local stackStep = Vector2(10, 10)
+		if group.hasPlayer then
+			ui.addIcon(mainCoords, icons.square, colors.green, stackedSize, ui.anchor.center, ui.anchor.center)
+			stackedSize = stackedSize + stackStep
 		end
+		if group.hasNavTarget then
+			ui.addIcon(mainCoords, icons.square, colors.navTarget, stackedSize, ui.anchor.center, ui.anchor.center)
+			stackedSize = stackedSize + stackStep
+		end
+		if group.hasCombatTarget then
+			ui.addIcon(mainCoords, icons.square, colors.combatTarget, stackedSize, ui.anchor.center, ui.anchor.center)
+			stackedSize = stackedSize + stackStep
+		end
+		if mainObject.type == PLANNER then ui.addIcon(mainCoords, icons.square, colors.blue, indicatorSize, ui.anchor.center, ui.anchor.center) end
 
 		ui.addIcon(mainCoords, getBodyIcon(mainObject), getColor(mainObject), iconsize, ui.anchor.center, ui.anchor.center)
 
@@ -313,11 +328,19 @@ local function displayOnScreenObjects()
 			end
 		end
 		ui.popup("navtarget" .. getLabel(mainObject), function()
-			if ui.selectable("set as nav target", false, {}) then
+			local isObject = mainObject.type == Projectable.OBJECT
+			local isShip = isObject and mainObject.reftype == Projectable.BODY and mainObject.ref:IsShip()
+			local isSystemBody = isObject and mainObject.reftype == Projectable.SYSTEMBODY
+			if (isShip or isSystemBody) and ui.selectable("set as nav target", false, {}) then
 				if mainObject.reftype == Projectable.BODY then
 					player:SetNavTarget(mainObject.ref)
 				elseif mainObject.ref.physicsBody then
 					player:SetNavTarget(mainObject.ref.physicsBody)
+				end
+			end
+			if isShip and ui.selectable("set as combat target", false, {}) then
+				if mainObject.reftype == Projectable.BODY then
+					player:SetCombatTarget(mainObject.ref)
 				end
 			end
 		end)

@@ -1085,47 +1085,21 @@ static int l_engine_get_sector_map_factions(lua_State *l)
 
 static int l_engine_system_map_center_on(lua_State *l)
 {
-	Projectable *p = Pi::game->GetSystemView()->GetSelectedObject();
-	p->type = static_cast<Projectable::types>(luaL_checkinteger(l, 1));
-	p->reftype = static_cast<Projectable::reftypes>(luaL_checkinteger(l, 2));
-	if(p->reftype == Projectable::BODY)
-		p->ref.body = LuaObject<Body>::CheckFromLua(3);
+	SystemView *sv = Pi::game->GetSystemView();
+	Projectable::types type = static_cast<Projectable::types>(luaL_checkinteger(l, 1));
+	Projectable::reftypes reftype = static_cast<Projectable::reftypes>(luaL_checkinteger(l, 2));
+	if(reftype == Projectable::BODY)
+		sv->SetSelectedObject(type, LuaObject<Body>::CheckFromLua(3));
 	else
-		p->ref.sbody = LuaObject<SystemBody>::CheckFromLua(3);
+		sv->SetSelectedObject(type, LuaObject<SystemBody>::CheckFromLua(3));
 	return 0;
 }
-
-/*
-LuaTable l_engine_projectable_to_lua_row(Projectable p, lua_State *l)
-{
-	LuaTable proj_table(l, 0, 3);
-	switch (p.type)
-	{
-		case Projectable::OBJECT: proj_table.Set("type", "OBJECT"); break;
-		case Projectable::L4: proj_table.Set("type", "L4"); break;
-		case Projectable::L5: proj_table.Set("type", "L5"); break;
-		case Projectable::APOAPSIS: proj_table.Set("type", "APOAPSIS"); break;
-		case Projectable::PERIAPSIS: proj_table.Set("type", "PERIAPSIS"); break;
-	}
-	switch (p.reftype)
-	{
-		case Projectable::BODY:
-			proj_table.Set("reftype", "BODY");
-			proj_table.Set("ref", const_cast<Body*>(p.ref.body));
-			break;
-		case Projectable::SYSTEMBODY:
-			proj_table.Set("reftype", "SYSTEMBODY");
-			proj_table.Set("ref", const_cast<SystemBody*>(p.ref.sbody));
-			break;
-	}
-	return proj_table;
-}
-*/
 
 LuaTable l_engine_projectable_to_lua_row(Projectable &p, lua_State *l)
 {
 	LuaTable proj_table(l, 0, 3);
 	proj_table.Set("type", int(p.type));
+	if (p.type == Projectable::NONE) return proj_table;
 	proj_table.Set("reftype", int(p.reftype));
 	switch (p.reftype)
 	{
@@ -1150,33 +1124,42 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 		Projectable m_mainObject;
 		std::vector<Projectable> m_objects;
 		bool m_hasNavTarget;
+		bool m_hasCombatTarget;
+		bool m_hasPlayer;
 
-		GroupInfo(Projectable p, bool isNavTarget) :
+		GroupInfo(Projectable p, bool isNavTarget, bool isCombatTarget, bool isPlayer) :
 			m_mainObject(p),
-			m_hasNavTarget(isNavTarget)
+			m_hasNavTarget(isNavTarget),
+			m_hasCombatTarget(isCombatTarget),
+			m_hasPlayer(isPlayer)
 		{
 			m_objects.push_back(p);
 		}
 	};
 
-	std::vector<GroupInfo> groups;
-	std::vector<GroupInfo> orbitIcons;
-	std::vector<GroupInfo> lagrangeIcons;
-	groups.reserve(projected.size() + 2);
+	// use forward_list to concatenate
+	std::forward_list<GroupInfo> groups;
+	std::forward_list<GroupInfo> orbitIcons;
+	std::forward_list<GroupInfo> lagrangeIcons;
+	// forward_list don't know his size, so will count manually
+	int groups_count = 0;
+
 	const Body *nav_target = Pi::game->GetPlayer()->GetNavTarget();
 	const Body *combat_target = Pi::game->GetPlayer()->GetCombatTarget();
-
 
 	for (Projectable &p : projected) {
 		bool inserted = false;
 
 		// --- icons---
 		if (p.type == Projectable::APOAPSIS || p.type == Projectable::PERIAPSIS)
-			//just take all
-			orbitIcons.push_back(GroupInfo(p, false));
+			// orbit icons - just take all
+		{
+			orbitIcons.push_front(GroupInfo(p, false, false, false));
+			groups_count++;
+		}
 		else if(p.type == Projectable::L4 || p.type == Projectable::L5)
 		{
-			//take only those who don't intersect with others
+			// lagrange icons - take only those who don't intersect with other lagrange icons
 			bool intersect = false;
 			for (GroupInfo &group : lagrangeIcons) {
 				{
@@ -1190,110 +1173,62 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 				}
 			}
 			if (!intersect)
-				lagrangeIcons.push_back(GroupInfo(p,false));
-		}
-		// --- real objects ---
-		// never collapse combat target
-		else
-		{	 
-			if (!(p.type == Projectable::OBJECT && p.reftype == Projectable::BODY && p.ref.body == combat_target)) {
-				for (GroupInfo &group : groups) {
-					//3d distance from main body, in screen pixels
-					if (std::abs(p.screenpos.x - group.m_mainObject.screenpos.x) < gap.x
-							&& std::abs(p.screenpos.y - group.m_mainObject.screenpos.y) < gap.y
-							&& std::abs(p.screenpos.z - group.m_mainObject.screenpos.z) * Graphics::GetScreenWidth() * 10 < gap.x)
-					{
-						// object inside group boundaries: insert into group
-						group.m_objects.push_back(p);
-						if (nav_target && p.type == Projectable::OBJECT)
-							if (p.reftype == Projectable::BODY) 
-							{
-								if (p.ref.body == nav_target) //sub if to get rid of unnecessary calculations
-								{ // I can not come up with an bool expression in one line
-									group.m_hasNavTarget = true;
-									group.m_mainObject = p;
-								}
-							}
-						// this check ONLY if p.reftype != Projectable::BODY
-							else if ( p.ref.sbody == nav_target->GetSystemBody())
-							{
-								group.m_hasNavTarget = true;
-								group.m_mainObject = p;
-							}
-						inserted = true;
-						break;
-					}
+			{
+				lagrangeIcons.push_front(GroupInfo(p, false, false, false));
+				groups_count++;
+			}
+		} else {	 
+			// --- real objects ---
+			Body* PlayerBody = static_cast<Body*>(Pi::game->GetPlayer());
+			bool isNavTarget, isCombatTarget, isPlayer;
+			if (p.reftype == Projectable::BODY)
+			{
+				isNavTarget = nav_target && p.ref.body == nav_target;
+				isCombatTarget = combat_target && p.ref.body == combat_target;
+				isPlayer = p.ref.body == PlayerBody;
+			} else { // SYSTEMBODY
+				isNavTarget = nav_target && p.ref.sbody == nav_target->GetSystemBody();
+				isCombatTarget = false;
+				isPlayer = false;
+			}
+			for (GroupInfo &group : groups) {
+				//3d distance from main body, in screen pixels
+				if (std::abs(p.screenpos.x - group.m_mainObject.screenpos.x) < gap.x
+						&& std::abs(p.screenpos.y - group.m_mainObject.screenpos.y) < gap.y
+						&& std::abs(p.screenpos.z - group.m_mainObject.screenpos.z) * Graphics::GetScreenWidth() * 10 < gap.x)
+				{
+					// object inside group boundaries: insert into group
+					group.m_objects.push_back(p);
+					group.m_hasNavTarget += isNavTarget;
+					group.m_hasCombatTarget += isCombatTarget;
+					group.m_hasPlayer += isPlayer;
+					inserted = true;
+					break;
 				}
 			}
 			if (!inserted) {
 				// create new group
-				GroupInfo newgroup(p, p.reftype == Projectable::BODY && p.ref.body == nav_target ? true : false);
-				groups.push_back(std::move(newgroup));
+				GroupInfo newgroup(p, isNavTarget, isCombatTarget, isPlayer);
+				groups.push_front(std::move(newgroup));
+				groups_count++;
 			}
 		}
 	}
 
-	//TODO sorting func
-	// Sort each groups member according to a given function
-	/*
-	for (GroupInfo &group : groups) {
-		std::sort(begin(group.m_all), end(group.m_all),
-			[](Projectable a, Projectable b) {
-				return first_is_more_important_than(a, b);
-			});
-		if (!group.m_hasNavTarget) {
-			// make most important body the main body
-			group.m_main = group.m_all.front();
-		}
-	}
-	*/
+	//no need to sort, because the bodies are so recorded in good order
+	//because they are written recursively starting from the root
+	//body of the system, and ships go after the system bodies
 
-	LuaTable result(l, groups.size(), 0);
+	LuaTable result(l, groups_count, 0);
 	int index = 1;
-	for (GroupInfo &group : orbitIcons) {
-		LuaTable info_table(l, 0, 5);
-		LuaTable objects_table(l, group.m_objects.size(), 0);
-
-		info_table.Set("screenCoordinates", group.m_mainObject.screenpos);
-		info_table.Set("mainObject", l_engine_projectable_to_lua_row(group.m_mainObject, l));
-		lua_pop(l, 1);
-		int objects_table_index = 1;
-		for(Projectable p : group.m_objects)
-		{
-			objects_table.Set(objects_table_index++, l_engine_projectable_to_lua_row(p, l));
-			lua_pop(l, 1);
-		}
-		info_table.Set("objects", objects_table);
-		lua_pop(l, 1);
-		info_table.Set("multiple", group.m_objects.size() > 1 ? true : false);
-		info_table.Set("hasNavTarget", group.m_hasNavTarget);
-		result.Set(index++, info_table);
-		lua_pop(l, 1);
-	}
-
-	for (GroupInfo &group : lagrangeIcons) {
-		LuaTable info_table(l, 0, 5);
-		LuaTable objects_table(l, group.m_objects.size(), 0);
-
-		info_table.Set("screenCoordinates", group.m_mainObject.screenpos);
-		info_table.Set("mainObject", l_engine_projectable_to_lua_row(group.m_mainObject, l));
-		lua_pop(l, 1);
-		int objects_table_index = 1;
-		for(Projectable p : group.m_objects)
-		{
-			objects_table.Set(objects_table_index++, l_engine_projectable_to_lua_row(p, l));
-			lua_pop(l, 1);
-		}
-		info_table.Set("objects", objects_table);
-		lua_pop(l, 1);
-		info_table.Set("multiple", group.m_objects.size() > 1 ? true : false);
-		info_table.Set("hasNavTarget", group.m_hasNavTarget);
-		result.Set(index++, info_table);
-		lua_pop(l, 1);
-	}
+	
+	//the sooner is displayed, the more in the background
+	groups.splice_after(groups.before_begin(), lagrangeIcons);
+	groups.splice_after(groups.before_begin(), orbitIcons);
+	// now it goes orbitIcons->lagrangeIcons->bodies
 
 	for (GroupInfo &group : groups) {
-		LuaTable info_table(l, 0, 5);
+		LuaTable info_table(l, 0, 7);
 		LuaTable objects_table(l, group.m_objects.size(), 0);
 
 		info_table.Set("screenCoordinates", group.m_mainObject.screenpos);
@@ -1309,6 +1244,8 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 		lua_pop(l, 1);
 		info_table.Set("multiple", group.m_objects.size() > 1 ? true : false);
 		info_table.Set("hasNavTarget", group.m_hasNavTarget);
+		info_table.Set("hasCombatTarget", group.m_hasCombatTarget);
+		info_table.Set("hasPlayer", group.m_hasPlayer);
 		result.Set(index++, info_table);
 		lua_pop(l, 1);
 	}
