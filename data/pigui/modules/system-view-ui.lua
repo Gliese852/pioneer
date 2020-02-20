@@ -323,7 +323,7 @@ local function displayOnScreenObjects()
 		end
 		-- mouse release handler
 		if (mp - mainCoords):length() < click_radius then
-			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0) and mainObject.type == Projectable.OBJECT then
+			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0) and (mainObject.type == Projectable.OBJECT or mainObject.type == Projectable.PLAYERSHIP) then
 				Engine.SystemMapCenterOn(mainObject.type, mainObject.reftype, mainObject.ref)
 			end
 		end
@@ -413,6 +413,7 @@ local function showTargetInfoWindow(obj)
 										table.insert(data, { name = "Ship Type",
 																				 value = body:GetShipType()
 										})
+										if player:GetEquipCountOccupied('target_scanner') > 0 or player:GetEquipCountOccupied('advanced_target_scanner') > 0 then
 										local hd = body:GetEquip("engine", 1)
 										table.insert(data, { name = "Hyperdrive",
 																				 value = hd and hd:GetName() or lc.NO_HYPERDRIVE
@@ -423,6 +424,7 @@ local function showTargetInfoWindow(obj)
 										table.insert(data, { name = lc.CARGO,
 																				 value = ui.Format.MassT(body:GetStats().usedCargo)
 										})
+									end
 									else
 										data = {}
 									end

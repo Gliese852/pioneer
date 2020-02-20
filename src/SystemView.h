@@ -12,6 +12,7 @@
 #include "LuaTable.h"
 #include "LuaPiGui.h"
 #include "enum_table.h"
+#include "Frame.h"
 
 class StarSystem;
 class SystemBody;
@@ -151,6 +152,8 @@ private:
 	void AddProjected(Projectable::types type, T *ref, vector3d &pos);
 	template <typename T>
 	void AddNotProjected(Projectable::types type, T *ref, const vector3d &worldscaledpos);
+	void CalculateShipPositionAtTime(const Ship *s, Orbit o, double t, vector3d &pos);
+	void CalculateFramePositionAtTime(FrameId frameId, double t, vector3d &pos);
 
 	Game *m_game;
 	RefCountedPtr<StarSystem> m_system;
