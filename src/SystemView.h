@@ -80,7 +80,7 @@ typedef std::vector<std::pair<std::pair<const Body*,const SystemBody*>, vector3d
 
 struct Projectable
 {
-	enum types {
+	enum types { // <enum name=ProjectableTypes scope='Projectable' public>
 	 	NONE = 0,
 		PLAYERSHIP = 1,
 		OBJECT = 2,
@@ -90,7 +90,7 @@ struct Projectable
 		PERIAPSIS = 6,
 		PLANNER = 7
 	} type;
-	enum reftypes {
+	enum reftypes { // <enum name=ProjectableRefTypes scope='Projectable' public>
 		BODY = 0,
 		SYSTEMBODY = 1
 	} reftype;
@@ -131,7 +131,7 @@ private:
 	std::vector<Projectable> m_projected;
 	static const double PICK_OBJECT_RECT_SIZE;
 	static const Uint16 N_VERTICES_MAX;
-	const double m_camera_fov = 50.f;
+	const float CAMERA_FOV = 50.f;
 	template <typename RefType>
 	void PutOrbit(RefType *ref, const Orbit *orb, const vector3d &offset, const Color &color, const double planetRadius = 0.0, const bool showLagrange = false);
 	void PutBody(const SystemBody *b, const vector3d &offset, const matrix4x4f &trans);

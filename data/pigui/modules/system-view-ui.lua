@@ -18,21 +18,10 @@ local indicatorSize = Vector2(30 , 30)
 local pionillium = ui.fonts.pionillium
 local ASTEROID_RADIUS = 1500000 -- rocky planets smaller than this (in meters) are considered an asteroid, not a planet
 
--- fake enum
-local Projectable = { 
-	-- types
-	NONE = 0,
-	PLAYERSHIP = 1,
-	OBJECT = 2,
-	L4 = 3,
-	L5 = 4,
-	APOAPSIS = 5,
-	PERIAPSIS = 6,
-	PLANNER = 7,
-	-- reftypes
-	BODY = 0,
-	SYSTEMBODY = 1
-}
+--load enums Projectable::types and Projectable::reftypes in one table "Projectable"
+local Projectable = {}
+for _, key in pairs(Constants.ProjectableTypes) do Projectable[key] = Engine.GetEnumValue("ProjectableTypes", key) end
+for _, key in pairs(Constants.ProjectableRefTypes) do Projectable[key] = Engine.GetEnumValue("ProjectableRefTypes", key) end
 
 local function showDvLine(leftIcon, resetIcon, rightIcon, key, Formatter, leftTooltip, resetTooltip, rightTooltip)
 	local wheel = function()

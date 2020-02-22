@@ -602,7 +602,7 @@ void SystemView::CalculateFramePositionAtTime(FrameId frameId, double t, vector3
 void SystemView::Draw3D()
 {
 	PROFILE_SCOPED()
-	m_renderer->SetPerspectiveProjection(m_camera_fov, m_renderer->GetDisplayAspect(), 1.f, 1000.f * m_zoom * float(AU) + DEFAULT_VIEW_DISTANCE * 2);
+	m_renderer->SetPerspectiveProjection(CAMERA_FOV, m_renderer->GetDisplayAspect(), 1.f, 1000.f * m_zoom * float(AU) + DEFAULT_VIEW_DISTANCE * 2);
 	m_renderer->ClearScreen();
 	m_projected.clear();
 	//TODO add reserve
