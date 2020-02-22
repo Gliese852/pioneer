@@ -40,21 +40,6 @@ const struct EnumItem ENUM_ShipAIError[] = {
 	{ 0, 0 },
 };
 
-const struct EnumItem ENUM_DetailLevel[] = {
-	{ "VERY_LOW", int(LuaEngine::DETAIL_VERY_LOW) },
-	{ "LOW", int(LuaEngine::DETAIL_LOW) },
-	{ "MEDIUM", int(LuaEngine::DETAIL_MEDIUM) },
-	{ "HIGH", int(LuaEngine::DETAIL_HIGH) },
-	{ "VERY_HIGH", int(LuaEngine::DETAIL_VERY_HIGH) },
-	{ 0, 0 },
-};
-
-const struct EnumItem ENUM_FileSystemRoot[] = {
-	{ "USER", int(LuaFileSystem::ROOT_USER) },
-	{ "DATA", int(LuaFileSystem::ROOT_DATA) },
-	{ 0, 0 },
-};
-
 const struct EnumItem ENUM_PhysicsObjectType[] = {
 	{ "BODY", int(Object::BODY) },
 	{ "MODELBODY", int(Object::MODELBODY) },
@@ -140,6 +125,17 @@ const struct EnumItem ENUM_ProjectableTypes[] = {
 const struct EnumItem ENUM_ProjectableRefTypes[] = {
 	{ "BODY", int(Projectable::BODY) },
 	{ "SYSTEMBODY", int(Projectable::SYSTEMBODY) },
+	{ 0, 0 },
+};
+
+const struct EnumItem ENUM_SystemViewColorIndex[] = {
+	{ "PLANET_ORBIT", int(SystemView::PLANET_ORBIT) },
+	{ "SHIP_ORBIT", int(SystemView::SHIP_ORBIT) },
+	{ "SELECTED_SHIP_ORBIT", int(SystemView::SELECTED_SHIP_ORBIT) },
+	{ "PLAYER_ORBIT", int(SystemView::PLAYER_ORBIT) },
+	{ "PLANNER_ORBIT", int(SystemView::PLANNER_ORBIT) },
+	{ "GRID", int(SystemView::GRID) },
+	{ "PLANET", int(SystemView::PLANET) },
 	{ 0, 0 },
 };
 
@@ -280,6 +276,21 @@ const struct EnumItem ENUM_GameUIFaceFlags[] = {
 const struct EnumItem ENUM_GameUIMarkerStyle[] = {
 	{ "NONE", int(GameUI::LabelOverlay::MARKER_NONE) },
 	{ "DOT", int(GameUI::LabelOverlay::MARKER_DOT) },
+	{ 0, 0 },
+};
+
+const struct EnumItem ENUM_DetailLevel[] = {
+	{ "VERY_LOW", int(LuaEngine::DETAIL_VERY_LOW) },
+	{ "LOW", int(LuaEngine::DETAIL_LOW) },
+	{ "MEDIUM", int(LuaEngine::DETAIL_MEDIUM) },
+	{ "HIGH", int(LuaEngine::DETAIL_HIGH) },
+	{ "VERY_HIGH", int(LuaEngine::DETAIL_VERY_HIGH) },
+	{ 0, 0 },
+};
+
+const struct EnumItem ENUM_FileSystemRoot[] = {
+	{ "USER", int(LuaFileSystem::ROOT_USER) },
+	{ "DATA", int(LuaFileSystem::ROOT_DATA) },
 	{ 0, 0 },
 };
 
@@ -515,8 +526,6 @@ const struct EnumItem ENUM_UIFont[] = {
 
 const struct EnumTable ENUM_TABLES[] = {
 	{ "ShipAIError", ENUM_ShipAIError },
-	{ "DetailLevel", ENUM_DetailLevel },
-	{ "FileSystemRoot", ENUM_FileSystemRoot },
 	{ "PhysicsObjectType", ENUM_PhysicsObjectType },
 	{ "ShipFlightState", ENUM_ShipFlightState },
 	{ "ShipJumpStatus", ENUM_ShipJumpStatus },
@@ -526,6 +535,7 @@ const struct EnumTable ENUM_TABLES[] = {
 	{ "ShipTypeTag", ENUM_ShipTypeTag },
 	{ "ProjectableTypes", ENUM_ProjectableTypes },
 	{ "ProjectableRefTypes", ENUM_ProjectableRefTypes },
+	{ "SystemViewColorIndex", ENUM_SystemViewColorIndex },
 	{ "EconType", ENUM_EconType },
 	{ "CommodityType", ENUM_CommodityType },
 	{ "PolitEcon", ENUM_PolitEcon },
@@ -534,6 +544,8 @@ const struct EnumTable ENUM_TABLES[] = {
 	{ "BodySuperType", ENUM_BodySuperType },
 	{ "GameUIFaceFlags", ENUM_GameUIFaceFlags },
 	{ "GameUIMarkerStyle", ENUM_GameUIMarkerStyle },
+	{ "DetailLevel", ENUM_DetailLevel },
+	{ "FileSystemRoot", ENUM_FileSystemRoot },
 	{ "PiGUIFaceFlags", ENUM_PiGUIFaceFlags },
 	{ "ModelDebugFlags", ENUM_ModelDebugFlags },
 	{ "ShipTypeThruster", ENUM_ShipTypeThruster },
@@ -563,8 +575,6 @@ const struct EnumTable ENUM_TABLES[] = {
 
 const struct EnumTable ENUM_TABLES_PUBLIC[] = {
 	{ "ShipAIError", ENUM_ShipAIError },
-	{ "DetailLevel", ENUM_DetailLevel },
-	{ "FileSystemRoot", ENUM_FileSystemRoot },
 	{ "PhysicsObjectType", ENUM_PhysicsObjectType },
 	{ "ShipFlightState", ENUM_ShipFlightState },
 	{ "ShipJumpStatus", ENUM_ShipJumpStatus },
@@ -574,6 +584,7 @@ const struct EnumTable ENUM_TABLES_PUBLIC[] = {
 	{ "ShipTypeTag", ENUM_ShipTypeTag },
 	{ "ProjectableTypes", ENUM_ProjectableTypes },
 	{ "ProjectableRefTypes", ENUM_ProjectableRefTypes },
+	{ "SystemViewColorIndex", ENUM_SystemViewColorIndex },
 	{ "EconType", ENUM_EconType },
 	{ "CommodityType", ENUM_CommodityType },
 	{ "PolitEcon", ENUM_PolitEcon },
@@ -582,6 +593,8 @@ const struct EnumTable ENUM_TABLES_PUBLIC[] = {
 	{ "BodySuperType", ENUM_BodySuperType },
 	{ "GameUIFaceFlags", ENUM_GameUIFaceFlags },
 	{ "GameUIMarkerStyle", ENUM_GameUIMarkerStyle },
+	{ "DetailLevel", ENUM_DetailLevel },
+	{ "FileSystemRoot", ENUM_FileSystemRoot },
 	{ "PiGUIFaceFlags", ENUM_PiGUIFaceFlags },
 	{ "ModelDebugFlags", ENUM_ModelDebugFlags },
 	{ "ShipTypeThruster", ENUM_ShipTypeThruster },

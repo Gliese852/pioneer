@@ -229,6 +229,7 @@ SystemView::SystemView(Game *game) :
 	m_trans(0.0),
 	m_transTo(0.0)
 {
+	Output("SYSTEM VIEW STARTED!\n");
 	m_rot_y = 0;
 	m_rot_x = 50;
 	m_zoom = 1.0f / float(AU);
@@ -302,10 +303,12 @@ void SystemView::ResetViewpoint()
 template <typename RefType>
 void SystemView::PutOrbit(RefType *ref, const Orbit *orbit, const vector3d &offset, const Color &color, const double planetRadius, const bool showLagrange)
 {
+	double ecc = orbit->GetEccentricity();
+	double timeshift = ecc > 0.6 ? 0.0 : 0.5;
 	double maxT = 1.;
 	unsigned short num_vertices = 0;
 	for (unsigned short i = 0; i < N_VERTICES_MAX; ++i) {
-		const double t = double(i) / double(N_VERTICES_MAX);
+		const double t = (double(i) + timeshift) / double(N_VERTICES_MAX);
 		const vector3d pos = orbit->EvenSpacedPosTrajectory(t);
 		if (pos.Length() < planetRadius) {
 			maxT = t;
@@ -317,9 +320,9 @@ void SystemView::PutOrbit(RefType *ref, const Orbit *orbit, const vector3d &offs
 	static const float fadedColorParameter = 0.8;
 
 	Uint16 fadingColors = 0;
-	const double tMinust0 = m_time - m_game->GetTime();
+	const double tMinust0 = GetOrbitTime(m_time, ref);
 	for (unsigned short i = 0; i < N_VERTICES_MAX; ++i) {
-		const double t = double(i) / double(N_VERTICES_MAX) * maxT;
+		const double t = (double(i) + timeshift) / double(N_VERTICES_MAX) * maxT;
 		if (fadingColors == 0 && t >= startTrailPercent * maxT)
 			fadingColors = i;
 		const vector3d pos = orbit->EvenSpacedPosTrajectory(t, tMinust0);
@@ -342,7 +345,7 @@ void SystemView::PutOrbit(RefType *ref, const Orbit *orbit, const vector3d &offs
 		m_orbits.SetData(num_vertices, m_orbitVts.get(), m_orbitColors.get());
 
 		// don't close the loop for hyperbolas and parabolas and crashed ellipses
-		if (maxT < 1. || (orbit->GetEccentricity() > 1.0)) {
+		if (maxT < 1. || ecc > 1.0 || ecc < 0.6) {
 			m_orbits.Draw(m_renderer, m_lineState, LINE_STRIP);
 		} else {
 			m_orbits.Draw(m_renderer, m_lineState, LINE_LOOP);
@@ -353,27 +356,19 @@ void SystemView::PutOrbit(RefType *ref, const Orbit *orbit, const vector3d &offs
 	vector3d pos;
 	if (Gui::Screen::Project(offset + orbit->Perigeum() * double(m_zoom), pos) && pos.z < 1)
 		AddProjected<RefType>(Projectable::PERIAPSIS, ref, pos);
-		//m_periapsisIcon->Draw(Pi::renderer, vector2f(pos.x - 3, pos.y - 5), vector2f(6, 10), color);
 	if (Gui::Screen::Project(offset + orbit->Apogeum() * double(m_zoom), pos) && pos.z < 1)
 		AddProjected<RefType>(Projectable::APOAPSIS, ref, pos);
-		//m_apoapsisIcon->Draw(Pi::renderer, vector2f(pos.x - 3, pos.y - 5), vector2f(6, 10), color);
 
 	if (showLagrange && m_showL4L5 != LAG_OFF) {
 		const Color LPointColor(0x00d6e2ff);
 		const vector3d posL4 = orbit->EvenSpacedPosTrajectory((1.0 / 360.0) * 60.0, tMinust0);
 		if (Gui::Screen::Project(offset + posL4 * double(m_zoom), pos) && pos.z < 1) {
 			AddProjected<RefType>(Projectable::L4, ref, pos);
-			//m_l4Icon->Draw(Pi::renderer, vector2f(pos.x - 2, pos.y - 2), vector2f(4, 4), LPointColor);
-			//if (m_showL4L5 == LAG_ICONTEXT)
-				//m_objectLabels->Add(std::string("L4"), sigc::mem_fun(this, &SystemView::OnClickLagrange), pos.x, pos.y);
 		}
 
 		const vector3d posL5 = orbit->EvenSpacedPosTrajectory((1.0 / 360.0) * 300.0, tMinust0);
 		if (Gui::Screen::Project(offset + posL5 * double(m_zoom), pos) && pos.z < 1) {
 			AddProjected<RefType>(Projectable::L5, ref, pos);
-			//m_l5Icon->Draw(Pi::renderer, vector2f(pos.x - 2, pos.y - 2), vector2f(4, 4), LPointColor);
-			//if (m_showL4L5 == LAG_ICONTEXT)
-			//	m_objectLabels->Add(std::string("L5"), sigc::mem_fun(this, &SystemView::OnClickLagrange), pos.x, pos.y);
 		}
 	}
 	Gui::Screen::LeaveOrtho();
@@ -415,7 +410,7 @@ void SystemView::PutBody(const SystemBody *b, const vector3d &offset, const matr
 		if (!m_bodyIcon) {
 			Graphics::RenderStateDesc rsd;
 			auto solidState = m_renderer->CreateRenderState(rsd);
-			m_bodyIcon.reset(new Graphics::Drawables::Disk(m_renderer, solidState, Color::GRAY, 1.0f));
+			m_bodyIcon.reset(new Graphics::Drawables::Disk(m_renderer, solidState, svColor[PLANET], 1.0f));
 		}
 
 		const double radius = b->GetRadius() * m_zoom;
@@ -447,11 +442,12 @@ void SystemView::PutBody(const SystemBody *b, const vector3d &offset, const matr
 				continue;
 
 			const double axisZoom = kid->GetOrbit().GetSemiMajorAxis() * m_zoom;
-			//if (axisZoom < DEFAULT_VIEW_DISTANCE) {
+			//semimajor axis radius should be at least 1% of screen width to show the orbit
+			if (ProjectedSize(axisZoom, offset) > 0.01) {
 				const SystemBody::BodySuperType bst = kid->GetSuperType();
 				const bool showLagrange = (bst == SystemBody::SUPERTYPE_ROCKY_PLANET || bst == SystemBody::SUPERTYPE_GAS_GIANT);
-				PutOrbit<const SystemBody>(kid, &(kid->GetOrbit()), offset, Color::GREEN, 0.0, showLagrange);
-			//}
+				PutOrbit<const SystemBody>(kid, &(kid->GetOrbit()), offset, svColor[PLANET_ORBIT], 0.0, showLagrange);
+			}
 
 			// not using current time yet
 			const vector3d pos = kid->GetOrbit().OrbitalPosAtTime(m_time) * double(m_zoom);
@@ -628,13 +624,13 @@ void SystemView::Draw3D()
 		m_unexplored = m_system->GetUnexplored();
 	}
 
-	matrix4x4f trans = matrix4x4f::Identity();
-	trans = matrix4x4f::Identity();
-	trans.Translate(0, 0, -DEFAULT_VIEW_DISTANCE);
-	trans.Rotate(DEG2RAD(m_rot_x), 1, 0, 0);
-	trans.Rotate(DEG2RAD(m_rot_y), 0, 1, 0);
-	m_renderer->SetTransform(trans);
+	m_cameraSpace = matrix4x4f::Identity();
+	m_cameraSpace.Translate(0, 0, -DEFAULT_VIEW_DISTANCE);
+	m_cameraSpace.Rotate(DEG2RAD(m_rot_x), 1, 0, 0);
+	m_cameraSpace.Rotate(DEG2RAD(m_rot_y), 0, 1, 0);
+	m_renderer->SetTransform(m_cameraSpace);
 
+	// smooth transition animation
 	m_transTo *= 0.0;
 	if (m_selectedObject.type != Projectable::NONE) GetTransformTo(m_selectedObject, m_transTo);
 	if(m_animateTransition)
@@ -657,7 +653,7 @@ void SystemView::Draw3D()
 	else {
 		if (m_system->GetRootBody()) {
 			// all systembodies draws here
-			PutBody(m_system->GetRootBody().Get(), pos, trans);
+			PutBody(m_system->GetRootBody().Get(), pos, m_cameraSpace);
 		}
 	}
 	// glLineWidth(1);
@@ -686,13 +682,13 @@ void SystemView::Draw3D()
 
 		if (Pi::player->GetFlightState() == Ship::FlightState::FLYING)
 		{
-			PutOrbit<Body>(PlayerBody, &playerOrbit, offset, Color::RED, playerAround->GetRadius());
+			PutOrbit<Body>(PlayerBody, &playerOrbit, offset, svColor[PLAYER_ORBIT], playerAround->GetRadius());
 			const double plannerStartTime = m_planner->GetStartTime();
 			if (!m_planner->GetPosition().ExactlyEqual(vector3d(0, 0, 0))) {
 				Orbit plannedOrbit = Orbit::FromBodyState(m_planner->GetPosition(),
 						m_planner->GetVel(),
 						playerAround->GetMass());
-				PutOrbit<Body>(PlayerBody, &plannedOrbit, offset, Color::STEELBLUE, playerAround->GetRadius());
+				PutOrbit<Body>(PlayerBody, &plannedOrbit, offset, svColor[PLANNER_ORBIT], playerAround->GetRadius());
 				if (std::fabs(m_time - m_game->GetTime()) > 1. && (m_time - plannerStartTime) > 0.)
 					AddNotProjected<Body>(Projectable::PLANNER, PlayerBody, offset + plannedOrbit.OrbitalPosAtTime(m_time - plannerStartTime) * static_cast<double>(m_zoom));
 				else
@@ -770,7 +766,7 @@ void SystemView::DrawShips(const double t, const vector3d &offset)
 		{
 			vector3d framepos(0.0);
 			CalculateFramePositionAtTime(Frame::GetFrame((*s).first->GetFrame())->GetNonRotFrame(), m_time, framepos);
-			PutOrbit<Body>(static_cast<Body*>((*s).first), &(*s).second, offset + framepos * m_zoom, isSelected ? Color::GREEN : Color::BLUE, 0);
+			PutOrbit<Body>(static_cast<Body*>((*s).first), &(*s).second, offset + framepos * m_zoom, isSelected ? svColor[SELECTED_SHIP_ORBIT] : svColor[SHIP_ORBIT], 0);
 		}
 	}
 }
@@ -801,23 +797,23 @@ void SystemView::DrawGrid()
 
 	for (int i = -m_grid_lines; i < m_grid_lines + 1; i++) {
 		float z = float(i) * zoom;
-		m_lineVerts->Add(vector3f(-m_grid_lines * zoom, 0.0f, z) + vector3f(pos), Color::GRAY);
-		m_lineVerts->Add(vector3f(+m_grid_lines * zoom, 0.0f, z) + vector3f(pos), Color::GRAY);
+		m_lineVerts->Add(vector3f(-m_grid_lines * zoom, 0.0f, z) + vector3f(pos), svColor[GRID]);
+		m_lineVerts->Add(vector3f(+m_grid_lines * zoom, 0.0f, z) + vector3f(pos), svColor[GRID]);
 	}
 
 	for (int i = -m_grid_lines; i < m_grid_lines + 1; i++) {
 		float x = float(i) * zoom;
-		m_lineVerts->Add(vector3f(x, 0.0f, -m_grid_lines * zoom) + vector3f(pos), Color::GRAY);
-		m_lineVerts->Add(vector3f(x, 0.0f, +m_grid_lines * zoom) + vector3f(pos), Color::GRAY);
+		m_lineVerts->Add(vector3f(x, 0.0f, -m_grid_lines * zoom) + vector3f(pos), svColor[GRID]);
+		m_lineVerts->Add(vector3f(x, 0.0f, +m_grid_lines * zoom) + vector3f(pos), svColor[GRID]);
 	}
 
 	for (SystemBody *sbody : m_displayed_sbody) {
 		vector3d offset(0.);
 		GetTransformTo(sbody, offset);
 		offset *= m_zoom;
-		m_lineVerts->Add(vector3f(pos - offset), Color::GRAY * 0.5);
+		m_lineVerts->Add(vector3f(pos - offset), svColor[GRID] * 0.5);
 		offset.y = 0.0;
-		m_lineVerts->Add(vector3f(pos - offset), Color::GRAY * 0.5);
+		m_lineVerts->Add(vector3f(pos - offset), svColor[GRID] * 0.5);
 	}
 
 	m_lines.SetData(m_lineVerts->GetNumVerts(), &m_lineVerts->position[0], &m_lineVerts->diffuse[0]);
@@ -892,3 +888,15 @@ void SystemView::SetSelectedObject(Projectable::types type, Body *b)
 	m_selectedObject.ref.body = b;
 	m_animateTransition = MAX_TRANSITION_FRAMES;
 }
+
+double SystemView::ProjectedSize(double size, vector3d pos)
+{
+	matrix4x4d dtrans;
+	matrix4x4ftod(m_cameraSpace, dtrans);
+	pos = dtrans * pos; //position in camera space to know distance
+	double result = size / pos.Length() / CAMERA_FOV_RADIANS;
+	return result;
+}
+
+double SystemView::GetOrbitTime(double t, const SystemBody* b) { return t; }
+double SystemView::GetOrbitTime(double t, const Body* b) { return t - m_game->GetTime(); }

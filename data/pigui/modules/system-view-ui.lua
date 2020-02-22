@@ -5,6 +5,7 @@ local ui = import('pigui/pigui.lua')
 local Vector2 = _G.Vector2
 local Lang = import("Lang")
 local lc = Lang.GetResource("core")
+local Event = require 'Event'
 
 local player = nil
 local colors = ui.theme.colors
@@ -22,6 +23,35 @@ local ASTEROID_RADIUS = 1500000 -- rocky planets smaller than this (in meters) a
 local Projectable = {}
 for _, key in pairs(Constants.ProjectableTypes) do Projectable[key] = Engine.GetEnumValue("ProjectableTypes", key) end
 for _, key in pairs(Constants.ProjectableRefTypes) do Projectable[key] = Engine.GetEnumValue("ProjectableRefTypes", key) end
+
+local svColor = {
+	PLANET = colors.frame,
+	SHIP = colors.frame,
+	PLANET_ORBIT = colors.green,
+	SHIP_ORBIT = colors.blue,
+	SELECTED_SHIP_ORBIT = colors.green,
+	PLAYER_ORBIT = colors.green,
+	PLAYER = colors.green,
+	PLANNER_ORBIT = colors.blue,
+	PLANNER = colors.blue,
+	NAV_TARGET = colors.navTarget,
+	COMBAT_TARGET = colors.combatTarget,
+	LAGRANGE = colors.frame,
+	LAGRANGE_LABEL = colors.frame,
+	BUTTON_BACK = colors.Blue,
+	BUTTON_INK = colors.white,
+	WINDOW_BACK = colors.lightBlueBackground,
+	GRID = colors.grey,
+	PLANET = colors.lightBlueBackground
+}
+
+local onGameStart = function ()
+	--export several colors to class SystemView (only those which mentioned in the enum SystemViewColorIndex)
+	for _, key in pairs(Constants.SystemViewColorIndex) do
+		print ("gona export: " .. key .. "\n")
+		Engine.SystemMapSetColor(key, svColor[key])
+	end
+end
 
 local function showDvLine(leftIcon, resetIcon, rightIcon, key, Formatter, leftTooltip, resetTooltip, rightTooltip)
 	local wheel = function()
@@ -435,6 +465,7 @@ local function displaySystemViewUI()
 	end
 end
 
+Event.Register("onGameStart", onGameStart)
 ui.registerModule("game", displaySystemViewUI)
 
 return {}

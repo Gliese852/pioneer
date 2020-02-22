@@ -11,6 +11,7 @@
 #include "Intro.h"
 #include "KeyBindings.h"
 #include "Lang.h"
+#include "LuaColor.h"
 #include "LuaConstants.h"
 #include "LuaObject.h"
 #include "LuaPiGui.h"
@@ -1091,6 +1092,15 @@ static int l_engine_get_sector_map_factions(lua_State *l)
 	return 1;
 }
 
+static int l_engine_system_map_set_color(lua_State *l)
+{
+	SystemView *sv = Pi::game->GetSystemView();
+	auto color_index = static_cast<SystemView::ColorIndex>(EnumStrings::GetValue("SystemViewColorIndex", LuaPull<const char*>(l, 1)));
+	auto color_value = LuaColor::CheckFromLua(l, 2);
+	sv->SetColor(color_index, color_value);
+	return 0;
+}
+
 static int l_engine_system_map_center_on(lua_State *l)
 {
 	SystemView *sv = Pi::game->GetSystemView();
@@ -1491,6 +1501,7 @@ void LuaEngine::Register()
 		{ "SystemMapAccelerateTime", l_engine_system_map_accelerate_time },
 		{ "SystemMapCenterOn", l_engine_system_map_center_on },
 		{ "SystemMapSetVisibility", l_engine_system_map_set_visibility },
+		{ "SystemMapSetColor", l_engine_system_map_set_color },
 		{ "TransferPlannerAdd", l_engine_transfer_planner_add },
 		{ "TransferPlannerGet", l_engine_transfer_planner_get },
 		{ "TransferPlannerReset", l_engine_transfer_planner_reset },

@@ -9,8 +9,8 @@
 #include "graphics/Drawables.h"
 #include "matrix4x4.h"
 #include "vector3.h"
-#include "LuaTable.h"
-#include "LuaPiGui.h"
+#include "lua/LuaTable.h"
+#include "lua/LuaPiGui.h"
 #include "enum_table.h"
 #include "Frame.h"
 
@@ -44,6 +44,7 @@ enum ShowLagrange {
 	LAG_ICONTEXT,
 	LAG_OFF
 };
+
 
 class TransferPlanner {
 public:
@@ -127,11 +128,28 @@ public:
 	std::vector<Projectable> GetProjected() const { return m_projected; }
 	void BodyInaccessible(Body *b);
 	void SetVisibility(std::string param);
+	double ProjectedSize(double size, vector3d pos);
+
+	enum ColorIndex { // <enum name=SystemViewColorIndex scope='SystemView' public>
+		PLANET_ORBIT = 0,
+		SHIP_ORBIT = 1,
+		SELECTED_SHIP_ORBIT = 2,
+		PLAYER_ORBIT = 3,
+		PLANNER_ORBIT = 4,
+		GRID = 5,
+		PLANET = 6
+	};
+
+	Color svColor[7];
+	void SetColor(ColorIndex color_index, Color* color_value) { svColor[color_index] = *color_value; }
+
 private:
 	std::vector<Projectable> m_projected;
 	static const double PICK_OBJECT_RECT_SIZE;
 	static const Uint16 N_VERTICES_MAX;
 	const float CAMERA_FOV = 50.f;
+	const float CAMERA_FOV_RADIANS = CAMERA_FOV / 57.295779f;
+	matrix4x4f m_cameraSpace;
 	template <typename RefType>
 	void PutOrbit(RefType *ref, const Orbit *orb, const vector3d &offset, const Color &color, const double planetRadius = 0.0, const bool showLagrange = false);
 	void PutBody(const SystemBody *b, const vector3d &offset, const matrix4x4f &trans);
@@ -154,6 +172,8 @@ private:
 	void AddNotProjected(Projectable::types type, T *ref, const vector3d &worldscaledpos);
 	void CalculateShipPositionAtTime(const Ship *s, Orbit o, double t, vector3d &pos);
 	void CalculateFramePositionAtTime(FrameId frameId, double t, vector3d &pos);
+	double GetOrbitTime(double t, const SystemBody* b);
+	double GetOrbitTime(double t, const Body* b);
 
 	Game *m_game;
 	RefCountedPtr<StarSystem> m_system;
