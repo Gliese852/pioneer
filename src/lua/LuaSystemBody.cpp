@@ -7,6 +7,7 @@
 #include "LuaObject.h"
 #include "LuaUtils.h"
 #include "Pi.h"
+#include "SectorView.h"
 #include "Space.h"
 #include "galaxy/Galaxy.h"
 #include "galaxy/StarSystem.h"
@@ -663,7 +664,16 @@ static int l_sbody_attr_is_moon(lua_State *l)
 
 static int l_sbody_attr_physics_body(lua_State *l)
 {
-	LuaObject<Body>::PushToLua(LuaObject<SystemBody>::CheckFromLua(1)->GetPhysicsBody());
+	SystemBody *b = LuaObject<SystemBody>::CheckFromLua(1);
+	Body *physbody = nullptr;
+	SystemPath headpath = Pi::game->GetSectorView()->GetSelected().SystemOnly();
+	SystemPath gamepath = Pi::game->GetSpace()->GetStarSystem()->GetPath();
+	if (headpath == gamepath) {
+		RefCountedPtr<StarSystem> ss = Pi::game->GetGalaxy()->GetStarSystem(headpath);
+		SystemPath path = ss->GetPathOf(b);
+		physbody = Pi::game->GetSpace()->FindBodyForPath(&path);
+	}
+	LuaObject<Body>::PushToLua(physbody);
 	return 1;
 }
 

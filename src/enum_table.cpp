@@ -112,30 +112,32 @@ const struct EnumItem ENUM_ShipTypeTag[] = {
 
 const struct EnumItem ENUM_ProjectableTypes[] = {
 	{ "NONE", int(Projectable::NONE) },
-	{ "PLAYERSHIP", int(Projectable::PLAYERSHIP) },
 	{ "OBJECT", int(Projectable::OBJECT) },
 	{ "L4", int(Projectable::L4) },
 	{ "L5", int(Projectable::L5) },
 	{ "APOAPSIS", int(Projectable::APOAPSIS) },
 	{ "PERIAPSIS", int(Projectable::PERIAPSIS) },
+	{ 0, 0 },
+};
+
+const struct EnumItem ENUM_ProjectableBases[] = {
+	{ "SYSTEMBODY", int(Projectable::SYSTEMBODY) },
+	{ "BODY", int(Projectable::BODY) },
+	{ "SHIP", int(Projectable::SHIP) },
+	{ "SELECTED_SHIP", int(Projectable::SELECTED_SHIP) },
+	{ "PLAYER", int(Projectable::PLAYER) },
 	{ "PLANNER", int(Projectable::PLANNER) },
 	{ 0, 0 },
 };
 
-const struct EnumItem ENUM_ProjectableRefTypes[] = {
-	{ "BODY", int(Projectable::BODY) },
-	{ "SYSTEMBODY", int(Projectable::SYSTEMBODY) },
-	{ 0, 0 },
-};
-
 const struct EnumItem ENUM_SystemViewColorIndex[] = {
-	{ "PLANET_ORBIT", int(SystemView::PLANET_ORBIT) },
-	{ "SHIP_ORBIT", int(SystemView::SHIP_ORBIT) },
-	{ "SELECTED_SHIP_ORBIT", int(SystemView::SELECTED_SHIP_ORBIT) },
+	{ "GRID", int(SystemView::GRID) },
+	{ "SYSTEMBODY", int(SystemView::SYSTEMBODY) },
+	{ "SYSTEMBODY_ORBIT", int(SystemView::SYSTEMBODY_ORBIT) },
 	{ "PLAYER_ORBIT", int(SystemView::PLAYER_ORBIT) },
 	{ "PLANNER_ORBIT", int(SystemView::PLANNER_ORBIT) },
-	{ "GRID", int(SystemView::GRID) },
-	{ "PLANET", int(SystemView::PLANET) },
+	{ "SELECTED_SHIP_ORBIT", int(SystemView::SELECTED_SHIP_ORBIT) },
+	{ "SHIP_ORBIT", int(SystemView::SHIP_ORBIT) },
 	{ 0, 0 },
 };
 
@@ -534,7 +536,7 @@ const struct EnumTable ENUM_TABLES[] = {
 	{ "DualLaserOrientation", ENUM_DualLaserOrientation },
 	{ "ShipTypeTag", ENUM_ShipTypeTag },
 	{ "ProjectableTypes", ENUM_ProjectableTypes },
-	{ "ProjectableRefTypes", ENUM_ProjectableRefTypes },
+	{ "ProjectableBases", ENUM_ProjectableBases },
 	{ "SystemViewColorIndex", ENUM_SystemViewColorIndex },
 	{ "EconType", ENUM_EconType },
 	{ "CommodityType", ENUM_CommodityType },
@@ -583,7 +585,7 @@ const struct EnumTable ENUM_TABLES_PUBLIC[] = {
 	{ "DualLaserOrientation", ENUM_DualLaserOrientation },
 	{ "ShipTypeTag", ENUM_ShipTypeTag },
 	{ "ProjectableTypes", ENUM_ProjectableTypes },
-	{ "ProjectableRefTypes", ENUM_ProjectableRefTypes },
+	{ "ProjectableBases", ENUM_ProjectableBases },
 	{ "SystemViewColorIndex", ENUM_SystemViewColorIndex },
 	{ "EconType", ENUM_EconType },
 	{ "CommodityType", ENUM_CommodityType },

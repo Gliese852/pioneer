@@ -36,8 +36,6 @@ theme.colors = {
 	buttonBlue = Color(150, 150, 200, 255),
 	white = Color(255,255,255,255),
 	grey = Color(120,120,120,255),
-	green = Color(0,255,0),
-	blue = Color(0,0,255),
 	lightGrey = Color(200,200,200,255),
 	gaugeBackground = Color(40, 40, 70),
 	gaugePressure = Color(76,76,158),
@@ -61,7 +59,7 @@ theme.colors = {
 	radarNavTarget = Color(0, 255, 0),
 	radarStation = Color(255, 255, 255),
 	radarCloud = Color(128, 128, 255),
-  gaugeEquipmentMarket = Color(76,76,158),
+	gaugeEquipmentMarket = Color(76,76,158),
 }
 
 theme.icons = {
@@ -179,7 +177,7 @@ theme.icons = {
    filter_bodies = 107,
    filter_stations = 108,
    filter_ships = 109,
-	 lagrange = 110,
+   lagrange = 110,
    system_overview = 111,
    -- eighth row
    heavy_freighter = 112,
@@ -194,10 +192,10 @@ theme.icons = {
    display_navtarget = 121,
    alert1 = 122,
    alert2 = 123,
-	 ecm_advanced = 124,
-	 systems_management = 125,
-	 distance = 126,
-	 filter = 127,
+   ecm_advanced = 124,
+   systems_management = 125,
+   distance = 126,
+   filter = 127,
    -- ninth row
    view_internal = 128,
    view_external = 129,
@@ -243,14 +241,14 @@ theme.icons = {
    hud = 168,
    factory = 169,
    star = 170,
-	 orbit_delta = 171,
-	 orbit_start_time = 172,
-	 orbit_prograde = 173,
-	 orbit_normal = 174,
-	 orbit_radial = 175,
-	 -- twelfth row (176 - 191)
+   orbit_delta = 171,
+   orbit_start_time = 172,
+   orbit_prograde = 173,
+   orbit_normal = 174,
+   orbit_radial = 175,
+   -- twelfth row (176 - 191)
    view_flyby = 191,
-	 -- thirteenth row (192 - 207)
+   -- thirteenth row (192 - 207)
    gender = 193,
    nose = 194,
    mouth = 195,
@@ -258,22 +256,22 @@ theme.icons = {
    clothes = 197,
    accessories = 198,
    random = 199,
-	 periapsis = 200,
-	 apoapsis = 201,
-	 systemmap_reset_view = 202,
-	 systemmap_toggle_grid = 203,
-	 systemmap_toggle_lagrange = 204,
-	 systemmap_toggle_ships = 205,
-	 orbit_reduce = 206,
-	 orbit_increase = 207,
+   periapsis = 200,
+   apoapsis = 201,
+   systemmap_reset_view = 202,
+   systemmap_toggle_grid = 203,
+   systemmap_toggle_lagrange = 204,
+   systemmap_toggle_ships = 205,
+   orbit_reduce = 206,
+   orbit_increase = 207,
    -- TODO: manual / autopilot
-	 -- dummy, until actually defined correctly
-	 mouse_move_direction = 14,
-	 -- fourteenth row, wide icons
-	 missile_unguided = 208,
-	 missile_guided = 210,
-	 missile_smart = 212,
-	 missile_naval = 214,
+   -- dummy, until actually defined correctly
+   mouse_move_direction = 14,
+   -- fourteenth row, wide icons
+   missile_unguided = 208,
+   missile_guided = 210,
+   missile_smart = 212,
+   missile_naval = 214,
 }
 
 -- TODO: apply these styles at startup.

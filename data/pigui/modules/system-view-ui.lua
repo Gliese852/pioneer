@@ -6,6 +6,7 @@ local Vector2 = _G.Vector2
 local Lang = import("Lang")
 local lc = Lang.GetResource("core")
 local Event = require 'Event'
+local Lang = require 'Lang'
 
 local player = nil
 local colors = ui.theme.colors
@@ -19,36 +20,39 @@ local indicatorSize = Vector2(30 , 30)
 local pionillium = ui.fonts.pionillium
 local ASTEROID_RADIUS = 1500000 -- rocky planets smaller than this (in meters) are considered an asteroid, not a planet
 
+local l = Lang.GetResource("core")
+
 --load enums Projectable::types and Projectable::reftypes in one table "Projectable"
 local Projectable = {}
 for _, key in pairs(Constants.ProjectableTypes) do Projectable[key] = Engine.GetEnumValue("ProjectableTypes", key) end
-for _, key in pairs(Constants.ProjectableRefTypes) do Projectable[key] = Engine.GetEnumValue("ProjectableRefTypes", key) end
+for _, key in pairs(Constants.ProjectableBases) do Projectable[key] = Engine.GetEnumValue("ProjectableBases", key) end
 
 local svColor = {
-	PLANET = colors.frame,
-	SHIP = colors.frame,
-	PLANET_ORBIT = colors.green,
-	SHIP_ORBIT = colors.blue,
-	SELECTED_SHIP_ORBIT = colors.green,
-	PLAYER_ORBIT = colors.green,
-	PLAYER = colors.green,
-	PLANNER_ORBIT = colors.blue,
-	PLANNER = colors.blue,
-	NAV_TARGET = colors.navTarget,
-	COMBAT_TARGET = colors.combatTarget,
-	LAGRANGE = colors.frame,
-	LAGRANGE_LABEL = colors.frame,
-	BUTTON_BACK = colors.Blue,
+	BUTTON_BACK = colors.buttonBlue,
 	BUTTON_INK = colors.white,
-	WINDOW_BACK = colors.lightBlueBackground,
-	GRID = colors.grey,
-	PLANET = colors.lightBlueBackground
+	COMBAT_TARGET = colors.combatTarget,
+	GRID = Color(120,120,120),
+	LAGRANGE = colors.frame,
+	NAV_TARGET = colors.navTarget,
+	SYSTEMBODY = Color(109,109,134),
+	SYSTEMBODY_ICON = colors.frame,
+	SYSTEMBODY_ORBIT = Color(0,255,0),
+	SELECTED_SHIP_ORBIT = Color(0,255,0),
+	SHIP = colors.frame,
+	SHIP_ORBIT = Color(0,0,255),
+	OBJECT = colors.frame,
+	PLANNER = Color(0,0,255),
+	PLANNER_ORBIT = Color(0,0,255),
+	PLAYER = Color(255,0,0),
+	PLAYER_ORBIT = Color(255,0,0),
+	WINDOW_BACK = colors.lightBlackBackground,
+	UNKNOWN = Color(255,0,255)
 }
 
 local onGameStart = function ()
 	--export several colors to class SystemView (only those which mentioned in the enum SystemViewColorIndex)
 	for _, key in pairs(Constants.SystemViewColorIndex) do
-		print ("gona export: " .. key .. "\n")
+		print ("gona export: " .. key)
 		Engine.SystemMapSetColor(key, svColor[key])
 	end
 end
@@ -62,18 +66,18 @@ local function showDvLine(leftIcon, resetIcon, rightIcon, key, Formatter, leftTo
 			end
 		end
 	end
-	local press = ui.coloredSelectedIconButton(leftIcon, mainButtonSize, false, mainButtonFramePadding, colors.buttonBlue, colors.white, leftTooltip)
+	local press = ui.coloredSelectedIconButton(leftIcon, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, leftTooltip)
 	if press or (key ~= "factor" and ui.isItemActive()) then
 		Engine.TransferPlannerAdd(key, -10)
 	end
 	wheel()
 	ui.sameLine()
-	if ui.coloredSelectedIconButton(resetIcon, mainButtonSize, false, mainButtonFramePadding, colors.buttonBlue, colors.white, resetTooltip) then
+	if ui.coloredSelectedIconButton(resetIcon, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, resetTooltip) then
 		Engine.TransferPlannerReset(key)
 	end
 	wheel()
 	ui.sameLine()
-	press = ui.coloredSelectedIconButton(rightIcon, mainButtonSize, false, mainButtonFramePadding, colors.buttonBlue, colors.white, rightTooltip)
+	press = ui.coloredSelectedIconButton(rightIcon, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, rightTooltip)
 	if press or (key ~= "factor" and ui.isItemActive()) then
 		Engine.TransferPlannerAdd(key, 10)
 	end
@@ -87,7 +91,7 @@ end
 local time_selected_button_icon = icons.time_center
 
 local function timeButton(icon, tooltip, factor)
-	if ui.coloredSelectedIconButton(icon, mainButtonSize, false, mainButtonFramePadding, colors.buttonBlue, colors.white, tooltip) then
+	if ui.coloredSelectedIconButton(icon, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, tooltip) then
 		time_selected_button_icon = icon
 	end
 	local active = ui.isItemActive()
@@ -125,38 +129,38 @@ local orbitPlannerWindowPos = Vector2(ui.screenWidth - calcWindowWidth(7), ui.sc
 
 local function showOrbitPlannerWindow()
 	ui.setNextWindowPos(orbitPlannerWindowPos, "Always")
-	ui.withStyleColors({["WindowBg"] = colors.lightBlackBackground}, function()
+	ui.withStyleColors({["WindowBg"] = svColor.WINDOW_BACK}, function()
 			ui.window("OrbitPlannerWindow", {"NoTitleBar", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings", "AlwaysAutoResize"},
 								function()
 									ui.text("Orbit planner")
 
 									ui.separator()
 
-									if ui.coloredSelectedIconButton(icons.systemmap_reset_view, mainButtonSize, showShips, mainButtonFramePadding, colors.buttonBlue, colors.white, "Reset view") then
+									if ui.coloredSelectedIconButton(icons.systemmap_reset_view, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Reset view") then
 										Engine.SystemMapSetVisibility("RESET_VIEW")
 									end
 									ui.sameLine()
-									if ui.coloredSelectedIconButton(icons.systemmap_toggle_grid, mainButtonSize, showShips, mainButtonFramePadding, colors.buttonBlue, colors.white, "Show grid") then
+									if ui.coloredSelectedIconButton(icons.systemmap_toggle_grid, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show grid") then
 										show_grid = nextShowGrid[show_grid]
 										Engine.SystemMapSetVisibility(show_grid);
 									end
 									ui.sameLine()
-									if ui.coloredSelectedIconButton(icons.systemmap_toggle_ships, mainButtonSize, showShips, mainButtonFramePadding, colors.buttonBlue, colors.white, "Show ships") then
+									if ui.coloredSelectedIconButton(icons.systemmap_toggle_ships, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show ships") then
 										ship_drawing = nextShipDrawings[ship_drawing]
 										Engine.SystemMapSetVisibility(ship_drawing);
 									end
 									ui.sameLine()
-									if ui.coloredSelectedIconButton(icons.systemmap_toggle_lagrange, mainButtonSize, showLagrangePoints, mainButtonFramePadding, colors.buttonBlue, colors.white, "Show Lagrange points") then
+									if ui.coloredSelectedIconButton(icons.systemmap_toggle_lagrange, mainButtonSize, showLagrangePoints, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show Lagrange points") then
 										show_lagrange = nextShowLagrange[show_lagrange]
 										Engine.SystemMapSetVisibility(show_lagrange);
 									end
 									ui.sameLine()
-									ui.coloredSelectedIconButton(icons.zoom_in,mainButtonSize, false, mainButtonFramePadding, colors.buttonBlue, colors.white, "Zoom in")
+									ui.coloredSelectedIconButton(icons.zoom_in,mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Zoom in")
 									if ui.isItemActive() then
 										Engine.SystemMapSetVisibility("ZOOM_IN");
 									end
 									ui.sameLine()
-									ui.coloredSelectedIconButton(icons.zoom_out, mainButtonSize, false, mainButtonFramePadding, colors.buttonBlue, colors.white, "Zoom out")
+									ui.coloredSelectedIconButton(icons.zoom_out, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Zoom out")
 									if ui.isItemActive() then
 										Engine.SystemMapSetVisibility("ZOOM_OUT");
 									end
@@ -207,14 +211,14 @@ local function getBodyIcon(obj)
 	elseif obj.type == Projectable.PERIAPSIS then return icons.periapsis
 	elseif obj.type == Projectable.L4 then return icons.lagrange
 	elseif obj.type == Projectable.L5 then return icons.lagrange
-	elseif obj.type == Projectable.PLAYERSHIP or obj.type == Projectable.PLANNER then
+	elseif obj.base == Projectable.PLAYER or obj.base == Projectable.PLANNER then
 		local shipClass = obj.ref:GetShipClass()
 		if icons[shipClass] then
 			return icons[shipClass]
 		else
 			return icons.ship
 		end
-	elseif obj.reftype == Projectable.SYSTEMBODY then
+	elseif obj.base == Projectable.SYSTEMBODY then
 		local body = obj.ref
 		local st = body.superType
 		local t = body.type
@@ -240,6 +244,7 @@ local function getBodyIcon(obj)
 			end
 		end -- st
 	else
+		-- physical body
 		local body = obj.ref
 		if body:IsShip() then
 			local shipClass = body:GetShipClass()
@@ -264,8 +269,10 @@ local function getBodyIcon(obj)
 end
 
 local function getLabel(obj)
-	if obj.type == Projectable.OBJECT or obj.type == Projectable.PLAYERSHIP then
-		if obj.reftype == Projectable.BODY then return obj.ref:GetLabel() else return obj.ref.name end
+	if obj.type == Projectable.OBJECT then
+		if obj.base == Projectable.SYSTEMBODY then return obj.ref.name
+		elseif obj.base == Projectable.PLANNER then return ""
+		else return obj.ref:GetLabel() end
 	elseif obj.type == Projectable.L4 and show_lagrange == "LAG_ICONTEXT" then return "L4"
 	elseif obj.type == Projectable.L5 and show_lagrange == "LAG_ICONTEXT" then return "L5"
 	else return ""
@@ -273,13 +280,24 @@ local function getLabel(obj)
 end
 
 local function getColor(obj)
-	if obj.type == Projectable.PLAYERSHIP then return colors.green end
-	if obj.type == Projectable.OBJECT then return colors.frame end
-	if obj.type == Projectable.APOAPSIS or obj.type == Projectable.PERIAPSIS then
-		if obj.reftype == Projectable.BODY then return colors.blue end
-		return colors.green
+	if obj.type == Projectable.OBJECT then
+		if obj.base == Projectable.SYSTEMBODY then return svColor.SYSTEMBODY_ICON
+		elseif obj.base == Projectable.SHIP then return svColor.SHIP
+		elseif obj.base == Projectable.PLAYER then return svColor.PLAYER
+		elseif obj.base == Projectable.PLANNER then return svColor.PLANNER
+		else return svColor.OBJECT
+		end
+	elseif obj.type == Projectable.APOAPSIS or obj.type == Projectable.PERIAPSIS then
+		if obj.base == Projectable.SYSTEMBODY then return svColor.SYSTEMBODY_ORBIT
+		elseif obj.base == Projectable.SHIP then return svColor.SHIP_ORBIT
+		elseif obj.base == Projectable.PLAYER then return svColor.PLAYER_ORBIT
+		elseif obj.base == Projectable.SELECTED_SHIP then return svColor.SELECTED_SHIP_ORBIT
+		elseif obj.base == Projectable.PLANNER then return svColor.PLANNER_ORBIT
+		else return svColor.UNKNOWN -- unknown base
+		end
+	elseif obj.type == L4 or obj.type == L5 then return svColor.LAGRANGE
+	else return svColor.UNKNOWN
 	end
-	return colors.blue
 end
 
 local function displayOnScreenObjects()
@@ -311,18 +329,18 @@ local function displayOnScreenObjects()
 		local stackedSize = indicatorSize
 		local stackStep = Vector2(10, 10)
 		if group.hasPlayer then
-			ui.addIcon(mainCoords, icons.square, colors.green, stackedSize, ui.anchor.center, ui.anchor.center)
+			ui.addIcon(mainCoords, icons.square, svColor.PLAYER, stackedSize, ui.anchor.center, ui.anchor.center)
 			stackedSize = stackedSize + stackStep
 		end
 		if group.hasNavTarget then
-			ui.addIcon(mainCoords, icons.square, colors.navTarget, stackedSize, ui.anchor.center, ui.anchor.center)
+			ui.addIcon(mainCoords, icons.square, svColor.NAV_TARGET, stackedSize, ui.anchor.center, ui.anchor.center)
 			stackedSize = stackedSize + stackStep
 		end
 		if group.hasCombatTarget then
-			ui.addIcon(mainCoords, icons.square, colors.combatTarget, stackedSize, ui.anchor.center, ui.anchor.center)
+			ui.addIcon(mainCoords, icons.square, svColor.COMBAT_TARGET, stackedSize, ui.anchor.center, ui.anchor.center)
 			stackedSize = stackedSize + stackStep
 		end
-		if mainObject.type == PLANNER then ui.addIcon(mainCoords, icons.square, colors.blue, indicatorSize, ui.anchor.center, ui.anchor.center) end
+		if mainObject.type == Projectable.OBJECT and mainObject.base == Projectable.PLANNER then ui.addIcon(mainCoords, icons.square, svColor.PLANNER, indicatorSize, ui.anchor.center, ui.anchor.center) end
 
 		ui.addIcon(mainCoords, getBodyIcon(mainObject), getColor(mainObject), iconsize, ui.anchor.center, ui.anchor.center)
 
@@ -336,31 +354,34 @@ local function displayOnScreenObjects()
 		local mp = ui.getMousePos()
 		-- mouse release handler for right button
 		if (mp - mainCoords):length() < click_radius then
-			if not ui.isAnyWindowHovered() and ui.isMouseReleased(1) then
-				ui.openPopup("navtarget" .. getLabel(mainObject))
+			if not ui.isAnyWindowHovered() and ui.isMouseReleased(1)
+				and mainObject.type == Projectable.OBJECT
+				and (mainObject.base == Projectable.SYSTEMBODY and mainObject.ref.physicsBody
+				or mainObject.base == Projectable.SHIP or mainObject.base == Projectable.SELECTED_SHIP) then
+				ui.openPopup("target" .. getLabel(mainObject))
 			end
 		end
 		-- mouse release handler
 		if (mp - mainCoords):length() < click_radius then
-			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0) and (mainObject.type == Projectable.OBJECT or mainObject.type == Projectable.PLAYERSHIP) then
-				Engine.SystemMapCenterOn(mainObject.type, mainObject.reftype, mainObject.ref)
+			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0) and mainObject.type == Projectable.OBJECT then
+				Engine.SystemMapCenterOn(mainObject.type, mainObject.base, mainObject.ref)
 			end
 		end
-		ui.popup("navtarget" .. getLabel(mainObject), function()
+		ui.popup("target" .. getLabel(mainObject), function()
 			local isObject = mainObject.type == Projectable.OBJECT
-			local isShip = isObject and mainObject.reftype == Projectable.BODY and mainObject.ref:IsShip()
-			local isSystemBody = isObject and mainObject.reftype == Projectable.SYSTEMBODY
-			if (isShip or isSystemBody) and ui.selectable("set as nav target", false, {}) then
-				if mainObject.reftype == Projectable.BODY then
-					player:SetNavTarget(mainObject.ref)
-				elseif mainObject.ref.physicsBody then
+			local isSystemBody = isObject and mainObject.base == Projectable.SYSTEMBODY
+			local isShip = isObject and not isSystemBody and mainObject.ref:IsShip()
+			ui.text(getLabel(mainObject))
+			ui.separator()
+			if (isShip or isSystemBody) and ui.selectable(l.SET_AS_TARGET, false, {}) then
+				if isSystemBody and mainObject.ref.physicsBody then
 					player:SetNavTarget(mainObject.ref.physicsBody)
+				else 
+					player:SetNavTarget(mainObject.ref)
 				end
 			end
-			if isShip and ui.selectable("set as combat target", false, {}) then
-				if mainObject.reftype == Projectable.BODY then
-					player:SetCombatTarget(mainObject.ref)
-				end
+			if isShip and ui.selectable(l.SET_AS_COMBAT_TARGET, false, {}) then
+				player:SetCombatTarget(mainObject.ref)
 			end
 		end)
 	end
@@ -382,14 +403,15 @@ local function tabular(data)
 end
 
 local function showTargetInfoWindow(obj)
-	if obj.type == Projectable.NONE then return end
+	if obj.type ~= Projectable.OBJECT and obj.base ~= Projectable.SHIP and obj.base ~= Projectable.SELECTED_SHIP and obj.base ~= Projectable.SYSTEMBODY then return end
 	ui.setNextWindowSize(Vector2(ui.screenWidth / 5, 0), "Always")
 	ui.setNextWindowPos(Vector2(20, (ui.screenHeight / 5) * 2 + 20), "Always")
-	ui.withStyleColors({["WindowBg"] = colors.lightBlackBackground}, function()
+	ui.withStyleColors({["WindowBg"] = svColor.WINDOW_BACK}, function()
 			ui.window("TargetInfoWindow", {"NoTitleBar", "AlwaysAutoResize", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings"},
 								function()
 									local data
-									if obj.type == Projectable.OBJECT and obj.reftype == Projectable.SYSTEMBODY then
+									-- system body
+									if obj.type == Projectable.OBJECT and obj.base == Projectable.SYSTEMBODY then
 										local systemBody = obj.ref
 										local name = systemBody.name
 										local rp = systemBody.rotationPeriod * 24 * 60 * 60
@@ -418,7 +440,8 @@ local function showTargetInfoWindow(obj)
 											{ name = lc.ORBITAL_PERIOD,
 												value = op and op > 0 and ui.Format.Duration(op, 2) or nil }
 										}
-									elseif obj.type == Projectable.OBJECT and obj.reftype == Projectable.BODY and obj.ref:IsShip() then
+									-- physical body
+									elseif obj.type == Projectable.OBJECT and obj.ref:IsShip() then
 										local body = obj.ref
 										local name = body.label
 										data = {{ name = lc.NAME_OBJECT,

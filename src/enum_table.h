@@ -19,7 +19,7 @@ extern const struct EnumItem ENUM_ShipAICmdName[];
 extern const struct EnumItem ENUM_DualLaserOrientation[];
 extern const struct EnumItem ENUM_ShipTypeTag[];
 extern const struct EnumItem ENUM_ProjectableTypes[];
-extern const struct EnumItem ENUM_ProjectableRefTypes[];
+extern const struct EnumItem ENUM_ProjectableBases[];
 extern const struct EnumItem ENUM_SystemViewColorIndex[];
 extern const struct EnumItem ENUM_EconType[];
 extern const struct EnumItem ENUM_CommodityType[];

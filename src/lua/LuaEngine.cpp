@@ -1105,11 +1105,11 @@ static int l_engine_system_map_center_on(lua_State *l)
 {
 	SystemView *sv = Pi::game->GetSystemView();
 	Projectable::types type = static_cast<Projectable::types>(luaL_checkinteger(l, 1));
-	Projectable::reftypes reftype = static_cast<Projectable::reftypes>(luaL_checkinteger(l, 2));
-	if(reftype == Projectable::BODY)
-		sv->SetSelectedObject(type, LuaObject<Body>::CheckFromLua(3));
-	else
+	Projectable::bases base = static_cast<Projectable::bases>(luaL_checkinteger(l, 2));
+	if(base == Projectable::SYSTEMBODY)
 		sv->SetSelectedObject(type, LuaObject<SystemBody>::CheckFromLua(3));
+	else
+		sv->SetSelectedObject(type, LuaObject<Body>::CheckFromLua(3));
 	return 0;
 }
 
@@ -1118,16 +1118,11 @@ LuaTable l_engine_projectable_to_lua_row(Projectable &p, lua_State *l)
 	LuaTable proj_table(l, 0, 3);
 	proj_table.Set("type", int(p.type));
 	if (p.type == Projectable::NONE) return proj_table;
-	proj_table.Set("reftype", int(p.reftype));
-	switch (p.reftype)
-	{
-		case Projectable::BODY:
-			proj_table.Set("ref", const_cast<Body*>(p.ref.body));
-			break;
-		case Projectable::SYSTEMBODY:
-			proj_table.Set("ref", const_cast<SystemBody*>(p.ref.sbody));
-			break;
-	}
+	proj_table.Set("base", int(p.base));
+	if (p.base == Projectable::SYSTEMBODY)
+		proj_table.Set("ref", const_cast<SystemBody*>(p.ref.sbody));
+	else
+		proj_table.Set("ref", const_cast<Body*>(p.ref.body));
 	return proj_table;
 }
 
@@ -1199,15 +1194,15 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 			// --- real objects ---
 			Body* PlayerBody = static_cast<Body*>(Pi::game->GetPlayer());
 			bool isNavTarget, isCombatTarget, isPlayer;
-			if (p.reftype == Projectable::BODY)
+			if (p.base == Projectable::SYSTEMBODY)
 			{
-				isNavTarget = nav_target && p.ref.body == nav_target;
-				isCombatTarget = combat_target && p.ref.body == combat_target;
-				isPlayer = p.ref.body == PlayerBody;
-			} else { // SYSTEMBODY
 				isNavTarget = nav_target && p.ref.sbody == nav_target->GetSystemBody();
 				isCombatTarget = false;
 				isPlayer = false;
+			} else {
+				isNavTarget = nav_target && p.ref.body == nav_target;
+				isCombatTarget = combat_target && p.ref.body == combat_target;
+				isPlayer = p.base == Projectable::PLAYER;
 			}
 			for (GroupInfo &group : groups) {
 				//3d distance from main body, in screen pixels

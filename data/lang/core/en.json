@@ -1323,6 +1323,14 @@
     "description": "",
     "message": "Semi-major axis"
   },
+  "SET_AS_COMBAT_TARGET": {
+    "description": "",
+    "message": "Set as combat target"
+  },
+  "SET_AS_TARGET": {
+    "description": "",
+    "message": "Set as navigation target"
+  },
   "SET_HYPERSPACE_DESTINATION_TO": {
     "description": "",
     "message": "Set hyperspace destination to %system"

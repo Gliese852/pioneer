@@ -77,37 +77,37 @@ private:
 	double m_startTime;
 };
 
-typedef std::vector<std::pair<std::pair<const Body*,const SystemBody*>, vector3d>> BodyPositionVector;
-
 struct Projectable
 {
 	enum types { // <enum name=ProjectableTypes scope='Projectable' public>
-	 	NONE = 0,
-		PLAYERSHIP = 1,
-		OBJECT = 2,
-		L4 = 3,
-	 	L5 = 4,
-		APOAPSIS = 5,
-		PERIAPSIS = 6,
-		PLANNER = 7
+		NONE = 0, // empty projectable, don't try to get members
+		OBJECT = 1, // clickable space object, may be without phys.body (other starsystem)
+		L4 = 2,
+		L5 = 3,
+		APOAPSIS = 4,
+		PERIAPSIS = 5
 	} type;
-	enum reftypes { // <enum name=ProjectableRefTypes scope='Projectable' public>
-		BODY = 0,
-		SYSTEMBODY = 1
-	} reftype;
+	enum bases { // <enum name=ProjectableBases scope='Projectable' public>
+		SYSTEMBODY = 0, // ref class SystemBody, may not have a physical body
+		BODY = 1, // generic body
+		SHIP = 2,
+		SELECTED_SHIP = 3, // selected ship may have different colors
+		PLAYER = 4, // player's ship
+		PLANNER = 5 // player's ship planned by transfer planner, refers to player's object
+	} base;
 	union{
 		const Body* body;
 		const SystemBody* sbody;
 	} ref;
-	vector3d screenpos;
+	vector3d screenpos; // x,y - screen coordinate, z - in NDC
 
-	Projectable(const types t, const Body* b) : type(t), reftype(BODY)
+	Projectable(const types t, const bases b, const Body* obj) : type(t), base(b)
 	{
-		ref.body = b;
+		ref.body = obj;
 	}
-	Projectable(const types t, const SystemBody* sb) : type(t), reftype(SYSTEMBODY)
+	Projectable(const types t, const bases b, const SystemBody* obj) : type(t), base(b)
 	{
-		ref.sbody = sb;
+		ref.sbody = obj;
 	}
 	Projectable() : type(NONE) {}
 };
@@ -130,14 +130,15 @@ public:
 	void SetVisibility(std::string param);
 	double ProjectedSize(double size, vector3d pos);
 
+	// all used colors. defined in system-view-ui.lua
 	enum ColorIndex { // <enum name=SystemViewColorIndex scope='SystemView' public>
-		PLANET_ORBIT = 0,
-		SHIP_ORBIT = 1,
-		SELECTED_SHIP_ORBIT = 2,
+		GRID = 0,
+		SYSTEMBODY = 1,
+		SYSTEMBODY_ORBIT = 2,
 		PLAYER_ORBIT = 3,
 		PLANNER_ORBIT = 4,
-		GRID = 5,
-		PLANET = 6
+		SELECTED_SHIP_ORBIT = 5,
+		SHIP_ORBIT = 6
 	};
 
 	Color svColor[7];
@@ -151,7 +152,7 @@ private:
 	const float CAMERA_FOV_RADIANS = CAMERA_FOV / 57.295779f;
 	matrix4x4f m_cameraSpace;
 	template <typename RefType>
-	void PutOrbit(RefType *ref, const Orbit *orb, const vector3d &offset, const Color &color, const double planetRadius = 0.0, const bool showLagrange = false);
+	void PutOrbit(Projectable::bases base, RefType *ref, const Orbit *orb, const vector3d &offset, const Color &color, const double planetRadius = 0.0, const bool showLagrange = false);
 	void PutBody(const SystemBody *b, const vector3d &offset, const matrix4x4f &trans);
 	void PutLabel(const SystemBody *b, const vector3d &offset);
 	void PutSelectionBox(const SystemBody *b, const vector3d &rootPos, const Color &col);
@@ -167,9 +168,9 @@ private:
 	void DrawGrid();
 	void LabelShip(Ship *s, const vector3d &offset);
 	template <typename T>
-	void AddProjected(Projectable::types type, T *ref, vector3d &pos);
+	void AddProjected(Projectable::types type, Projectable::bases base, T *ref, vector3d &pos);
 	template <typename T>
-	void AddNotProjected(Projectable::types type, T *ref, const vector3d &worldscaledpos);
+	void AddNotProjected(Projectable::types type, Projectable::bases base, T *ref, const vector3d &worldscaledpos);
 	void CalculateShipPositionAtTime(const Ship *s, Orbit o, double t, vector3d &pos);
 	void CalculateFramePositionAtTime(FrameId frameId, double t, vector3d &pos);
 	double GetOrbitTime(double t, const SystemBody* b);
@@ -179,7 +180,6 @@ private:
 	RefCountedPtr<StarSystem> m_system;
 	Projectable m_selectedObject;
 	std::vector<SystemBody *> m_displayed_sbody;
-	std::vector<Body *> m_farSystemBodyObjects;
 	bool m_unexplored;
 	ShowLagrange m_showL4L5;
 	TransferPlanner *m_planner;
