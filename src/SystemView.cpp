@@ -229,7 +229,6 @@ SystemView::SystemView(Game *game) :
 	m_trans(0.0),
 	m_transTo(0.0)
 {
-	Output("SYSTEM VIEW STARTED!\n");
 	m_rot_y = 0;
 	m_rot_x = 50;
 	m_zoom = 1.0f / float(AU);
@@ -509,15 +508,21 @@ void SystemView::GetTransformTo(const SystemBody *b, vector3d &pos)
 
 void SystemView::GetTransformTo(Projectable &p, vector3d &pos)
 {
+	// accept only real objects (no orbit icons or lagrange points)
 	assert(p.type == Projectable::OBJECT);
 	pos = vector3d(0., 0., 0.);
 	if (p.base == Projectable::SYSTEMBODY)
 		GetTransformTo(p.ref.sbody, pos);
-	else if (p.ref.body->GetType() == Object::Type::SHIP or p.ref.body->GetType() == Object::Type::PLAYER)
+	else if (p.ref.body->GetType() == Object::Type::SHIP || p.ref.body->GetType() == Object::Type::PLAYER )
 	{
 		const Ship* s = static_cast<const Ship*>(p.ref.body);
 		CalculateShipPositionAtTime(s, s->ComputeOrbit(), m_time, pos);
 		pos = -pos;
+		// sometimes ships can dissapear from world (i.e. docking / undocking)
+		if(isnan(pos.x)) { // failsafe: calculate parent systembody instead
+			pos = vector3d(0., 0., 0.);
+			GetTransformTo(Frame::GetFrame(Frame::GetFrame(Pi::player->GetFrame())->GetNonRotFrame())->GetSystemBody(), pos);
+		}
 	}
 }
 
@@ -613,16 +618,11 @@ void SystemView::Draw3D()
 	vector3d pos = m_trans * m_zoom;
 
 	// glLineWidth(2);
-	m_objectLabels->Clear();
-	if (m_system->GetUnexplored())
-		m_infoLabel->SetText(Lang::UNEXPLORED_SYSTEM_NO_SYSTEM_VIEW);
-	else {
-		if (m_system->GetRootBody()) {
-			// all systembodies draws here
-			PutBody(m_system->GetRootBody().Get(), pos, m_cameraSpace);
-		}
+	if (!m_system->GetUnexplored() && m_system->GetRootBody()) {
+		// all systembodies draws here
+		PutBody(m_system->GetRootBody().Get(), pos, m_cameraSpace);
 	}
-	// glLineWidth(1);
+// glLineWidth(1);
 
 
 	if (m_game->GetSpace()->GetStarSystem()->GetPath().IsSameSystem(m_game->GetSectorView()->GetSelected()))
@@ -839,18 +839,18 @@ Projectable* SystemView::GetSelectedObject()
 	return &m_selectedObject;
 }
 
-void SystemView::SetSelectedObject(Projectable::types type, SystemBody *sb)
+void SystemView::SetSelectedObject(Projectable::types type, Projectable::bases base, SystemBody *sb)
 {
 	m_selectedObject.type = type;
-	m_selectedObject.base = Projectable::SYSTEMBODY;
+	m_selectedObject.base = base;
 	m_selectedObject.ref.sbody = sb;
 	m_animateTransition = MAX_TRANSITION_FRAMES;
 }
 
-void SystemView::SetSelectedObject(Projectable::types type, Body *b)
+void SystemView::SetSelectedObject(Projectable::types type, Projectable::bases base, Body *b)
 {
 	m_selectedObject.type = type;
-	m_selectedObject.base = Projectable::BODY;
+	m_selectedObject.base = base;
 	m_selectedObject.ref.body = b;
 	m_animateTransition = MAX_TRANSITION_FRAMES;
 }

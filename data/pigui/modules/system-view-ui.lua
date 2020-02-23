@@ -1,12 +1,11 @@
-local Engine = import('Engine')
-local Game = import('Game')
-local gameView = import('pigui.views.game')
-local ui = import('pigui/pigui.lua')
-local Vector2 = _G.Vector2
-local Lang = import("Lang")
-local lc = Lang.GetResource("core")
+local Game = require 'Game'
+local Engine = require 'Engine'
 local Event = require 'Event'
 local Lang = require 'Lang'
+local ui = require 'pigui'
+
+local Vector2 = _G.Vector2
+local lc = Lang.GetResource("core")
 
 local player = nil
 local colors = ui.theme.colors
@@ -17,12 +16,12 @@ local mainButtonFramePadding = 3
 local itemSpacing = Vector2(8, 4) -- couldn't get default from ui
 local indicatorSize = Vector2(30 , 30)
 
+local objectCounter
+
 local pionillium = ui.fonts.pionillium
 local ASTEROID_RADIUS = 1500000 -- rocky planets smaller than this (in meters) are considered an asteroid, not a planet
 
-local l = Lang.GetResource("core")
-
---load enums Projectable::types and Projectable::reftypes in one table "Projectable"
+--load enums Projectable::types and Projectable::bases in one table "Projectable"
 local Projectable = {}
 for _, key in pairs(Constants.ProjectableTypes) do Projectable[key] = Engine.GetEnumValue("ProjectableTypes", key) end
 for _, key in pairs(Constants.ProjectableBases) do Projectable[key] = Engine.GetEnumValue("ProjectableBases", key) end
@@ -32,19 +31,20 @@ local svColor = {
 	BUTTON_INK = colors.white,
 	COMBAT_TARGET = colors.combatTarget,
 	GRID = Color(120,120,120),
-	LAGRANGE = colors.frame,
+	LAGRANGE = Color(0,214,226),
 	NAV_TARGET = colors.navTarget,
-	SYSTEMBODY = Color(109,109,134),
-	SYSTEMBODY_ICON = colors.frame,
-	SYSTEMBODY_ORBIT = Color(0,255,0),
-	SELECTED_SHIP_ORBIT = Color(0,255,0),
-	SHIP = colors.frame,
-	SHIP_ORBIT = Color(0,0,255),
 	OBJECT = colors.frame,
 	PLANNER = Color(0,0,255),
 	PLANNER_ORBIT = Color(0,0,255),
 	PLAYER = Color(255,0,0),
 	PLAYER_ORBIT = Color(255,0,0),
+	SELECTED_SHIP_ORBIT = Color(0,255,0),
+	SHIP = colors.frame,
+	SHIP_ORBIT = Color(0,0,255),
+	SYSTEMBODY = Color(109,109,134),
+	SYSTEMBODY_ICON = colors.frame,
+	SYSTEMBODY_ORBIT = Color(0,255,0),
+	SYSTEMNAME_BACK = colors.transparent,
 	WINDOW_BACK = colors.lightBlackBackground,
 	UNKNOWN = Color(255,0,255)
 }
@@ -52,7 +52,6 @@ local svColor = {
 local onGameStart = function ()
 	--export several colors to class SystemView (only those which mentioned in the enum SystemViewColorIndex)
 	for _, key in pairs(Constants.SystemViewColorIndex) do
-		print ("gona export: " .. key)
 		Engine.SystemMapSetColor(key, svColor[key])
 	end
 end
@@ -295,22 +294,27 @@ local function getColor(obj)
 		elseif obj.base == Projectable.PLANNER then return svColor.PLANNER_ORBIT
 		else return svColor.UNKNOWN -- unknown base
 		end
-	elseif obj.type == L4 or obj.type == L5 then return svColor.LAGRANGE
+	elseif obj.type == Projectable.L4 or obj.type == Projectable.L5 then return svColor.LAGRANGE
 	else return svColor.UNKNOWN
 	end
 end
 
+local function showSystemName()
+	ui.setNextWindowPos(Vector2(20, 20), "Always")
+	ui.withStyleColors({["WindowBg"] = svColor.SYSTEMNAME_BACK}, function()
+		ui.window("SystemName", {"NoTitleBar", "AlwaysAutoResize", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings"},
+		function()
+			local path = Engine.GetSectorMapSelectedSystemPath()
+			local starsystem = path:GetStarSystem()
+			ui.text(starsystem.name .. " (" .. path.sectorX .. ", " .. path.sectorY .. ", " .. path.sectorZ .. ")")
+		end)
+	end)
+end
+
 local function displayOnScreenObjects()
-	if ui.altHeld() and not ui.isAnyWindowHovered() and ui.isMouseClicked(1) then
-		local frame = player.frameBody
-		if frame then
-			ui.openRadialMenu(frame, 1, 30, radial_menu_actions_orbital)
-		end
-	end
+
 	local navTarget = player:GetNavTarget()
 	local combatTarget = player:GetCombatTarget()
-
-	ui.radialMenu("onscreenobjects")
 
 	local should_show_label = ui.shouldShowLabels()
 	local iconsize = Vector2(18 , 18)
@@ -320,6 +324,17 @@ local function displayOnScreenObjects()
 	-- make click_radius sufficiently smaller than the cluster size
 	-- to prevent overlap of selection regions
 	local objects_grouped = Engine.SystemMapGetProjectedGrouped(collapse, 1e64)
+	if #objects_grouped == 0 then
+		ui.setNextWindowPos(Vector2(ui.screenWidth, ui.screenHeight) / 2 - ui.calcTextSize(lc.UNEXPLORED_SYSTEM_NO_SYSTEM_VIEW) / 2, "Always")
+	ui.withStyleColors({["WindowBg"] = svColor.SYSTEMNAME_BACK}, function()
+		ui.window("NoSystemView", {"NoTitleBar", "AlwaysAutoResize", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings"},
+		function()
+				ui.text(lc.UNEXPLORED_SYSTEM_NO_SYSTEM_VIEW);
+			end)
+		end)
+		return
+	end
+
 
 	for _,group in ipairs(objects_grouped) do
 		local mainObject = group.mainObject
@@ -352,14 +367,33 @@ local function displayOnScreenObjects()
 			ui.addStyledText(mainCoords + Vector2(label_offset,0), ui.anchor.left, ui.anchor.center, label , getColor(mainObject), pionillium.small)
 		end
 		local mp = ui.getMousePos()
-		-- mouse release handler for right button
-		if (mp - mainCoords):length() < click_radius then
-			if not ui.isAnyWindowHovered() and ui.isMouseReleased(1)
-				and mainObject.type == Projectable.OBJECT
-				and (mainObject.base == Projectable.SYSTEMBODY and mainObject.ref.physicsBody
-				or mainObject.base == Projectable.SHIP or mainObject.base == Projectable.SELECTED_SHIP) then
-				ui.openPopup("target" .. getLabel(mainObject))
+
+		if mainObject.type == Projectable.OBJECT and (mainObject.base == Projectable.SYSTEMBODY and mainObject.ref.physicsBody
+			or mainObject.base == Projectable.SHIP or mainObject.base == Projectable.SELECTED_SHIP) then
+			-- mouse release handler for right button
+			if (mp - mainCoords):length() < click_radius then
+				if not ui.isAnyWindowHovered() and ui.isMouseReleased(1) then
+					ui.openPopup("target" .. objectCounter)
+				end
 			end
+			-- make popup
+			ui.popup("target" .. objectCounter, function()
+				local isObject = mainObject.type == Projectable.OBJECT
+				local isSystemBody = isObject and mainObject.base == Projectable.SYSTEMBODY
+				local isShip = isObject and not isSystemBody and mainObject.ref:IsShip()
+				ui.text(getLabel(mainObject))
+				ui.separator()
+				if (isShip or isSystemBody) and ui.selectable(lc.SET_AS_TARGET, false, {}) then
+					if isSystemBody and mainObject.ref.physicsBody then
+						player:SetNavTarget(mainObject.ref.physicsBody)
+					else 
+						player:SetNavTarget(mainObject.ref)
+					end
+				end
+				if isShip and ui.selectable(lc.SET_AS_COMBAT_TARGET, false, {}) then
+					player:SetCombatTarget(mainObject.ref)
+				end
+			end)
 		end
 		-- mouse release handler
 		if (mp - mainCoords):length() < click_radius then
@@ -367,23 +401,8 @@ local function displayOnScreenObjects()
 				Engine.SystemMapCenterOn(mainObject.type, mainObject.base, mainObject.ref)
 			end
 		end
-		ui.popup("target" .. getLabel(mainObject), function()
-			local isObject = mainObject.type == Projectable.OBJECT
-			local isSystemBody = isObject and mainObject.base == Projectable.SYSTEMBODY
-			local isShip = isObject and not isSystemBody and mainObject.ref:IsShip()
-			ui.text(getLabel(mainObject))
-			ui.separator()
-			if (isShip or isSystemBody) and ui.selectable(l.SET_AS_TARGET, false, {}) then
-				if isSystemBody and mainObject.ref.physicsBody then
-					player:SetNavTarget(mainObject.ref.physicsBody)
-				else 
-					player:SetNavTarget(mainObject.ref)
-				end
-			end
-			if isShip and ui.selectable(l.SET_AS_COMBAT_TARGET, false, {}) then
-				player:SetCombatTarget(mainObject.ref)
-			end
-		end)
+		
+	objectCounter = objectCounter + 1
 	end
 end
 
@@ -403,7 +422,7 @@ local function tabular(data)
 end
 
 local function showTargetInfoWindow(obj)
-	if obj.type ~= Projectable.OBJECT and obj.base ~= Projectable.SHIP and obj.base ~= Projectable.SELECTED_SHIP and obj.base ~= Projectable.SYSTEMBODY then return end
+	if obj.type ~= Projectable.OBJECT or obj.base ~= Projectable.SHIP and obj.base ~= Projectable.SELECTED_SHIP and obj.base ~= Projectable.SYSTEMBODY then return end
 	ui.setNextWindowSize(Vector2(ui.screenWidth / 5, 0), "Always")
 	ui.setNextWindowPos(Vector2(20, (ui.screenHeight / 5) * 2 + 20), "Always")
 	ui.withStyleColors({["WindowBg"] = svColor.WINDOW_BACK}, function()
@@ -480,11 +499,13 @@ local function displaySystemViewUI()
 	local current_view = Game.CurrentView()
 
 	if current_view == "system" and not Game.InHyperspace() then
-			displayOnScreenObjects()
+		objectCounter = 0
+		displayOnScreenObjects()
 		ui.withFont(ui.fonts.pionillium.medium.name, ui.fonts.pionillium.medium.size, function()
 			showOrbitPlannerWindow()
 			showTargetInfoWindow(Engine.SystemMapSelectedObject())
 		end)
+		showSystemName()
 	end
 end
 

@@ -1107,9 +1107,9 @@ static int l_engine_system_map_center_on(lua_State *l)
 	Projectable::types type = static_cast<Projectable::types>(luaL_checkinteger(l, 1));
 	Projectable::bases base = static_cast<Projectable::bases>(luaL_checkinteger(l, 2));
 	if(base == Projectable::SYSTEMBODY)
-		sv->SetSelectedObject(type, LuaObject<SystemBody>::CheckFromLua(3));
+		sv->SetSelectedObject(type, base, LuaObject<SystemBody>::CheckFromLua(3));
 	else
-		sv->SetSelectedObject(type, LuaObject<Body>::CheckFromLua(3));
+		sv->SetSelectedObject(type, base, LuaObject<Body>::CheckFromLua(3));
 	return 0;
 }
 
@@ -1177,7 +1177,7 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 			for (GroupInfo &group : lagrangeIcons) {
 				{
 					if (std::abs(p.screenpos.x - group.m_mainObject.screenpos.x) < gap.x
-							&& std::abs(p.screenpos.y - group.m_mainObject.screenpos.y) < gap.y
+							&& std::abs(p.screenpos.y - group.m_mainObject.screenpos.y) < gap.y             //why 10? don't know
 							&& std::abs(p.screenpos.z - group.m_mainObject.screenpos.z) * Graphics::GetScreenWidth() * 10 < gap.x)
 					{
 						intersect = true;

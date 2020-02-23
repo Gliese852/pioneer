@@ -119,8 +119,8 @@ public:
 	virtual void Update();
 	virtual void Draw3D();
 	Projectable* GetSelectedObject();
-	void SetSelectedObject(Projectable::types type, SystemBody *sb);
-	void SetSelectedObject(Projectable::types type, Body *b);
+	void SetSelectedObject(Projectable::types type, Projectable::bases base, SystemBody *sb);
+	void SetSelectedObject(Projectable::types type, Projectable::bases base, Body *b);
 	double GetOrbitPlannerStartTime() const { return m_planner->GetStartTime(); }
 	double GetOrbitPlannerTime() const { return m_time; }
 	void OnClickAccel(float step);
