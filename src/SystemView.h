@@ -159,7 +159,6 @@ private:
 	void PutSelectionBox(const vector3d &worldPos, const Color &col);
 	void GetTransformTo(const SystemBody *b, vector3d &pos);
 	void GetTransformTo(Projectable &p, vector3d &pos);
-	void OnClickLagrange();
 	void ResetViewpoint();
 	void MouseWheel(bool up);
 	void RefreshShips(void);
@@ -196,16 +195,9 @@ private:
 	double m_time;
 	bool m_realtime;
 	double m_timeStep;
-	Gui::Label *m_infoLabel;
-	Gui::Label *m_infoText;
-	Gui::LabelSet *m_objectLabels;
 	sigc::connection m_onMouseWheelCon;
 
 	std::unique_ptr<Graphics::Drawables::Disk> m_bodyIcon;
-	std::unique_ptr<Gui::TexturedQuad> m_l4Icon;
-	std::unique_ptr<Gui::TexturedQuad> m_l5Icon;
-	std::unique_ptr<Gui::TexturedQuad> m_periapsisIcon;
-	std::unique_ptr<Gui::TexturedQuad> m_apoapsisIcon;
 	Graphics::RenderState *m_lineState;
 	Graphics::Drawables::Lines m_orbits;
 	Graphics::Drawables::Lines m_selectBox;

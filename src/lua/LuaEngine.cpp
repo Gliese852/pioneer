@@ -1133,52 +1133,60 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 
 	std::vector<Projectable> projected = sv->GetProjected();
 
+	// types of special object
+	const int NOT_SPECIAL = -1;
+	const int SO_PLAYER = 0;
+	const int SO_COMBATTARGET = 1;
+	const int SO_NAVTARGET = 2;
+	const int NUMBER_OF_SO_TYPES = 3;
+	Projectable *special_object[NUMBER_OF_SO_TYPES] = { nullptr, nullptr, nullptr };
+	const char *special_object_lua[NUMBER_OF_SO_TYPES] = { "hasPlayer", "hasCombatTarget", "hasNavTarget" };
+
 	struct GroupInfo {
 		Projectable m_mainObject;
 		std::vector<Projectable> m_objects;
-		bool m_hasNavTarget;
-		bool m_hasCombatTarget;
-		bool m_hasPlayer;
+		bool m_hasSpecialObject[NUMBER_OF_SO_TYPES] = {false, false, false};
 
-		GroupInfo(Projectable p, bool isNavTarget, bool isCombatTarget, bool isPlayer) :
-			m_mainObject(p),
-			m_hasNavTarget(isNavTarget),
-			m_hasCombatTarget(isCombatTarget),
-			m_hasPlayer(isPlayer)
+		GroupInfo(Projectable p) :
+			m_mainObject(p)
 		{
 			m_objects.push_back(p);
 		}
 	};
 
 	// use forward_list to concatenate
-	std::forward_list<GroupInfo> groups;
-	std::forward_list<GroupInfo> orbitIcons;
-	std::forward_list<GroupInfo> lagrangeIcons;
-	// forward_list don't know his size, so will count manually
-	int groups_count = 0;
+	std::vector<GroupInfo> bodyIcons;
+	std::vector<GroupInfo> orbitIcons;
+	std::vector<GroupInfo> lagrangeIcons;
 
 	const Body *nav_target = Pi::game->GetPlayer()->GetNavTarget();
 	const Body *combat_target = Pi::game->GetPlayer()->GetCombatTarget();
+	const Body *player_body = static_cast<Body*>(Pi::game->GetPlayer());
+
+	auto TooNear = [] (vector3d a, vector3d b, vector2d gain)
+	{
+		return std::abs(a.x - b.x) < gain.x
+			&& std::abs(a.y - b.y) < gain.y             
+			// we don’t want to group objects that simply overlap and are located at different distances
+			// therefore, depth is also taken into account, we have z_NDC (normalized device coordinates)
+			// in order to make a strict translation of delta z_NDC into delta "pixels", one also needs to know
+			// the z coordinates in the camera space. I plan to implement this later
+			// at the moment I just picked up a number that works well (6.0)
+			&& std::abs(a.z - b.z) * Graphics::GetScreenWidth() * 6.0 < gain.x;
+	};
 
 	for (Projectable &p : projected) {
-		bool inserted = false;
-
 		// --- icons---
 		if (p.type == Projectable::APOAPSIS || p.type == Projectable::PERIAPSIS)
-			// orbit icons - just take all
-		{
-			orbitIcons.push_front(GroupInfo(p, false, false, false));
-			groups_count++;
-		}
+		// orbit icons - just take all
+			orbitIcons.push_back(GroupInfo(p));
 		else if(p.type == Projectable::L4 || p.type == Projectable::L5)
 		{
 			// lagrange icons - take only those who don't intersect with other lagrange icons
 			bool intersect = false;
 			for (GroupInfo &group : lagrangeIcons) {
 				{
-					if (std::abs(p.screenpos.x - group.m_mainObject.screenpos.x) < gap.x
-							&& std::abs(p.screenpos.y - group.m_mainObject.screenpos.y) < gap.y             //why 10? don't know
-							&& std::abs(p.screenpos.z - group.m_mainObject.screenpos.z) * Graphics::GetScreenWidth() * 10 < gap.x)
+					if (TooNear(p.screenpos, group.m_mainObject.screenpos, gap))
 					{
 						intersect = true;
 						break;
@@ -1187,81 +1195,110 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 			}
 			if (!intersect)
 			{
-				lagrangeIcons.push_front(GroupInfo(p, false, false, false));
-				groups_count++;
+				lagrangeIcons.push_back(GroupInfo(p));
 			}
 		} else {	 
 			// --- real objects ---
-			Body* PlayerBody = static_cast<Body*>(Pi::game->GetPlayer());
-			bool isNavTarget, isCombatTarget, isPlayer;
+			int object_type = NOT_SPECIAL;
+			bool inserted = false;
+			// check if p is special object, and remember it's type
 			if (p.base == Projectable::SYSTEMBODY)
 			{
-				isNavTarget = nav_target && p.ref.sbody == nav_target->GetSystemBody();
-				isCombatTarget = false;
-				isPlayer = false;
+				if (nav_target && p.ref.sbody == nav_target->GetSystemBody()) object_type = SO_NAVTARGET;
+				//system body can't be a combat target and can't be a player
 			} else {
-				isNavTarget = nav_target && p.ref.body == nav_target;
-				isCombatTarget = combat_target && p.ref.body == combat_target;
-				isPlayer = p.base == Projectable::PLAYER;
+				if (nav_target && p.ref.body == nav_target) object_type = SO_NAVTARGET;
+				else if (combat_target && p.ref.body == combat_target) object_type = SO_COMBATTARGET;
+				else if (p.base == Projectable::PLAYER) object_type = SO_PLAYER;
 			}
-			for (GroupInfo &group : groups) {
-				//3d distance from main body, in screen pixels
-				if (std::abs(p.screenpos.x - group.m_mainObject.screenpos.x) < gap.x
-						&& std::abs(p.screenpos.y - group.m_mainObject.screenpos.y) < gap.y
-						&& std::abs(p.screenpos.z - group.m_mainObject.screenpos.z) * Graphics::GetScreenWidth() * 10 < gap.x)
+			for (GroupInfo &group : bodyIcons) {
+				if (TooNear(p.screenpos, group.m_mainObject.screenpos, gap))
 				{
-					// object inside group boundaries: insert into group
-					group.m_objects.push_back(p);
-					group.m_hasNavTarget += isNavTarget;
-					group.m_hasCombatTarget += isCombatTarget;
-					group.m_hasPlayer += isPlayer;
+					// object inside group boundaries
+					// special object is not added
+					// special objects must be added to nearest group, this group could be not nearest
+					if (object_type == NOT_SPECIAL) {
+						group.m_objects.push_back(p);
+					} else {
+						// remember it separately 
+						special_object[object_type] = &p;
+					}
 					inserted = true;
 					break;
 				}
 			}
 			if (!inserted) {
+				// object is not inside a group
+				// special object is nearest to itself, so we remember it as a new group
 				// create new group
-				GroupInfo newgroup(p, isNavTarget, isCombatTarget, isPlayer);
-				groups.push_front(std::move(newgroup));
-				groups_count++;
+				GroupInfo newgroup(p);
+				if (object_type != NOT_SPECIAL) newgroup.m_hasSpecialObject[object_type] = true;
+				bodyIcons.push_back(std::move(newgroup));
 			}
 		}
 	}
+
+	// adding overlapping special object to nearest group
+	for (int object_type = 0; object_type < NUMBER_OF_SO_TYPES; object_type++)
+		if (special_object[object_type])
+		{
+			std::vector<GroupInfo*> touchedGroups;
+			// first we get all groups, touched this object
+			for (GroupInfo &group : bodyIcons) 
+				if (TooNear(special_object[object_type]->screenpos, group.m_mainObject.screenpos, gap))
+					// object inside group boundaries: remember this group
+					touchedGroups.push_back(&group);
+			//now select the nearest group (if have)
+			if (touchedGroups.size())
+			{
+				GroupInfo* nearest;
+				double min_length = 1e64;
+				for (GroupInfo* &g : touchedGroups)
+				{
+					double this_length = (g->m_mainObject.screenpos - special_object[object_type]->screenpos).Length();
+					if (this_length < min_length) { nearest = g; min_length = this_length; }
+				}
+				nearest->m_hasSpecialObject[object_type] = true;
+				nearest->m_objects.push_back(*special_object[object_type]);
+			} else {
+				//don't touching any group, create a new one
+				GroupInfo newgroup(*special_object[object_type]);
+				newgroup.m_hasSpecialObject[object_type] = true;
+				bodyIcons.push_back(std::move(newgroup));
+			}
+		}
 
 	//no need to sort, because the bodies are so recorded in good order
 	//because they are written recursively starting from the root
 	//body of the system, and ships go after the system bodies
 
-	LuaTable result(l, groups_count, 0);
+	LuaTable result(l, orbitIcons.size() + lagrangeIcons.size() + bodyIcons.size(), 0);
 	int index = 1;
 	
 	//the sooner is displayed, the more in the background
-	groups.splice_after(groups.before_begin(), lagrangeIcons);
-	groups.splice_after(groups.before_begin(), orbitIcons);
-	// now it goes orbitIcons->lagrangeIcons->bodies
+	// so it goes orbitIcons->lagrangeIcons->bodies
+	for(auto groups : { orbitIcons, lagrangeIcons, bodyIcons} )
+		for (GroupInfo &group : groups) {
+			LuaTable info_table(l, 0, 7);
+			LuaTable objects_table(l, group.m_objects.size(), 0);
 
-	for (GroupInfo &group : groups) {
-		LuaTable info_table(l, 0, 7);
-		LuaTable objects_table(l, group.m_objects.size(), 0);
-
-		info_table.Set("screenCoordinates", group.m_mainObject.screenpos);
-		info_table.Set("mainObject", l_engine_projectable_to_lua_row(group.m_mainObject, l));
-		lua_pop(l, 1);
-		int objects_table_index = 1;
-		for(Projectable p : group.m_objects)
-		{
-			objects_table.Set(objects_table_index++, l_engine_projectable_to_lua_row(p, l));
+			info_table.Set("screenCoordinates", group.m_mainObject.screenpos);
+			info_table.Set("mainObject", l_engine_projectable_to_lua_row(group.m_mainObject, l));
+			lua_pop(l, 1);
+			int objects_table_index = 1;
+			for(Projectable p : group.m_objects)
+			{
+				objects_table.Set(objects_table_index++, l_engine_projectable_to_lua_row(p, l));
+				lua_pop(l, 1);
+			}
+			info_table.Set("objects", objects_table);
+			lua_pop(l, 1);
+			info_table.Set("multiple", group.m_objects.size() > 1 ? true : false);
+			for (int object_type = 0; object_type < NUMBER_OF_SO_TYPES; object_type++)
+				info_table.Set(special_object_lua[object_type], group.m_hasSpecialObject[object_type]);
+			result.Set(index++, info_table);
 			lua_pop(l, 1);
 		}
-		info_table.Set("objects", objects_table);
-		lua_pop(l, 1);
-		info_table.Set("multiple", group.m_objects.size() > 1 ? true : false);
-		info_table.Set("hasNavTarget", group.m_hasNavTarget);
-		info_table.Set("hasCombatTarget", group.m_hasCombatTarget);
-		info_table.Set("hasPlayer", group.m_hasPlayer);
-		result.Set(index++, info_table);
-		lua_pop(l, 1);
-	}
 
 	LuaPush(l, result);
 	return 1;

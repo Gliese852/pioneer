@@ -240,27 +240,8 @@ SystemView::SystemView(Game *game) :
 	m_realtime = true;
 	m_unexplored = true;
 
-	Gui::Screen::PushFont("OverlayFont");
-	m_objectLabels = new Gui::LabelSet();
-	Add(m_objectLabels, 0, 0);
-
-	Gui::Screen::PopFont();
-
-	m_infoLabel = (new Gui::Label(""))->Color(178, 178, 178);
-	Add(m_infoLabel, 2, 0);
-
 	m_onMouseWheelCon =
 		Pi::input.onMouseWheel.connect(sigc::mem_fun(this, &SystemView::MouseWheel));
-
-	Graphics::TextureBuilder b1 = Graphics::TextureBuilder::UI("icons/periapsis.png");
-	m_periapsisIcon.reset(new Gui::TexturedQuad(b1.GetOrCreateTexture(Gui::Screen::GetRenderer(), "ui")));
-	Graphics::TextureBuilder b2 = Graphics::TextureBuilder::UI("icons/apoapsis.png");
-	m_apoapsisIcon.reset(new Gui::TexturedQuad(b2.GetOrCreateTexture(Gui::Screen::GetRenderer(), "ui")));
-
-	Graphics::TextureBuilder l4 = Graphics::TextureBuilder::UI("icons/l4.png");
-	m_l4Icon.reset(new Gui::TexturedQuad(l4.GetOrCreateTexture(Gui::Screen::GetRenderer(), "ui")));
-	Graphics::TextureBuilder l5 = Graphics::TextureBuilder::UI("icons/l5.png");
-	m_l5Icon.reset(new Gui::TexturedQuad(l5.GetOrCreateTexture(Gui::Screen::GetRenderer(), "ui")));
 
 	ResetViewpoint();
 
@@ -372,14 +353,9 @@ void SystemView::PutOrbit(Projectable::bases base, RefType *ref, const Orbit *or
 	Gui::Screen::LeaveOrtho();
 }
 
-void SystemView::OnClickLagrange()
-{
-}
-
 void SystemView::PutLabel(const SystemBody *b, const vector3d &offset)
 {
 	Gui::Screen::EnterOrtho();
-
 	vector3d pos;
 	if (Gui::Screen::Project(offset, pos) && pos.z < 1) {
 		AddProjected<const SystemBody>(Projectable::OBJECT, Projectable::SYSTEMBODY, b, pos);
@@ -425,7 +401,9 @@ void SystemView::PutBody(const SystemBody *b, const vector3d &offset, const matr
 
 		m_renderer->SetTransform(trans);
 
-		PutLabel(b, offset);
+		//PutLabel(b, offset);
+		AddNotProjected<const SystemBody>(Projectable::OBJECT, Projectable::SYSTEMBODY, b, offset);
+
 	}
 
 	Frame *frame = Frame::GetFrame(Pi::player->GetFrame());
@@ -727,7 +705,8 @@ void SystemView::DrawShips(const double t, const vector3d &offset)
 		pos = pos * m_zoom + offset;
 		//draw green orbit for selected ship
 		const bool isSelected = m_selectedObject.type == Projectable::OBJECT && m_selectedObject.base != Projectable::SYSTEMBODY && m_selectedObject.ref.body == (*s).first;
-		LabelShip((*s).first, pos);
+		//LabelShip((*s).first, pos);
+		AddNotProjected<Body>(Projectable::OBJECT, Projectable::SHIP, static_cast<Body* >((*s).first), pos);
 		if (m_shipDrawing == ORBITS && (*s).first->GetFlightState() == Ship::FlightState::FLYING)
 		{
 			vector3d framepos(0.0);

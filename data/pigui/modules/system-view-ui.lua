@@ -38,7 +38,7 @@ local svColor = {
 	PLANNER_ORBIT = Color(0,0,255),
 	PLAYER = Color(255,0,0),
 	PLAYER_ORBIT = Color(255,0,0),
-	SELECTED_SHIP_ORBIT = Color(0,255,0),
+	SELECTED_SHIP_ORBIT = Color(0,186,255),
 	SHIP = colors.frame,
 	SHIP_ORBIT = Color(0,0,255),
 	SYSTEMBODY = Color(109,109,134),
@@ -369,7 +369,8 @@ local function displayOnScreenObjects()
 		local mp = ui.getMousePos()
 
 		if mainObject.type == Projectable.OBJECT and (mainObject.base == Projectable.SYSTEMBODY and mainObject.ref.physicsBody
-			or mainObject.base == Projectable.SHIP or mainObject.base == Projectable.SELECTED_SHIP) then
+			or mainObject.base == Projectable.SHIP or mainObject.base == Projectable.SELECTED_SHIP
+			or mainObject.base == Projectable.PLAYER) then
 			-- mouse release handler for right button
 			if (mp - mainCoords):length() < click_radius then
 				if not ui.isAnyWindowHovered() and ui.isMouseReleased(1) then
@@ -383,14 +384,19 @@ local function displayOnScreenObjects()
 				local isShip = isObject and not isSystemBody and mainObject.ref:IsShip()
 				ui.text(getLabel(mainObject))
 				ui.separator()
+				if ui.selectable(lc.CENTER, false, {}) then
+					Engine.SystemMapCenterOn(mainObject.type, mainObject.base, mainObject.ref)
+				end
 				if (isShip or isSystemBody) and ui.selectable(lc.SET_AS_TARGET, false, {}) then
 					if isSystemBody and mainObject.ref.physicsBody then
 						player:SetNavTarget(mainObject.ref.physicsBody)
 					else 
+						if combatTarget == mainObject.ref then player:SetCombatTarget(nil) end
 						player:SetNavTarget(mainObject.ref)
 					end
 				end
 				if isShip and ui.selectable(lc.SET_AS_COMBAT_TARGET, false, {}) then
+					if navTarget == mainObject.ref then player:SetNavTarget(nil) end
 					player:SetCombatTarget(mainObject.ref)
 				end
 			end)

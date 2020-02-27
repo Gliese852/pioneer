@@ -167,6 +167,10 @@
     "description": "",
     "message": "Cargo scoop attempted. Not enough room in cargo hold."
   },
+  "CENTER": {
+    "description": "",
+    "message": "Center"
+  },
   "CH4_ATMOSPHERE": {
     "description": "",
     "message": "\" Methane atmosphere\""
