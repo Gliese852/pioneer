@@ -1166,7 +1166,7 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 	auto TooNear = [] (vector3d a, vector3d b, vector2d gain)
 	{
 		return std::abs(a.x - b.x) < gain.x
-			&& std::abs(a.y - b.y) < gain.y             
+			&& std::abs(a.y - b.y) < gain.y
 			// we don’t want to group objects that simply overlap and are located at different distances
 			// therefore, depth is also taken into account, we have z_NDC (normalized device coordinates)
 			// in order to make a strict translation of delta z_NDC into delta "pixels", one also needs to know
@@ -1197,7 +1197,7 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 			{
 				lagrangeIcons.push_back(GroupInfo(p));
 			}
-		} else {	 
+		} else {
 			// --- real objects ---
 			int object_type = NOT_SPECIAL;
 			bool inserted = false;
@@ -1220,7 +1220,7 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 					if (object_type == NOT_SPECIAL) {
 						group.m_objects.push_back(p);
 					} else {
-						// remember it separately 
+						// remember it separately
 						special_object[object_type] = &p;
 					}
 					inserted = true;
@@ -1238,13 +1238,14 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 		}
 	}
 
+
 	// adding overlapping special object to nearest group
 	for (int object_type = 0; object_type < NUMBER_OF_SO_TYPES; object_type++)
 		if (special_object[object_type])
 		{
 			std::vector<GroupInfo*> touchedGroups;
 			// first we get all groups, touched this object
-			for (GroupInfo &group : bodyIcons) 
+			for (GroupInfo &group : bodyIcons)
 				if (TooNear(special_object[object_type]->screenpos, group.m_mainObject.screenpos, gap))
 					// object inside group boundaries: remember this group
 					touchedGroups.push_back(&group);
@@ -1271,13 +1272,16 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 	//no need to sort, because the bodies are so recorded in good order
 	//because they are written recursively starting from the root
 	//body of the system, and ships go after the system bodies
+	
 
 	LuaTable result(l, orbitIcons.size() + lagrangeIcons.size() + bodyIcons.size(), 0);
 	int index = 1;
-	
 	//the sooner is displayed, the more in the background
 	// so it goes orbitIcons->lagrangeIcons->bodies
+	const char* names[] = {"orbiticons", "lagrangeicons", "bodyicons" };
+	int nname = 0;
 	for(auto groups : { orbitIcons, lagrangeIcons, bodyIcons} )
+	{
 		for (GroupInfo &group : groups) {
 			LuaTable info_table(l, 0, 7);
 			LuaTable objects_table(l, group.m_objects.size(), 0);
@@ -1286,9 +1290,9 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 			info_table.Set("mainObject", l_engine_projectable_to_lua_row(group.m_mainObject, l));
 			lua_pop(l, 1);
 			int objects_table_index = 1;
-			for(Projectable p : group.m_objects)
+			for(Projectable &pj : group.m_objects)
 			{
-				objects_table.Set(objects_table_index++, l_engine_projectable_to_lua_row(p, l));
+				objects_table.Set(objects_table_index++, l_engine_projectable_to_lua_row(pj, l));
 				lua_pop(l, 1);
 			}
 			info_table.Set("objects", objects_table);
@@ -1299,12 +1303,12 @@ static int l_engine_system_map_get_projected_grouped(lua_State *l)
 			result.Set(index++, info_table);
 			lua_pop(l, 1);
 		}
-
+	}
 	LuaPush(l, result);
 	return 1;
 }
 
-static int l_engine_system_map_selected_object(lua_State *l)
+static int l_engine_system_map_get_selected_object(lua_State *l)
 {
 	Projectable *p = Pi::game->GetSystemView()->GetSelectedObject();
 	LuaPush(l, l_engine_projectable_to_lua_row(*p, l));
@@ -1526,14 +1530,16 @@ void LuaEngine::Register()
 		{ "SectorMapRemoveRouteItem", l_engine_sector_map_remove_route_item },
 		{ "SectorMapClearRoute", l_engine_sector_map_clear_route },
 		{ "SectorMapAddToRoute", l_engine_sector_map_add_to_route },
+
 		{ "SystemMapGetProjectedGrouped", l_engine_system_map_get_projected_grouped },
-		{ "SystemMapSelectedObject", l_engine_system_map_selected_object },
+		{ "SystemMapGetSelectedObject", l_engine_system_map_get_selected_object },
 		{ "SystemMapGetOrbitPlannerStartTime", l_engine_system_map_get_orbit_planner_start_time },
 		{ "SystemMapGetOrbitPlannerTime", l_engine_system_map_get_orbit_planner_time },
 		{ "SystemMapAccelerateTime", l_engine_system_map_accelerate_time },
 		{ "SystemMapCenterOn", l_engine_system_map_center_on },
 		{ "SystemMapSetVisibility", l_engine_system_map_set_visibility },
 		{ "SystemMapSetColor", l_engine_system_map_set_color },
+
 		{ "TransferPlannerAdd", l_engine_transfer_planner_add },
 		{ "TransferPlannerGet", l_engine_transfer_planner_get },
 		{ "TransferPlannerReset", l_engine_transfer_planner_reset },

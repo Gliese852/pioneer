@@ -124,7 +124,6 @@ const struct EnumItem ENUM_ProjectableBases[] = {
 	{ "SYSTEMBODY", int(Projectable::SYSTEMBODY) },
 	{ "BODY", int(Projectable::BODY) },
 	{ "SHIP", int(Projectable::SHIP) },
-	{ "SELECTED_SHIP", int(Projectable::SELECTED_SHIP) },
 	{ "PLAYER", int(Projectable::PLAYER) },
 	{ "PLANNER", int(Projectable::PLANNER) },
 	{ 0, 0 },

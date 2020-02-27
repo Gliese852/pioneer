@@ -91,9 +91,8 @@ struct Projectable
 		SYSTEMBODY = 0, // ref class SystemBody, may not have a physical body
 		BODY = 1, // generic body
 		SHIP = 2,
-		SELECTED_SHIP = 3, // selected ship may have different colors
-		PLAYER = 4, // player's ship
-		PLANNER = 5 // player's ship planned by transfer planner, refers to player's object
+		PLAYER = 3, // player's ship
+		PLANNER = 4 // player's ship planned by transfer planner, refers to player's object
 	} base;
 	union{
 		const Body* body;
@@ -118,6 +117,8 @@ public:
 	virtual ~SystemView();
 	virtual void Update();
 	virtual void Draw3D();
+	virtual void OnSwitchTo() { Update(); Draw3D(); }
+
 	Projectable* GetSelectedObject();
 	void SetSelectedObject(Projectable::types type, Projectable::bases base, SystemBody *sb);
 	void SetSelectedObject(Projectable::types type, Projectable::bases base, Body *b);
@@ -154,9 +155,6 @@ private:
 	template <typename RefType>
 	void PutOrbit(Projectable::bases base, RefType *ref, const Orbit *orb, const vector3d &offset, const Color &color, const double planetRadius = 0.0, const bool showLagrange = false);
 	void PutBody(const SystemBody *b, const vector3d &offset, const matrix4x4f &trans);
-	void PutLabel(const SystemBody *b, const vector3d &offset);
-	void PutSelectionBox(const SystemBody *b, const vector3d &rootPos, const Color &col);
-	void PutSelectionBox(const vector3d &worldPos, const Color &col);
 	void GetTransformTo(const SystemBody *b, vector3d &pos);
 	void GetTransformTo(Projectable &p, vector3d &pos);
 	void ResetViewpoint();
@@ -165,7 +163,6 @@ private:
 	void DrawShips(const double t, const vector3d &offset);
 	void PrepareGrid();
 	void DrawGrid();
-	void LabelShip(Ship *s, const vector3d &offset);
 	template <typename T>
 	void AddProjected(Projectable::types type, Projectable::bases base, T *ref, vector3d &pos);
 	template <typename T>
@@ -207,7 +204,6 @@ private:
 
 	std::unique_ptr<Graphics::VertexArray> m_lineVerts;
 	Graphics::Drawables::Lines m_lines;
-
 };
 
 #endif /* _SYSTEMVIEW_H */

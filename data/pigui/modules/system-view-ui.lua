@@ -3,6 +3,7 @@ local Engine = require 'Engine'
 local Event = require 'Event'
 local Lang = require 'Lang'
 local ui = require 'pigui'
+local Format = require 'Format'
 
 local Vector2 = _G.Vector2
 local lc = Lang.GetResource("core")
@@ -16,7 +17,7 @@ local mainButtonFramePadding = 3
 local itemSpacing = Vector2(8, 4) -- couldn't get default from ui
 local indicatorSize = Vector2(30 , 30)
 
-local objectCounter
+local selectedObject -- object, centered in SystemView
 
 local pionillium = ui.fonts.pionillium
 local ASTEROID_RADIUS = 1500000 -- rocky planets smaller than this (in meters) are considered an asteroid, not a planet
@@ -40,10 +41,10 @@ local svColor = {
 	PLAYER_ORBIT = Color(255,0,0),
 	SELECTED_SHIP_ORBIT = Color(0,186,255),
 	SHIP = colors.frame,
-	SHIP_ORBIT = Color(0,0,255),
+	SHIP_ORBIT = Color(0,0,155),
 	SYSTEMBODY = Color(109,109,134),
 	SYSTEMBODY_ICON = colors.frame,
-	SYSTEMBODY_ORBIT = Color(0,255,0),
+	SYSTEMBODY_ORBIT = Color(0,155,0),
 	SYSTEMNAME_BACK = colors.transparent,
 	WINDOW_BACK = colors.lightBlackBackground,
 	UNKNOWN = Color(255,0,255)
@@ -101,14 +102,14 @@ local function timeButton(icon, tooltip, factor)
 	return active
 end
 
-local function VisibilityCircle(a, b, c) return { [a] = b, [b] = c, [c] = a } end
+local function loop3items(a, b, c) return { [a] = b, [b] = c, [c] = a } end
 
 local ship_drawing = "SHIPS_OFF"
 local show_lagrange = "LAG_OFF"
 local show_grid = "GRID_OFF"
-local nextShipDrawings = VisibilityCircle("SHIPS_OFF", "SHIPS_ON", "SHIPS_ORBITS")
-local nextShowLagrange = VisibilityCircle("LAG_OFF", "LAG_ICON", "LAG_ICONTEXT")
-local nextShowGrid = VisibilityCircle("GRID_OFF", "GRID_ON", "GRID_AND_LEGS")
+local nextShipDrawings = loop3items("SHIPS_OFF", "SHIPS_ON", "SHIPS_ORBITS")
+local nextShowLagrange = loop3items("LAG_OFF", "LAG_ICON", "LAG_ICONTEXT")
+local nextShowGrid = loop3items("GRID_OFF", "GRID_ON", "GRID_AND_LEGS")
 
 local function calcWindowWidth(buttons)
 	return (mainButtonSize.y + mainButtonFramePadding * 2) * buttons
@@ -288,9 +289,11 @@ local function getColor(obj)
 		end
 	elseif obj.type == Projectable.APOAPSIS or obj.type == Projectable.PERIAPSIS then
 		if obj.base == Projectable.SYSTEMBODY then return svColor.SYSTEMBODY_ORBIT
-		elseif obj.base == Projectable.SHIP then return svColor.SHIP_ORBIT
+		elseif obj.base == Projectable.SHIP then
+			if obj.ref == selectedObject then return svColor.SELECTED_SHIP_ORBIT
+			else return svColor.SHIP_ORBIT
+			end
 		elseif obj.base == Projectable.PLAYER then return svColor.PLAYER_ORBIT
-		elseif obj.base == Projectable.SELECTED_SHIP then return svColor.SELECTED_SHIP_ORBIT
 		elseif obj.base == Projectable.PLANNER then return svColor.PLANNER_ORBIT
 		else return svColor.UNKNOWN -- unknown base
 		end
@@ -311,6 +314,7 @@ local function showSystemName()
 	end)
 end
 
+-- forked from data/pigui/views/game.lua
 local function displayOnScreenObjects()
 
 	local navTarget = player:GetNavTarget()
@@ -323,6 +327,7 @@ local function displayOnScreenObjects()
 	local click_radius = collapse:length() * 0.5
 	-- make click_radius sufficiently smaller than the cluster size
 	-- to prevent overlap of selection regions
+	local objectCounter = 0
 	local objects_grouped = Engine.SystemMapGetProjectedGrouped(collapse, 1e64)
 	if #objects_grouped == 0 then
 		ui.setNextWindowPos(Vector2(ui.screenWidth, ui.screenHeight) / 2 - ui.calcTextSize(lc.UNEXPLORED_SYSTEM_NO_SYSTEM_VIEW) / 2, "Always")
@@ -334,7 +339,6 @@ local function displayOnScreenObjects()
 		end)
 		return
 	end
-
 
 	for _,group in ipairs(objects_grouped) do
 		local mainObject = group.mainObject
@@ -368,9 +372,7 @@ local function displayOnScreenObjects()
 		end
 		local mp = ui.getMousePos()
 
-		if mainObject.type == Projectable.OBJECT and (mainObject.base == Projectable.SYSTEMBODY and mainObject.ref.physicsBody
-			or mainObject.base == Projectable.SHIP or mainObject.base == Projectable.SELECTED_SHIP
-			or mainObject.base == Projectable.PLAYER) then
+		if mainObject.type == Projectable.OBJECT and (mainObject.base == Projectable.SYSTEMBODY or mainObject.base == Projectable.SHIP or mainObject.base == Projectable.PLAYER) then
 			-- mouse release handler for right button
 			if (mp - mainCoords):length() < click_radius then
 				if not ui.isAnyWindowHovered() and ui.isMouseReleased(1) then
@@ -387,8 +389,8 @@ local function displayOnScreenObjects()
 				if ui.selectable(lc.CENTER, false, {}) then
 					Engine.SystemMapCenterOn(mainObject.type, mainObject.base, mainObject.ref)
 				end
-				if (isShip or isSystemBody) and ui.selectable(lc.SET_AS_TARGET, false, {}) then
-					if isSystemBody and mainObject.ref.physicsBody then
+				if (isShip or isSystemBody and mainObject.ref.physicsBody) and ui.selectable(lc.SET_AS_TARGET, false, {}) then
+					if isSystemBody then
 						player:SetNavTarget(mainObject.ref.physicsBody)
 					else 
 						if combatTarget == mainObject.ref then player:SetCombatTarget(nil) end
@@ -428,7 +430,7 @@ local function tabular(data)
 end
 
 local function showTargetInfoWindow(obj)
-	if obj.type ~= Projectable.OBJECT or obj.base ~= Projectable.SHIP and obj.base ~= Projectable.SELECTED_SHIP and obj.base ~= Projectable.SYSTEMBODY then return end
+	if obj.type ~= Projectable.OBJECT or obj.base ~= Projectable.SHIP and obj.base ~= Projectable.SYSTEMBODY then return end
 	ui.setNextWindowSize(Vector2(ui.screenWidth / 5, 0), "Always")
 	ui.setNextWindowPos(Vector2(20, (ui.screenHeight / 5) * 2 + 20), "Always")
 	ui.withStyleColors({["WindowBg"] = svColor.WINDOW_BACK}, function()
@@ -486,10 +488,10 @@ local function showTargetInfoWindow(obj)
 																				 value = hd and hd:GetName() or lc.NO_HYPERDRIVE
 										})
 										table.insert(data, { name = lc.MASS,
-																				 value = ui.Format.MassT(body:GetStats().staticMass)
+																				 value = Format.MassTonnes(body:GetStats().staticMass)
 										})
 										table.insert(data, { name = lc.CARGO,
-																				 value = ui.Format.MassT(body:GetStats().usedCargo)
+																				 value = Format.MassTonnes(body:GetStats().usedCargo)
 										})
 									end
 									else
@@ -505,11 +507,11 @@ local function displaySystemViewUI()
 	local current_view = Game.CurrentView()
 
 	if current_view == "system" and not Game.InHyperspace() then
-		objectCounter = 0
+		selectedObject = Engine.SystemMapGetSelectedObject()
 		displayOnScreenObjects()
 		ui.withFont(ui.fonts.pionillium.medium.name, ui.fonts.pionillium.medium.size, function()
 			showOrbitPlannerWindow()
-			showTargetInfoWindow(Engine.SystemMapSelectedObject())
+			showTargetInfoWindow(selectedObject)
 		end)
 		showSystemName()
 	end

@@ -31,7 +31,7 @@ static const float ZOOM_IN_SPEED = 3;
 static const float ZOOM_OUT_SPEED = 3;
 static const float WHEEL_SENSITIVITY = .1f; // Should be a variable in user settings.
 static const double DEFAULT_VIEW_DISTANCE = 10.0;
-static const int MAX_TRANSITION_FRAMES = 40;
+static const int MAX_TRANSITION_FRAMES = 60;
 
 TransferPlanner::TransferPlanner() :
 	m_position(0., 0., 0.),
@@ -353,28 +353,6 @@ void SystemView::PutOrbit(Projectable::bases base, RefType *ref, const Orbit *or
 	Gui::Screen::LeaveOrtho();
 }
 
-void SystemView::PutLabel(const SystemBody *b, const vector3d &offset)
-{
-	Gui::Screen::EnterOrtho();
-	vector3d pos;
-	if (Gui::Screen::Project(offset, pos) && pos.z < 1) {
-		AddProjected<const SystemBody>(Projectable::OBJECT, Projectable::SYSTEMBODY, b, pos);
-	}
-	Gui::Screen::LeaveOrtho();
-}
-
-void SystemView::LabelShip(Ship *s, const vector3d &offset)
-{
-	Gui::Screen::EnterOrtho();
-
-	vector3d pos;
-	if (Gui::Screen::Project(offset, pos) && pos.z < 1) {
-		AddProjected<Body>(Projectable::OBJECT, Projectable::SHIP, static_cast<Body *>(s), pos);
-	}
-
-	Gui::Screen::LeaveOrtho();
-}
-
 void SystemView::PutBody(const SystemBody *b, const vector3d &offset, const matrix4x4f &trans)
 {
 	if (b->GetType() == SystemBody::TYPE_STARPORT_SURFACE)
@@ -401,7 +379,6 @@ void SystemView::PutBody(const SystemBody *b, const vector3d &offset, const matr
 
 		m_renderer->SetTransform(trans);
 
-		//PutLabel(b, offset);
 		AddNotProjected<const SystemBody>(Projectable::OBJECT, Projectable::SYSTEMBODY, b, offset);
 
 	}
@@ -431,50 +408,6 @@ void SystemView::PutBody(const SystemBody *b, const vector3d &offset, const matr
 		}
 	}
 }
-
-void SystemView::PutSelectionBox(const SystemBody *b, const vector3d &rootPos, const Color &col)
-{
-	// surface starports just show the planet as being selected,
-	// because SystemView doesn't render terrains anyway
-	if (b->GetType() == SystemBody::TYPE_STARPORT_SURFACE)
-		b = b->GetParent();
-	assert(b);
-
-	vector3d pos = rootPos;
-	// while (b->parent), not while (b) because the root SystemBody is defined to be at (0,0,0)
-	while (b->GetParent()) {
-		pos += b->GetOrbit().OrbitalPosAtTime(m_time) * double(m_zoom);
-		b = b->GetParent();
-	}
-
-	PutSelectionBox(pos, col);
-}
-
-void SystemView::PutSelectionBox(const vector3d &worldPos, const Color &col)
-{
-	Gui::Screen::EnterOrtho();
-
-	vector3d screenPos;
-	if (Gui::Screen::Project(worldPos, screenPos) && screenPos.z < 1) {
-		// XXX copied from WorldView::DrawTargetSquare -- these should be unified
-		const float x1 = float(screenPos.x - SystemView::PICK_OBJECT_RECT_SIZE * 0.5);
-		const float x2 = float(x1 + SystemView::PICK_OBJECT_RECT_SIZE);
-		const float y1 = float(screenPos.y - SystemView::PICK_OBJECT_RECT_SIZE * 0.5);
-		const float y2 = float(y1 + SystemView::PICK_OBJECT_RECT_SIZE);
-
-		const vector3f verts[4] = {
-			vector3f(x1, y1, 0.f),
-			vector3f(x2, y1, 0.f),
-			vector3f(x2, y2, 0.f),
-			vector3f(x1, y2, 0.f)
-		};
-		m_selectBox.SetData(4, &verts[0], col);
-		m_selectBox.Draw(m_renderer, m_lineState, Graphics::LINE_LOOP);
-	}
-
-	Gui::Screen::LeaveOrtho();
-}
-
 
 void SystemView::GetTransformTo(const SystemBody *b, vector3d &pos)
 {
@@ -532,7 +465,7 @@ void SystemView::CalculateShipPositionAtTime(const Ship *s, Orbit o, double t, v
 	}
 }
 
-//frame must be nonrot
+//frame must be nonrotating
 void SystemView::CalculateFramePositionAtTime(FrameId frameId, double t, vector3d &pos)
 {
 	if (frameId == m_game->GetSpace()->GetRootFrame()) pos = vector3d(0., 0., 0.);
@@ -600,7 +533,7 @@ void SystemView::Draw3D()
 		// all systembodies draws here
 		PutBody(m_system->GetRootBody().Get(), pos, m_cameraSpace);
 	}
-// glLineWidth(1);
+	// glLineWidth(1);
 
 
 	if (m_game->GetSpace()->GetStarSystem()->GetPath().IsSameSystem(m_game->GetSectorView()->GetSelected()))
@@ -703,15 +636,14 @@ void SystemView::DrawShips(const double t, const vector3d &offset)
 		vector3d pos(0.0);
 		CalculateShipPositionAtTime((*s).first, (*s).second, t, pos);
 		pos = pos * m_zoom + offset;
-		//draw green orbit for selected ship
+		//draw highlighted orbit for selected ship
 		const bool isSelected = m_selectedObject.type == Projectable::OBJECT && m_selectedObject.base != Projectable::SYSTEMBODY && m_selectedObject.ref.body == (*s).first;
-		//LabelShip((*s).first, pos);
 		AddNotProjected<Body>(Projectable::OBJECT, Projectable::SHIP, static_cast<Body* >((*s).first), pos);
 		if (m_shipDrawing == ORBITS && (*s).first->GetFlightState() == Ship::FlightState::FLYING)
 		{
 			vector3d framepos(0.0);
 			CalculateFramePositionAtTime(Frame::GetFrame((*s).first->GetFrame())->GetNonRotFrame(), m_time, framepos);
-			PutOrbit<Body>(isSelected ? Projectable::SELECTED_SHIP : Projectable::SHIP, static_cast<Body*>((*s).first), &(*s).second, offset + framepos * m_zoom, isSelected ? svColor[SELECTED_SHIP_ORBIT] : svColor[SHIP_ORBIT], 0);
+			PutOrbit<Body>(Projectable::SHIP, static_cast<Body*>((*s).first), &(*s).second, offset + framepos * m_zoom, isSelected ? svColor[SELECTED_SHIP_ORBIT] : svColor[SHIP_ORBIT], 0);
 		}
 	}
 }
@@ -791,7 +723,7 @@ void SystemView::AddProjected(Projectable::types type, Projectable::bases base, 
 // SystemBody can't be inaccessible
 void SystemView::BodyInaccessible(Body *b)
 {
-	if (m_selectedObject.type == Projectable::OBJECT && m_selectedObject.base != Projectable::SYSTEMBODY && m_selectedObject.ref.body == b) ResetViewpoint();
+	if (m_selectedObject.type == Projectable::OBJECT && m_selectedObject.base != Projectable::SYSTEMBODY && m_selectedObject.ref.body == b) { ResetViewpoint(); }
 }
 
 void SystemView::SetVisibility(std::string param)
