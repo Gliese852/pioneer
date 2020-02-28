@@ -16,6 +16,7 @@
 #include "Player.h"
 #include "SpaceStation.h"
 #include "Star.h"
+#include "SystemView.h"
 #include "collider/CollisionContact.h"
 #include "collider/CollisionSpace.h"
 #include "galaxy/Galaxy.h"
@@ -1006,6 +1007,7 @@ void Space::UpdateBodies()
 		rmb->SetFrame(FrameId::Invalid);
 		for (Body *b : m_bodies)
 			b->NotifyRemoved(rmb);
+		if (Pi::GetView()) Pi::game->GetSystemView()->BodyInaccessible(rmb);
 		m_bodies.remove(rmb);
 	}
 	m_removeBodies.clear();
@@ -1013,6 +1015,7 @@ void Space::UpdateBodies()
 	for (Body *killb : m_killBodies) {
 		for (Body *b : m_bodies)
 			b->NotifyRemoved(killb);
+		if (Pi::GetView()) Pi::game->GetSystemView()->BodyInaccessible(killb);
 		m_bodies.remove(killb);
 		delete killb;
 	}
@@ -1030,7 +1033,7 @@ static void DebugDumpFrame(FrameId fId, bool details, unsigned int indent)
 	Frame *f = Frame::GetFrame(fId);
 	Frame *parent = Frame::GetFrame(f->GetParent());
 
-	Output("%.*s%2i) %p (%s)%s\n", indent, space, fId, static_cast<void *>(f), f->GetLabel().c_str(), f->IsRotFrame() ? " [rotating]" : " [non rotating]");
+	Output("%.*s%2i) %p (%s)%s\n", indent, space, static_cast<int>(fId), static_cast<void *>(f), f->GetLabel().c_str(), f->IsRotFrame() ? " [rotating]" : " [non rotating]");
 	if (f->GetParent().valid())
 		Output("%.*s parent %p (%s)\n", indent + 3, space, static_cast<void *>(parent), parent->GetLabel().c_str());
 	if (f->GetBody())
