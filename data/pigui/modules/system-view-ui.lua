@@ -12,6 +12,8 @@ local player = nil
 local colors = ui.theme.colors
 local icons = ui.theme.icons
 
+local systemView
+
 local mainButtonSize = ui.rescaleUI(Vector2(32,32), Vector2(1600, 900))
 local mainButtonFramePadding = 3
 local itemSpacing = Vector2(8, 4) -- couldn't get default from ui
@@ -51,9 +53,11 @@ local svColor = {
 }
 
 local onGameStart = function ()
+	--connect to class SystemView
+	systemView = Game.systemView
 	--export several colors to class SystemView (only those which mentioned in the enum SystemViewColorIndex)
 	for _, key in pairs(Constants.SystemViewColorIndex) do
-		Engine.SystemMapSetColor(key, svColor[key])
+		systemView:SetColor(key, svColor[key])
 	end
 end
 
@@ -62,28 +66,28 @@ local function showDvLine(leftIcon, resetIcon, rightIcon, key, Formatter, leftTo
 		if ui.isItemHovered() then
 			local w = ui.getMouseWheel()
 			if w ~= 0 then
-				Engine.TransferPlannerAdd(key, w * 10)
+				systemView:TransferPlannerAdd(key, w * 10)
 			end
 		end
 	end
 	local press = ui.coloredSelectedIconButton(leftIcon, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, leftTooltip)
 	if press or (key ~= "factor" and ui.isItemActive()) then
-		Engine.TransferPlannerAdd(key, -10)
+		systemView:TransferPlannerAdd(key, -10)
 	end
 	wheel()
 	ui.sameLine()
 	if ui.coloredSelectedIconButton(resetIcon, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, resetTooltip) then
-		Engine.TransferPlannerReset(key)
+		systemView:TransferPlannerReset(key)
 	end
 	wheel()
 	ui.sameLine()
 	press = ui.coloredSelectedIconButton(rightIcon, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, rightTooltip)
 	if press or (key ~= "factor" and ui.isItemActive()) then
-		Engine.TransferPlannerAdd(key, 10)
+		systemView:TransferPlannerAdd(key, 10)
 	end
 	wheel()
 	ui.sameLine()
-	local speed, speed_unit = Formatter(Engine.TransferPlannerGet(key))
+	local speed, speed_unit = Formatter(systemView:TransferPlannerGet(key))
 	ui.text(speed .. " " .. speed_unit)
 	return 0
 end
@@ -96,7 +100,7 @@ local function timeButton(icon, tooltip, factor)
 	end
 	local active = ui.isItemActive()
 	if active then
-		Engine.SystemMapAccelerateTime(factor)
+		systemView:AccelerateTime(factor)
 	end
 	ui.sameLine()
 	return active
@@ -137,32 +141,32 @@ local function showOrbitPlannerWindow()
 			ui.separator()
 
 			if ui.coloredSelectedIconButton(icons.systemmap_reset_view, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Reset view") then
-				Engine.SystemMapSetVisibility("RESET_VIEW")
+				systemView:SetVisibility("RESET_VIEW")
 			end
 			ui.sameLine()
 			if ui.coloredSelectedIconButton(icons.systemmap_toggle_grid, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show grid") then
 				show_grid = nextShowGrid[show_grid]
-				Engine.SystemMapSetVisibility(show_grid);
+				systemView:SetVisibility(show_grid);
 			end
 			ui.sameLine()
 			if ui.coloredSelectedIconButton(icons.systemmap_toggle_ships, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show ships") then
 				ship_drawing = nextShipDrawings[ship_drawing]
-				Engine.SystemMapSetVisibility(ship_drawing);
+				systemView:SetVisibility(ship_drawing);
 			end
 			ui.sameLine()
 			if ui.coloredSelectedIconButton(icons.systemmap_toggle_lagrange, mainButtonSize, showLagrangePoints, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show Lagrange points") then
 				show_lagrange = nextShowLagrange[show_lagrange]
-				Engine.SystemMapSetVisibility(show_lagrange);
+				systemView:SetVisibility(show_lagrange);
 			end
 			ui.sameLine()
 			ui.coloredSelectedIconButton(icons.zoom_in,mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Zoom in")
 			if ui.isItemActive() then
-				Engine.SystemMapSetVisibility("ZOOM_IN");
+				systemView:SetVisibility("ZOOM_IN");
 			end
 			ui.sameLine()
 			ui.coloredSelectedIconButton(icons.zoom_out, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Zoom out")
 			if ui.isItemActive() then
-				Engine.SystemMapSetVisibility("ZOOM_OUT");
+				systemView:SetVisibility("ZOOM_OUT");
 			end
 
 			ui.separator()
@@ -171,7 +175,7 @@ local function showOrbitPlannerWindow()
 			showDvLine(icons.orbit_reduce, icons.orbit_start_time, icons.orbit_increase, "starttime",
 			function(i)
 				local now = Game.time
-				local start = Engine.SystemMapGetOrbitPlannerStartTime()
+				local start = systemView:GetOrbitPlannerStartTime()
 				if start then
 					return ui.Format.Duration(math.floor(start - now)), ""
 				else
@@ -185,7 +189,7 @@ local function showOrbitPlannerWindow()
 
 			ui.separator()
 
-			local t = Engine.SystemMapGetOrbitPlannerTime()
+			local t = systemView:GetOrbitPlannerTime()
 			ui.text(t and ui.Format.Datetime(t) or "now")
 			local r = false
 			r = timeButton(icons.time_backward_100x, "-10,000,000x",-10000000) or r
@@ -197,9 +201,9 @@ local function showOrbitPlannerWindow()
 			r = timeButton(icons.time_forward_100x, "10,000,000x", 10000000) or r
 			if not r then
 				if time_selected_button_icon == icons.time_center then
-					Engine.SystemMapAccelerateTime(nil)
+					systemView:AccelerateTime(nil)
 				else
-					Engine.SystemMapAccelerateTime(0.0)
+					systemView:AccelerateTime(0.0)
 				end
 			end
 		end)
@@ -328,7 +332,7 @@ local function displayOnScreenObjects()
 	-- make click_radius sufficiently smaller than the cluster size
 	-- to prevent overlap of selection regions
 	local objectCounter = 0
-	local objects_grouped = Engine.SystemMapGetProjectedGrouped(collapse, 1e64)
+	local objects_grouped = systemView:GetProjectedGrouped(collapse, 1e64)
 	if #objects_grouped == 0 then
 		ui.setNextWindowPos(Vector2(ui.screenWidth, ui.screenHeight) / 2 - ui.calcTextSize(lc.UNEXPLORED_SYSTEM_NO_SYSTEM_VIEW) / 2, "Always")
 		ui.withStyleColors({["WindowBg"] = svColor.SYSTEMNAME_BACK}, function()
@@ -387,7 +391,7 @@ local function displayOnScreenObjects()
 				ui.text(getLabel(mainObject))
 				ui.separator()
 				if ui.selectable(lc.CENTER, false, {}) then
-					Engine.SystemMapCenterOn(mainObject.type, mainObject.base, mainObject.ref)
+					systemView:SetSelectedObject(mainObject.type, mainObject.base, mainObject.ref)
 				end
 				if (isShip or isSystemBody and mainObject.ref.physicsBody) and ui.selectable(lc.SET_AS_TARGET, false, {}) then
 					if isSystemBody then
@@ -406,7 +410,7 @@ local function displayOnScreenObjects()
 		-- mouse release handler
 		if (mp - mainCoords):length() < click_radius then
 			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0) and mainObject.type == Projectable.OBJECT then
-				Engine.SystemMapCenterOn(mainObject.type, mainObject.base, mainObject.ref)
+				systemView:SetSelectedObject(mainObject.type, mainObject.base, mainObject.ref)
 			end
 		end
 
@@ -497,7 +501,7 @@ local function displaySystemViewUI()
 	local current_view = Game.CurrentView()
 
 	if current_view == "system" and not Game.InHyperspace() then
-		selectedObject = Engine.SystemMapGetSelectedObject()
+		selectedObject = systemView:GetSelectedObject()
 		displayOnScreenObjects()
 		ui.withFont(ui.fonts.pionillium.medium.name, ui.fonts.pionillium.medium.size, function()
 			showOrbitPlannerWindow()

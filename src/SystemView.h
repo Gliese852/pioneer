@@ -111,7 +111,7 @@ struct Projectable
 	Projectable() : type(NONE) {}
 };
 
-class SystemView: public UIView {
+class SystemView : public UIView, public DeleteEmitter {
 public:
 	SystemView(Game *game);
 	virtual ~SystemView();
@@ -122,6 +122,7 @@ public:
 	Projectable* GetSelectedObject();
 	void SetSelectedObject(Projectable::types type, Projectable::bases base, SystemBody *sb);
 	void SetSelectedObject(Projectable::types type, Projectable::bases base, Body *b);
+	TransferPlanner* GetTransferPlanner() const { return m_planner; }
 	double GetOrbitPlannerStartTime() const { return m_planner->GetStartTime(); }
 	double GetOrbitPlannerTime() const { return m_time; }
 	void OnClickAccel(float step);

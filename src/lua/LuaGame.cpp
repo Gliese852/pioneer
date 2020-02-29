@@ -337,6 +337,28 @@ static int l_game_attr_system(lua_State *l)
 }
 
 /*
+ * Attribute: systemView
+ *
+ * The <SystemView> object for the system map view class
+ *
+ * Availability:
+ *
+ *  February 2020
+ *
+ * Status:
+ *
+ *  experiment
+ */
+static int l_game_attr_systemview(lua_State *l)
+{
+	if (!Pi::game)
+		lua_pushnil(l);
+	else
+		LuaObject<SystemView>::PushToLua(Pi::game->GetSystemView());
+	return 1;
+}
+
+/*
  * Attribute: time
  *
  * The current game time, in seconds since 12:00 01-01-3200
@@ -662,6 +684,7 @@ void LuaGame::Register()
 	static const luaL_Reg l_attrs[] = {
 		{ "player", l_game_attr_player },
 		{ "system", l_game_attr_system },
+		{ "systemView", l_game_attr_systemview },
 		{ "time", l_game_attr_time },
 		{ "paused", l_game_attr_paused },
 		{ 0, 0 }
