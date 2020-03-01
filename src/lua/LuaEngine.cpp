@@ -339,8 +339,8 @@ static int l_engine_set_fullscreen(lua_State *l)
 
 static int l_engine_get_enum_value(lua_State *l)
 {
-	auto enum_name = LuaPull<const char*>(l, 1);
-	auto enum_tag = LuaPull<const char*>(l, 2);
+	auto enum_name = LuaPull<const char *>(l, 1);
+	auto enum_tag = LuaPull<const char *>(l, 2);
 	LuaPush<int>(l, EnumStrings::GetValue(enum_name, enum_tag));
 	return 1;
 }
@@ -1090,7 +1090,6 @@ static int l_engine_get_sector_map_factions(lua_State *l)
 	}
 	return 1;
 }
-
 
 static int l_get_can_browse_user_folders(lua_State *l)
 {

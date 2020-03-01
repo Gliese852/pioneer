@@ -380,13 +380,11 @@ void SystemView::PutBody(const SystemBody *b, const vector3d &offset, const matr
 		m_renderer->SetTransform(trans);
 
 		AddNotProjected<const SystemBody>(Projectable::OBJECT, Projectable::SYSTEMBODY, b, offset);
-
 	}
 
 	Frame *frame = Frame::GetFrame(Pi::player->GetFrame());
 	if (frame->IsRotFrame())
 		frame = Frame::GetFrame(frame->GetNonRotFrame());
-
 
 	// display all child bodies and their orbits
 	if (b->HasChildren()) {
@@ -424,13 +422,12 @@ void SystemView::GetTransformTo(Projectable &p, vector3d &pos)
 	pos = vector3d(0., 0., 0.);
 	if (p.base == Projectable::SYSTEMBODY)
 		GetTransformTo(p.ref.sbody, pos);
-	else if (p.ref.body->GetType() == Object::Type::SHIP || p.ref.body->GetType() == Object::Type::PLAYER )
-	{
-		const Ship* s = static_cast<const Ship*>(p.ref.body);
+	else if (p.ref.body->GetType() == Object::Type::SHIP || p.ref.body->GetType() == Object::Type::PLAYER) {
+		const Ship *s = static_cast<const Ship *>(p.ref.body);
 		CalculateShipPositionAtTime(s, s->ComputeOrbit(), m_time, pos);
 		pos = -pos;
 		// sometimes ships can dissapear from world (i.e. docking / undocking)
-		if(isnan(pos.x)) { // failsafe: calculate parent systembody instead
+		if (std::isnan(pos.x)) { // failsafe: calculate parent systembody instead
 			pos = vector3d(0., 0., 0.);
 			GetTransformTo(Frame::GetFrame(Frame::GetFrame(Pi::player->GetFrame())->GetNonRotFrame())->GetSystemBody(), pos);
 		}
@@ -444,15 +441,12 @@ void SystemView::CalculateShipPositionAtTime(const Ship *s, Orbit o, double t, v
 	FrameId shipNonRotFrameId = Frame::GetFrame(shipFrameId)->GetNonRotFrame();
 	if (s->GetFlightState() != Ship::FlightState::FLYING) {
 		vector3d rpos(0.0);
-		if (Frame::GetFrame(shipFrameId)->IsRotFrame())
-		{
-			Frame* rotframe = Frame::GetFrame(shipFrameId);
-			if (t == m_game->GetTime())
-			{
+		if (Frame::GetFrame(shipFrameId)->IsRotFrame()) {
+			Frame *rotframe = Frame::GetFrame(shipFrameId);
+			if (t == m_game->GetTime()) {
 				pos = s->GetPositionRelTo(m_game->GetSpace()->GetRootFrame());
 				return;
-			}
-			else
+			} else
 				rpos = s->GetPositionRelTo(shipNonRotFrameId) * rotframe->GetOrient() * matrix3x3d::RotateY(rotframe->GetAngSpeed() * (t - m_game->GetTime())) * rotframe->GetOrient().Transpose();
 		}
 		vector3d fpos(0.0);
@@ -468,9 +462,9 @@ void SystemView::CalculateShipPositionAtTime(const Ship *s, Orbit o, double t, v
 //frame must be nonrotating
 void SystemView::CalculateFramePositionAtTime(FrameId frameId, double t, vector3d &pos)
 {
-	if (frameId == m_game->GetSpace()->GetRootFrame()) pos = vector3d(0., 0., 0.);
-	else
-	{
+	if (frameId == m_game->GetSpace()->GetRootFrame())
+		pos = vector3d(0., 0., 0.);
+	else {
 		Frame *frame = Frame::GetFrame(frameId);
 		CalculateFramePositionAtTime(frame->GetParent(), t, pos);
 		pos += frame->GetSystemBody()->GetOrbit().OrbitalPosAtTime(t);
@@ -493,7 +487,6 @@ void SystemView::Draw3D()
 		}
 	}
 
-
 	if (m_realtime) {
 		m_time = m_game->GetTime();
 	} else {
@@ -515,8 +508,7 @@ void SystemView::Draw3D()
 	// smooth transition animation
 	m_transTo *= 0.0;
 	if (m_selectedObject.type != Projectable::NONE) GetTransformTo(m_selectedObject, m_transTo);
-	if(m_animateTransition)
-	{
+	if (m_animateTransition) {
 		const float ft = Pi::GetFrameTime();
 		m_animateTransition--;
 		AnimationCurves::Approach(m_trans.x, m_transTo.x, ft);
@@ -535,9 +527,7 @@ void SystemView::Draw3D()
 	}
 	// glLineWidth(1);
 
-
-	if (m_game->GetSpace()->GetStarSystem()->GetPath().IsSameSystem(m_game->GetSectorView()->GetSelected()))
-	{
+	if (m_game->GetSpace()->GetStarSystem()->GetPath().IsSameSystem(m_game->GetSectorView()->GetSelected())) {
 		// draw ships
 		if (m_shipDrawing != OFF) {
 			RefreshShips();
@@ -546,25 +536,24 @@ void SystemView::Draw3D()
 		// draw player and planner
 		vector3d ppos(0.0);
 		Orbit playerOrbit = Pi::player->ComputeOrbit();
-		Body* PlayerBody = static_cast<Body*>(Pi::player);
+		Body *PlayerBody = static_cast<Body *>(Pi::player);
 		FrameId playerNonRotFrameId = Frame::GetFrame(PlayerBody->GetFrame())->GetNonRotFrame();
-		Frame* playerNonRotFrame = Frame::GetFrame(playerNonRotFrameId);
-		SystemBody* playerAround = playerNonRotFrame->GetSystemBody();
-		CalculateShipPositionAtTime(static_cast<Ship*>(Pi::player), playerOrbit, m_time, ppos);
+		Frame *playerNonRotFrame = Frame::GetFrame(playerNonRotFrameId);
+		SystemBody *playerAround = playerNonRotFrame->GetSystemBody();
+		CalculateShipPositionAtTime(static_cast<Ship *>(Pi::player), playerOrbit, m_time, ppos);
 		AddNotProjected<Body>(Projectable::OBJECT, Projectable::PLAYER, PlayerBody, ppos * m_zoom + pos);
 
 		vector3d offset(0.0);
 		CalculateFramePositionAtTime(playerNonRotFrameId, m_time, offset);
 		offset = offset * m_zoom + pos;
 
-		if (Pi::player->GetFlightState() == Ship::FlightState::FLYING)
-		{
+		if (Pi::player->GetFlightState() == Ship::FlightState::FLYING) {
 			PutOrbit<Body>(Projectable::PLAYER, PlayerBody, &playerOrbit, offset, svColor[PLAYER_ORBIT], playerAround->GetRadius());
 			const double plannerStartTime = m_planner->GetStartTime();
 			if (!m_planner->GetPosition().ExactlyEqual(vector3d(0, 0, 0))) {
 				Orbit plannedOrbit = Orbit::FromBodyState(m_planner->GetPosition(),
-						m_planner->GetVel(),
-						playerAround->GetMass());
+					m_planner->GetVel(),
+					playerAround->GetMass());
 				PutOrbit<Body>(Projectable::PLANNER, PlayerBody, &plannedOrbit, offset, svColor[PLANNER_ORBIT], playerAround->GetRadius());
 				if (std::fabs(m_time - m_game->GetTime()) > 1. && (m_time - plannerStartTime) > 0.)
 					AddNotProjected<Body>(Projectable::OBJECT, Projectable::PLANNER, PlayerBody, offset + plannedOrbit.OrbitalPosAtTime(m_time - plannerStartTime) * static_cast<double>(m_zoom));
@@ -593,7 +582,6 @@ void SystemView::Update()
 
 	AnimationCurves::Approach(m_rot_x, m_rot_x_to, ft);
 	AnimationCurves::Approach(m_rot_y, m_rot_y_to, ft);
-
 
 	if (Pi::input.MouseButtonState(SDL_BUTTON_MIDDLE)) {
 		int motion[2];
@@ -638,12 +626,11 @@ void SystemView::DrawShips(const double t, const vector3d &offset)
 		pos = pos * m_zoom + offset;
 		//draw highlighted orbit for selected ship
 		const bool isSelected = m_selectedObject.type == Projectable::OBJECT && m_selectedObject.base != Projectable::SYSTEMBODY && m_selectedObject.ref.body == (*s).first;
-		AddNotProjected<Body>(Projectable::OBJECT, Projectable::SHIP, static_cast<Body* >((*s).first), pos);
-		if (m_shipDrawing == ORBITS && (*s).first->GetFlightState() == Ship::FlightState::FLYING)
-		{
+		AddNotProjected<Body>(Projectable::OBJECT, Projectable::SHIP, static_cast<Body *>((*s).first), pos);
+		if (m_shipDrawing == ORBITS && (*s).first->GetFlightState() == Ship::FlightState::FLYING) {
 			vector3d framepos(0.0);
 			CalculateFramePositionAtTime(Frame::GetFrame((*s).first->GetFrame())->GetNonRotFrame(), m_time, framepos);
-			PutOrbit<Body>(Projectable::SHIP, static_cast<Body*>((*s).first), &(*s).second, offset + framepos * m_zoom, isSelected ? svColor[SELECTED_SHIP_ORBIT] : svColor[SHIP_ORBIT], 0);
+			PutOrbit<Body>(Projectable::SHIP, static_cast<Body *>((*s).first), &(*s).second, offset + framepos * m_zoom, isSelected ? svColor[SELECTED_SHIP_ORBIT] : svColor[SHIP_ORBIT], 0);
 		}
 	}
 }
@@ -723,29 +710,41 @@ void SystemView::AddProjected(Projectable::types type, Projectable::bases base, 
 // SystemBody can't be inaccessible
 void SystemView::BodyInaccessible(Body *b)
 {
-	if (m_selectedObject.type == Projectable::OBJECT && m_selectedObject.base != Projectable::SYSTEMBODY && m_selectedObject.ref.body == b) { ResetViewpoint(); }
+	if (m_selectedObject.type == Projectable::OBJECT && m_selectedObject.base != Projectable::SYSTEMBODY && m_selectedObject.ref.body == b)
+		ResetViewpoint();
 }
 
 void SystemView::SetVisibility(std::string param)
 {
-	if (param == "RESET_VIEW") ResetViewpoint();
-	else if (param == "GRID_OFF") m_gridDrawing = GridDrawing::OFF;
-	else if (param == "GRID_ON") m_gridDrawing = GridDrawing::GRID;
-	else if (param == "GRID_AND_LEGS") m_gridDrawing = GridDrawing::GRID_AND_LEGS;
-	else if (param == "LAG_OFF") m_showL4L5 = LAG_OFF;
-	else if (param == "LAG_ICON") m_showL4L5 = LAG_ICON;
-	else if (param == "LAG_ICONTEXT") m_showL4L5 = LAG_ICONTEXT;
-	else if (param == "SHIPS_OFF") m_shipDrawing = OFF;
-	else if (param == "SHIPS_ON") m_shipDrawing = BOXES;
-	else if (param == "SHIPS_ORBITS") m_shipDrawing = ORBITS;
+	if (param == "RESET_VIEW")
+		ResetViewpoint();
+	else if (param == "GRID_OFF")
+		m_gridDrawing = GridDrawing::OFF;
+	else if (param == "GRID_ON")
+		m_gridDrawing = GridDrawing::GRID;
+	else if (param == "GRID_AND_LEGS")
+		m_gridDrawing = GridDrawing::GRID_AND_LEGS;
+	else if (param == "LAG_OFF")
+		m_showL4L5 = LAG_OFF;
+	else if (param == "LAG_ICON")
+		m_showL4L5 = LAG_ICON;
+	else if (param == "LAG_ICONTEXT")
+		m_showL4L5 = LAG_ICONTEXT;
+	else if (param == "SHIPS_OFF")
+		m_shipDrawing = OFF;
+	else if (param == "SHIPS_ON")
+		m_shipDrawing = BOXES;
+	else if (param == "SHIPS_ORBITS")
+		m_shipDrawing = ORBITS;
 	else if (param == "ZOOM_IN")
 		m_zoomTo *= pow(ZOOM_IN_SPEED * Pi::GetMoveSpeedShiftModifier(), Pi::GetFrameTime());
 	else if (param == "ZOOM_OUT")
 		m_zoomTo *= 1 / pow(ZOOM_OUT_SPEED * Pi::GetMoveSpeedShiftModifier(), Pi::GetFrameTime());
-	else Output("Unknown visibility: %s\n", param.c_str());
+	else
+		Output("Unknown visibility: %s\n", param.c_str());
 }
 
-Projectable* SystemView::GetSelectedObject()
+Projectable *SystemView::GetSelectedObject()
 {
 	return &m_selectedObject;
 }
@@ -775,5 +774,5 @@ double SystemView::ProjectedSize(double size, vector3d pos)
 	return result;
 }
 
-double SystemView::GetOrbitTime(double t, const SystemBody* b) { return t; }
-double SystemView::GetOrbitTime(double t, const Body* b) { return t - m_game->GetTime(); }
+double SystemView::GetOrbitTime(double t, const SystemBody *b) { return t; }
+double SystemView::GetOrbitTime(double t, const Body *b) { return t - m_game->GetTime(); }

@@ -3,7 +3,6 @@
 
 #include "EnumStrings.h"
 #include "Game.h"
-#include "graphics/Graphics.h"
 #include "LuaColor.h"
 #include "LuaObject.h"
 #include "LuaVector.h"
@@ -11,7 +10,7 @@
 #include "Pi.h"
 #include "Player.h"
 #include "SystemView.h"
-
+#include "graphics/Graphics.h"
 
 LuaTable projectable_to_lua_row(Projectable &p, lua_State *l)
 {
@@ -20,16 +19,16 @@ LuaTable projectable_to_lua_row(Projectable &p, lua_State *l)
 	if (p.type == Projectable::NONE) return proj_table;
 	proj_table.Set("base", int(p.base));
 	if (p.base == Projectable::SYSTEMBODY)
-		proj_table.Set("ref", const_cast<SystemBody*>(p.ref.sbody));
+		proj_table.Set("ref", const_cast<SystemBody *>(p.ref.sbody));
 	else
-		proj_table.Set("ref", const_cast<Body*>(p.ref.body));
+		proj_table.Set("ref", const_cast<Body *>(p.ref.body));
 	return proj_table;
 }
 
 static int l_systemview_set_color(lua_State *l)
 {
 	SystemView *sv = LuaObject<SystemView>::CheckFromLua(1);
-	auto color_index = static_cast<SystemView::ColorIndex>(EnumStrings::GetValue("SystemViewColorIndex", LuaPull<const char*>(l, 2)));
+	auto color_index = static_cast<SystemView::ColorIndex>(EnumStrings::GetValue("SystemViewColorIndex", LuaPull<const char *>(l, 2)));
 	auto color_value = LuaColor::CheckFromLua(l, 3);
 	sv->SetColor(color_index, color_value);
 	return 0;
@@ -40,7 +39,7 @@ static int l_systemview_set_selected_object(lua_State *l)
 	SystemView *sv = LuaObject<SystemView>::CheckFromLua(1);
 	Projectable::types type = static_cast<Projectable::types>(luaL_checkinteger(l, 2));
 	Projectable::bases base = static_cast<Projectable::bases>(luaL_checkinteger(l, 3));
-	if(base == Projectable::SYSTEMBODY)
+	if (base == Projectable::SYSTEMBODY)
 		sv->SetSelectedObject(type, base, LuaObject<SystemBody>::CheckFromLua(4));
 	else
 		sv->SetSelectedObject(type, base, LuaObject<Body>::CheckFromLua(4));
@@ -49,8 +48,7 @@ static int l_systemview_set_selected_object(lua_State *l)
 
 bool too_near(const vector3d &a, const vector3d &b, const vector2d &gain)
 {
-	return std::abs(a.x - b.x) < gain.x
-		&& std::abs(a.y - b.y) < gain.y
+	return std::abs(a.x - b.x) < gain.x && std::abs(a.y - b.y) < gain.y
 		// we don’t want to group objects that simply overlap and are located at different distances
 		// therefore, depth is also taken into account, we have z_NDC (normalized device coordinates)
 		// in order to make a strict translation of delta z_NDC into delta "pixels", one also needs to know
@@ -78,7 +76,7 @@ static int l_systemview_get_projected_grouped(lua_State *l)
 	struct GroupInfo {
 		Projectable m_mainObject;
 		std::vector<Projectable> m_objects;
-		bool m_hasSpecialObject[NUMBER_OF_SO_TYPES] = {false, false, false};
+		bool m_hasSpecialObject[NUMBER_OF_SO_TYPES] = { false, false, false };
 
 		GroupInfo(Projectable p) :
 			m_mainObject(p)
@@ -94,25 +92,20 @@ static int l_systemview_get_projected_grouped(lua_State *l)
 
 	const Body *nav_target = Pi::game->GetPlayer()->GetNavTarget();
 	const Body *combat_target = Pi::game->GetPlayer()->GetCombatTarget();
-	const Body *player_body = static_cast<Body*>(Pi::game->GetPlayer());
-
+	const Body *player_body = static_cast<Body *>(Pi::game->GetPlayer());
 
 	for (Projectable &p : projected) {
 		// --- icons---
 		if (p.type == Projectable::APOAPSIS || p.type == Projectable::PERIAPSIS)
 			// orbit icons - just take all
 			orbitIcons.push_back(GroupInfo(p));
-		else if(p.type == Projectable::L4 || p.type == Projectable::L5)
-		{
+		else if (p.type == Projectable::L4 || p.type == Projectable::L5) {
 			// lagrange icons - take only those who don't intersect with other lagrange icons
 			bool intersect = false;
 			for (GroupInfo &group : lagrangeIcons) {
-				{
-					if (too_near(p.screenpos, group.m_mainObject.screenpos, gap))
-					{
-						intersect = true;
-						break;
-					}
+				if (too_near(p.screenpos, group.m_mainObject.screenpos, gap)) {
+					intersect = true;
+					break;
 				}
 			}
 			if (!intersect) lagrangeIcons.push_back(GroupInfo(p));
@@ -121,27 +114,27 @@ static int l_systemview_get_projected_grouped(lua_State *l)
 			int object_type = NOT_SPECIAL;
 			bool inserted = false;
 			// check if p is special object, and remember it's type
-			if (p.base == Projectable::SYSTEMBODY)
-			{
+			if (p.base == Projectable::SYSTEMBODY) {
 				if (nav_target && p.ref.sbody == nav_target->GetSystemBody()) object_type = SO_NAVTARGET;
 				//system body can't be a combat target and can't be a player
 			} else {
-				if (nav_target && p.ref.body == nav_target) object_type = SO_NAVTARGET;
-				else if (combat_target && p.ref.body == combat_target) object_type = SO_COMBATTARGET;
-				else if (p.base == Projectable::PLAYER) object_type = SO_PLAYER;
+				if (nav_target && p.ref.body == nav_target)
+					object_type = SO_NAVTARGET;
+				else if (combat_target && p.ref.body == combat_target)
+					object_type = SO_COMBATTARGET;
+				else if (p.base == Projectable::PLAYER)
+					object_type = SO_PLAYER;
 			}
 			for (GroupInfo &group : bodyIcons) {
-				if (too_near(p.screenpos, group.m_mainObject.screenpos, gap))
-				{
+				if (too_near(p.screenpos, group.m_mainObject.screenpos, gap)) {
 					// object inside group boundaries
 					// special object is not added
 					// special objects must be added to nearest group, this group could be not nearest
 					if (object_type == NOT_SPECIAL) {
 						group.m_objects.push_back(p);
-					} else {
+					} else
 						// remember it separately
 						special_object[object_type] = &p;
-					}
 					inserted = true;
 					break;
 				}
@@ -157,26 +150,25 @@ static int l_systemview_get_projected_grouped(lua_State *l)
 		}
 	} // for (Projectable &p : projected)
 
-
 	// adding overlapping special object to nearest group
 	for (int object_type = 0; object_type < NUMBER_OF_SO_TYPES; object_type++)
-		if (special_object[object_type])
-		{
-			std::vector<GroupInfo*> touchedGroups;
+		if (special_object[object_type]) {
+			std::vector<GroupInfo *> touchedGroups;
 			// first we get all groups, touched this object
 			for (GroupInfo &group : bodyIcons)
 				if (too_near(special_object[object_type]->screenpos, group.m_mainObject.screenpos, gap))
 					// object inside group boundaries: remember this group
 					touchedGroups.push_back(&group);
 			//now select the nearest group (if have)
-			if (touchedGroups.size())
-			{
-				GroupInfo* nearest;
+			if (touchedGroups.size()) {
+				GroupInfo *nearest;
 				double min_length = 1e64;
-				for (GroupInfo* &g : touchedGroups)
-				{
+				for (GroupInfo *&g : touchedGroups) {
 					double this_length = (g->m_mainObject.screenpos - special_object[object_type]->screenpos).Length();
-					if (this_length < min_length) { nearest = g; min_length = this_length; }
+					if (this_length < min_length) {
+						nearest = g;
+						min_length = this_length;
+					}
 				}
 				nearest->m_hasSpecialObject[object_type] = true;
 				nearest->m_objects.push_back(*special_object[object_type]);
@@ -196,8 +188,7 @@ static int l_systemview_get_projected_grouped(lua_State *l)
 	int index = 1;
 	//the sooner is displayed, the more in the background
 	// so it goes orbitIcons->lagrangeIcons->bodies
-	for(auto groups : { orbitIcons, lagrangeIcons, bodyIcons} )
-	{
+	for (auto groups : { orbitIcons, lagrangeIcons, bodyIcons }) {
 		for (GroupInfo &group : groups) {
 			LuaTable info_table(l, 0, 7);
 			LuaTable objects_table(l, group.m_objects.size(), 0);
@@ -206,8 +197,7 @@ static int l_systemview_get_projected_grouped(lua_State *l)
 			info_table.Set("mainObject", projectable_to_lua_row(group.m_mainObject, l));
 			lua_pop(l, 1);
 			int objects_table_index = 1;
-			for(Projectable &pj : group.m_objects)
-			{
+			for (Projectable &pj : group.m_objects) {
 				objects_table.Set(objects_table_index++, projectable_to_lua_row(pj, l));
 				lua_pop(l, 1);
 			}
