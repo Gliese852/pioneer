@@ -140,21 +140,21 @@ local function showOrbitPlannerWindow()
 
 			ui.separator()
 
-			if ui.coloredSelectedIconButton(icons.systemmap_reset_view, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Reset view") then
+			if ui.coloredSelectedIconButton(icons.reset_view, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Reset view") then
 				systemView:SetVisibility("RESET_VIEW")
 			end
 			ui.sameLine()
-			if ui.coloredSelectedIconButton(icons.systemmap_toggle_grid, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show grid") then
+			if ui.coloredSelectedIconButton(icons.toggle_grid, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show grid") then
 				show_grid = nextShowGrid[show_grid]
 				systemView:SetVisibility(show_grid);
 			end
 			ui.sameLine()
-			if ui.coloredSelectedIconButton(icons.systemmap_toggle_ships, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show ships") then
+			if ui.coloredSelectedIconButton(icons.toggle_ships, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show ships") then
 				ship_drawing = nextShipDrawings[ship_drawing]
 				systemView:SetVisibility(ship_drawing);
 			end
 			ui.sameLine()
-			if ui.coloredSelectedIconButton(icons.systemmap_toggle_lagrange, mainButtonSize, showLagrangePoints, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show Lagrange points") then
+			if ui.coloredSelectedIconButton(icons.toggle_lagrange, mainButtonSize, showLagrangePoints, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show Lagrange points") then
 				show_lagrange = nextShowLagrange[show_lagrange]
 				systemView:SetVisibility(show_lagrange);
 			end
@@ -171,8 +171,8 @@ local function showOrbitPlannerWindow()
 
 			ui.separator()
 
-			showDvLine(icons.orbit_reduce, icons.orbit_delta, icons.orbit_increase, "factor", function(i) return i, "x" end, "Decrease delta factor", "Reset delta factor", "Increase delta factor")
-			showDvLine(icons.orbit_reduce, icons.orbit_start_time, icons.orbit_increase, "starttime",
+			showDvLine(icons.decrease, icons.delta, icons.increase, "factor", function(i) return i, "x" end, "Decrease delta factor", "Reset delta factor", "Increase delta factor")
+			showDvLine(icons.decrease, icons.clock, icons.increase, "starttime",
 			function(i)
 				local now = Game.time
 				local start = systemView:GetOrbitPlannerStartTime()
@@ -183,9 +183,9 @@ local function showOrbitPlannerWindow()
 				end
 			end,
 			"Decrease time", "Reset time", "Increase time")
-			showDvLine(icons.orbit_reduce, icons.orbit_prograde, icons.orbit_increase, "prograde", ui.Format.Speed, "Thrust retrograde", "Reset prograde thrust", "Thrust prograde")
-			showDvLine(icons.orbit_reduce, icons.orbit_normal, icons.orbit_increase, "normal", ui.Format.Speed, "Thrust antinormal", "Reset normal thrust", "Thrust normal")
-			showDvLine(icons.orbit_reduce, icons.orbit_radial, icons.orbit_increase, "radial", ui.Format.Speed, "Thrust radially out", "Reset radial thrust", "Thrust radially in")
+			showDvLine(icons.decrease, icons.orbit_prograde, icons.increase, "prograde", ui.Format.Speed, "Thrust retrograde", "Reset prograde thrust", "Thrust prograde")
+			showDvLine(icons.decrease, icons.orbit_normal, icons.increase, "normal", ui.Format.Speed, "Thrust antinormal", "Reset normal thrust", "Thrust normal")
+			showDvLine(icons.decrease, icons.orbit_radial, icons.increase, "radial", ui.Format.Speed, "Thrust radially out", "Reset radial thrust", "Thrust radially in")
 
 			ui.separator()
 
