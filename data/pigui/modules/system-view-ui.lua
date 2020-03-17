@@ -369,7 +369,7 @@ local function displayOnScreenObjects()
 
 		if should_show_label then
 			local label = getLabel(mainObject)
-			if group.multiple then
+			if group.objects then
 				label = label .. " (" .. #group.objects .. ")"
 			end
 			ui.addStyledText(mainCoords + Vector2(label_offset,0), ui.anchor.left, ui.anchor.center, label , getColor(mainObject), pionillium.small)

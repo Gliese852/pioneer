@@ -57,6 +57,64 @@ bool too_near(const vector3d &a, const vector3d &b, const vector2d &gain)
 		&& std::abs(a.z - b.z) * Graphics::GetScreenWidth() * 6.0 < gain.x;
 };
 
+/*
+ * Method: GetProjectedGrouped
+ *
+ * Get a table of projected point objects from the SystemView class, having
+ * previously grouped them.
+ *
+ * In the process of rendering the current frame in a SystemView class, an
+ * array of visible point objects (centers of planets, ships, special points
+ * of orbits) is created. This function creates a lua table based on this
+ * array, after grouping them according to certain criteria.
+ *
+ * Resulting table:
+ *
+ * {
+ * 	*** ORBIT ICONS (apoapsis, periapsis) ***
+ *
+ * 	{	screenCoordinates: vector2d
+ * 		mainObject (see struct Projectable in SystemView.h)
+ * 		{	type: Projectable::types
+ * 			base: Projectable::bases
+ * 			ref: SystemBody* or Body*
+ * 			}
+ * 		objects (if multiple only, main object is duplicated there)
+ * 		{
+ * 			{type, base, ref}
+ * 			{type, base, ref}
+ * 			...
+ * 			}
+ * 		hasPlayer: boolean
+ * 		hasCombatTarget: boolean
+ * 		hasNavTarget: boolean
+ * 	}
+ * 	{ screencoordinates, mainobject, ... }
+ * 	{ screencoordinates, mainobject, ... }
+ * 	...
+ *
+ * *** LAGRANGE ICONS ***
+ * 	{ screenCoordinates, mainObject, ... }
+ * 	{ screenCoordinates, mainObject, ... }
+ * 	...
+ *
+ * *** BODY ICONS (stars, planets, ships) ***
+ * 	{ screenCoordinates, mainObject, ... }
+ * 	{ screenCoordinates, mainObject, ... }
+ * 	...
+ *
+ * }
+ *
+ *
+ * Availability:
+ *
+ *   2020-03
+ *
+ * Status:
+ *
+ *   experimental
+ */
+
 static int l_systemview_get_projected_grouped(lua_State *l)
 {
 	SystemView *sv = LuaObject<SystemView>::CheckFromLua(1);
@@ -190,20 +248,20 @@ static int l_systemview_get_projected_grouped(lua_State *l)
 	// so it goes orbitIcons->lagrangeIcons->bodies
 	for (auto groups : { orbitIcons, lagrangeIcons, bodyIcons }) {
 		for (GroupInfo &group : groups) {
-			LuaTable info_table(l, 0, 7);
-			LuaTable objects_table(l, group.m_objects.size(), 0);
-
+			LuaTable info_table(l, 0, 6);
 			info_table.Set("screenCoordinates", group.m_mainObject.screenpos);
 			info_table.Set("mainObject", projectable_to_lua_row(group.m_mainObject, l));
 			lua_pop(l, 1);
-			int objects_table_index = 1;
-			for (Projectable &pj : group.m_objects) {
-				objects_table.Set(objects_table_index++, projectable_to_lua_row(pj, l));
+			if (group.m_objects.size() > 1) {
+				LuaTable objects_table(l, group.m_objects.size(), 0);
+				int objects_table_index = 1;
+				for (Projectable &pj : group.m_objects) {
+					objects_table.Set(objects_table_index++, projectable_to_lua_row(pj, l));
+					lua_pop(l, 1);
+				}
+				info_table.Set("objects", objects_table);
 				lua_pop(l, 1);
 			}
-			info_table.Set("objects", objects_table);
-			lua_pop(l, 1);
-			info_table.Set("multiple", group.m_objects.size() > 1 ? true : false);
 			for (int object_type = 0; object_type < NUMBER_OF_SO_TYPES; object_type++)
 				info_table.Set(special_object_lua_name[object_type], group.m_hasSpecialObject[object_type]);
 			result.Set(index++, info_table);
