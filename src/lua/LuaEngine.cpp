@@ -1086,7 +1086,7 @@ static int l_engine_get_sector_map_factions(lua_State *l)
 		lua_setfield(l, -2, "faction");
 		lua_pushboolean(l, hidden.count(f) == 0);
 		lua_setfield(l, -2, "visible"); // inner table
-		lua_settable(l, -3); // outer table
+		lua_settable(l, -3);			// outer table
 	}
 	return 1;
 }

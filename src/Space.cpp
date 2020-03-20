@@ -428,7 +428,7 @@ static void RelocateStarportIfNecessary(SystemBody *sbody, Planet *planet, vecto
 	double bestVariation = 1e10; // any high value
 	matrix3x3d rotNotUnderwaterWithLeastVariation = rot;
 	vector3d posNotUnderwaterWithLeastVariation = pos;
-	const double heightVariationCheckThreshold = 0.008; // max variation to radius radius ratio to check for local slope, ganymede is around 0.01
+	const double heightVariationCheckThreshold = 0.008;					 // max variation to radius radius ratio to check for local slope, ganymede is around 0.01
 	const double terrainHeightVariation = planet->GetMaxFeatureRadius(); //in radii
 
 	//Output("%s: terrain height variation %f\n", sbody->name.c_str(), terrainHeightVariation);
@@ -437,8 +437,8 @@ static void RelocateStarportIfNecessary(SystemBody *sbody, Planet *planet, vecto
 	// points must stay within max height variation to be accepted
 	//    1. delta should be chosen such that it a distance from the starport center that encloses landing pads for the largest starport
 	//    2. maxSlope should be set so maxHeightVariation is less than the height of the landing pads
-	const double delta = 20.0 / radius; // in radii
-	const double maxSlope = 0.2; // 0.0 to 1.0
+	const double delta = 20.0 / radius;							 // in radii
+	const double maxSlope = 0.2;								 // 0.0 to 1.0
 	const double maxHeightVariation = maxSlope * delta * radius; // in m
 
 	matrix3x3d rot_ = rot;
