@@ -159,12 +159,12 @@ local function showOrbitPlannerWindow()
 				systemView:SetVisibility(show_lagrange);
 			end
 			ui.sameLine()
-			ui.coloredSelectedIconButton(icons.zoom_in,mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Zoom in")
+			ui.coloredSelectedIconButton(icons.search_lens,mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Zoom")
 			if ui.isItemActive() then
 				systemView:SetVisibility("ZOOM_IN");
 			end
 			ui.sameLine()
-			ui.coloredSelectedIconButton(icons.zoom_out, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Zoom out")
+			ui.coloredSelectedIconButton(icons.rotate_view, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Rotate")
 			if ui.isItemActive() then
 				systemView:SetVisibility("ZOOM_OUT");
 			end
