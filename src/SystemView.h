@@ -125,8 +125,8 @@ public:
 	TransferPlanner* GetTransferPlanner() const { return m_planner; }
 	double GetOrbitPlannerStartTime() const { return m_planner->GetStartTime(); }
 	double GetOrbitPlannerTime() const { return m_time; }
-	void OnClickAccel(float step);
-	void OnClickRealt();
+	void AccelerateTime(float step);
+	void SetRealTime();
 	std::vector<Projectable> GetProjected() const { return m_projected; }
 	void BodyInaccessible(Body *b);
 	void SetVisibility(std::string param);

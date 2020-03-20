@@ -258,13 +258,13 @@ SystemView::~SystemView()
 	m_onMouseWheelCon.disconnect();
 }
 
-void SystemView::OnClickAccel(float step)
+void SystemView::AccelerateTime(float step)
 {
 	m_realtime = false;
 	m_timeStep = step;
 }
 
-void SystemView::OnClickRealt()
+void SystemView::SetRealTime()
 {
 	m_realtime = true;
 }

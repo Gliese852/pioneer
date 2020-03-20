@@ -310,10 +310,10 @@ static int l_systemview_accelerate_time(lua_State *l)
 {
 	SystemView *sv = LuaObject<SystemView>::CheckFromLua(1);
 	if (lua_isnil(l, 2))
-		sv->OnClickRealt();
+		sv->SetRealTime();
 	else {
 		double step = LuaPull<double>(l, 2);
-		sv->OnClickAccel(step);
+		sv->AccelerateTime(step);
 	}
 	return 0;
 }
