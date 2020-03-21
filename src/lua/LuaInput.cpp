@@ -252,6 +252,18 @@ static int l_input_set_joystick_enabled(lua_State *l)
 	return 0;
 }
 
+static int l_input_enable_view_transformation_mode(lua_State *l)
+{
+	Pi::EnableViewTransformationMode();
+	return 0;
+}
+
+static int l_input_disable_view_transformation_mode(lua_State *l)
+{
+	Pi::DisableViewTransformationMode();
+	return 0;
+}
+
 void LuaInput::Register()
 {
 	lua_State *l = Lua::manager->GetLuaState();
@@ -268,6 +280,8 @@ void LuaInput::Register()
 		{ "SetMouseYInverted", l_input_set_mouse_y_inverted },
 		{ "GetJoystickEnabled", l_input_get_joystick_enabled },
 		{ "SetJoystickEnabled", l_input_set_joystick_enabled },
+		{ "EnableViewTransformationMode", l_input_enable_view_transformation_mode },
+		{ "DisableViewTransformationMode", l_input_disable_view_transformation_mode },
 		{ NULL, NULL }
 	};
 

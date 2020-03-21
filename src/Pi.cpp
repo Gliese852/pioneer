@@ -106,6 +106,7 @@ Game *Pi::game;
 Random Pi::rng;
 float Pi::frameTime;
 bool Pi::doingMouseGrab;
+bool Pi::doingViewTransformation = false;
 #if WITH_DEVKEYS
 bool Pi::showDebugInfo = false;
 #endif
@@ -885,8 +886,9 @@ void Pi::HandleEvents()
 
 		Pi::pigui->ProcessEvent(&event);
 
-		if (Pi::pigui->WantCaptureMouse()) {
+		if (Pi::pigui->WantCaptureMouse() && !doingViewTransformation) {
 			// don't process mouse event any further, imgui already handled it
+			// but if there is no view transformation by onscreen button
 			switch (event.type) {
 			case SDL_MOUSEBUTTONDOWN:
 			case SDL_MOUSEBUTTONUP:
@@ -896,6 +898,7 @@ void Pi::HandleEvents()
 			default: break;
 			}
 		}
+
 		if (Pi::pigui->WantCaptureKeyboard()) {
 			// don't process keyboard event any further, imgui already handled it
 			switch (event.type) {
@@ -1265,7 +1268,7 @@ void Pi::MainLoop()
 		currentView->Draw3D();
 
 		// hide cursor for ship control. Do this before imgui runs, to prevent the mouse pointer from jumping
-		Pi::SetMouseGrab(input.MouseButtonState(SDL_BUTTON_RIGHT) | input.MouseButtonState(SDL_BUTTON_MIDDLE));
+		Pi::SetMouseGrab(input.MouseButtonState(SDL_BUTTON_RIGHT) | input.MouseButtonState(SDL_BUTTON_MIDDLE) | doingViewTransformation);
 
 		// XXX HandleEvents at the moment must be after view->Draw3D and before
 		// Gui::Draw so that labels drawn to screen can have mouse events correctly

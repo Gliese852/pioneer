@@ -4,6 +4,7 @@ local Event = require 'Event'
 local Lang = require 'Lang'
 local ui = require 'pigui'
 local Format = require 'Format'
+local Input = require 'Input'
 
 local Vector2 = _G.Vector2
 local lc = Lang.GetResource("core")
@@ -161,12 +162,14 @@ local function showOrbitPlannerWindow()
 			ui.sameLine()
 			ui.coloredSelectedIconButton(icons.search_lens,mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Zoom")
 			if ui.isItemActive() then
-				systemView:SetVisibility("ZOOM_IN");
+				Input:EnableViewTransformationMode()
+				systemView:SetVisibility("ZOOM_ON")
 			end
 			ui.sameLine()
 			ui.coloredSelectedIconButton(icons.rotate_view, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Rotate")
 			if ui.isItemActive() then
-				systemView:SetVisibility("ZOOM_OUT");
+				Input:EnableViewTransformationMode()
+				systemView:SetVisibility("ROTATE_ON")
 			end
 
 			ui.separator()
@@ -213,8 +216,8 @@ end
 local function getBodyIcon(obj)
 	if obj.type == Projectable.APOAPSIS then return icons.apoapsis
 	elseif obj.type == Projectable.PERIAPSIS then return icons.periapsis
-	elseif obj.type == Projectable.L4 then return icons.lagrange
-	elseif obj.type == Projectable.L5 then return icons.lagrange
+	elseif obj.type == Projectable.L4 then return icons.lagrange_marker
+	elseif obj.type == Projectable.L5 then return icons.lagrange_marker
 	elseif obj.base == Projectable.PLAYER or obj.base == Projectable.PLANNER then
 		local shipClass = obj.ref:GetShipClass()
 		if icons[shipClass] then
@@ -408,6 +411,10 @@ local function displayOnScreenObjects()
 			end)
 		end
 		-- mouse release handler
+		if ui.isMouseReleased(0) then
+			systemView:SetVisibility("MOUSE_UP")
+			Input:DisableViewTransformationMode()
+		end
 		if (mp - mainCoords):length() < click_radius then
 			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0) and mainObject.type == Projectable.OBJECT then
 				systemView:SetSelectedObject(mainObject.type, mainObject.base, mainObject.ref)
