@@ -7,10 +7,12 @@ March 2020
    * Fixes
      * Prevent change of Pioneer's mouse pointer when hiding HUD (#4827)
      * Fix body grouping and setspeed target behaviour in flightUI (#4794)
+     * Fix starfield not taking player's location into account (#4838)
 
    * Internal Changes
      * Perf counter Windows memory info (#4820)
      * Remove unused newUI code, remove old StationView code (#4819)
+     * Exposed plotHistogram to pigui code (#4828)
 
 February 2020
    * New Features
@@ -3292,3 +3294,4 @@ Alpha 12
 
   * Internal changes
     * All model timing now based of game
+
