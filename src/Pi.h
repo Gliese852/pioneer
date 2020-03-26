@@ -92,9 +92,6 @@ public:
 	static void SetMouseGrab(bool on);
 	static bool DoingMouseGrab() { return doingMouseGrab; }
 
-	static void EnableViewTransformationMode() { doingViewTransformation = true; }
-	static void DisableViewTransformationMode() { doingViewTransformation = false; }
-
 	// Get the default speed modifier to apply to movement (scrolling, zooming...), depending on the "shift" keys.
 	// This is a default value only, centralized here to promote uniform user expericience.
 	static float GetMoveSpeedShiftModifier();
@@ -217,7 +214,6 @@ private:
 	static Graphics::RenderState *quadRenderState;
 
 	static bool doingMouseGrab;
-	static bool doingViewTransformation;
 
 	static bool isRecordingVideo;
 	static FILE *ffmpegFile;
