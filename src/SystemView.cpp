@@ -586,8 +586,13 @@ void SystemView::Update()
 	AnimationCurves::Approach(m_rot_x, m_rot_x_to, ft);
 	AnimationCurves::Approach(m_rot_y, m_rot_y_to, ft);
 
-	if (Pi::input.MouseButtonState(SDL_BUTTON_MIDDLE) || m_rotateView) {
-		Pi::input.SetCapturingMouse(true);
+	// to capture mouse when button was pressed and release when released
+	if (Pi::input.MouseButtonState(SDL_BUTTON_MIDDLE) != m_rotateWithMouseButton) {
+		m_rotateWithMouseButton = !m_rotateWithMouseButton;
+		Pi::input.SetCapturingMouse(m_rotateWithMouseButton);
+	}
+
+	if (m_rotateWithMouseButton || m_rotateView) {
 		int motion[2];
 		Pi::input.GetMouseMotion(motion);
 		m_rot_x_to += motion[1] * 20 * ft;
@@ -598,8 +603,7 @@ void SystemView::Update()
 		int motion[2];
 		Pi::input.GetMouseMotion(motion);
 		m_zoomTo *= pow(ZOOM_IN_SPEED * 0.003 + 1, -motion[1]);
-	} else
-		Pi::input.SetCapturingMouse(false);
+	}
 
 	UIView::Update();
 }
@@ -753,12 +757,22 @@ void SystemView::SetVisibility(std::string param)
 
 void SystemView::SetZoomMode(bool enable)
 {
-	m_zoomView = enable;
+	if (enable != m_zoomView)
+	{
+		Pi::input.SetCapturingMouse(enable);
+		m_zoomView = enable;
+		if (m_zoomView) m_rotateView = false;
+	}
 }
 
 void SystemView::SetRotateMode(bool enable)
 {
-	m_rotateView = enable;
+	if (enable != m_rotateView)
+	{
+		Pi::input.SetCapturingMouse(enable);
+		m_rotateView = enable;
+		if (m_rotateView) m_zoomView = false;
+	}
 }
 
 Projectable *SystemView::GetSelectedObject()

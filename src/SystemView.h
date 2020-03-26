@@ -147,6 +147,7 @@ public:
 	void SetColor(ColorIndex color_index, Color* color_value) { svColor[color_index] = *color_value; }
 
 private:
+	bool m_rotateWithMouseButton = false;
 	bool m_rotateView = false;
 	bool m_zoomView = false;
 	std::vector<Projectable> m_projected;
