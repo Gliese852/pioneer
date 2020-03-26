@@ -8,6 +8,7 @@ local Input = require 'Input'
 
 local Vector2 = _G.Vector2
 local lc = Lang.GetResource("core")
+local luc = Lang.GetResource("ui-core")
 
 local player = nil
 local colors = ui.theme.colors
@@ -137,39 +138,39 @@ local function showOrbitPlannerWindow()
 	ui.withStyleColors({["WindowBg"] = svColor.WINDOW_BACK}, function()
 		ui.window("OrbitPlannerWindow", {"NoTitleBar", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings", "AlwaysAutoResize"},
 		function()
-			ui.text("Orbit planner")
+			ui.text(lc.ORBIT_PLANNER)
 
 			ui.separator()
 
-			if ui.coloredSelectedIconButton(icons.reset_view, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Reset view") then
+			if ui.coloredSelectedIconButton(icons.reset_view, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, lc.RESET_ORIENTATION_AND_ZOOM) then
 				systemView:SetVisibility("RESET_VIEW")
 			end
 			ui.sameLine()
-			if ui.coloredSelectedIconButton(icons.toggle_grid, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show grid") then
+			if ui.coloredSelectedIconButton(icons.toggle_grid, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, lc.GRID_DISPLAY_MODE_TOGGLE) then
 				show_grid = nextShowGrid[show_grid]
 				systemView:SetVisibility(show_grid);
 			end
 			ui.sameLine()
-			if ui.coloredSelectedIconButton(icons.toggle_ships, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show ships") then
+			if ui.coloredSelectedIconButton(icons.toggle_ships, mainButtonSize, showShips, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, lc.SHIPS_DISPLAY_MODE_TOGGLE) then
 				ship_drawing = nextShipDrawings[ship_drawing]
 				systemView:SetVisibility(ship_drawing);
 			end
 			ui.sameLine()
-			if ui.coloredSelectedIconButton(icons.toggle_lagrange, mainButtonSize, showLagrangePoints, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Show Lagrange points") then
+			if ui.coloredSelectedIconButton(icons.toggle_lagrange, mainButtonSize, showLagrangePoints, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, lc.L4L5_DISPLAY_MODE_TOGGLE) then
 				show_lagrange = nextShowLagrange[show_lagrange]
 				systemView:SetVisibility(show_lagrange);
 			end
 			ui.sameLine()
-			ui.coloredSelectedIconButton(icons.search_lens,mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Zoom")
+			ui.coloredSelectedIconButton(icons.search_lens,mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, luc.ZOOM)
 			systemView:SetZoomMode(ui.isItemActive())
 
 			ui.sameLine()
-			ui.coloredSelectedIconButton(icons.rotate_view, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Rotate")
+			ui.coloredSelectedIconButton(icons.rotate_view, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, luc.ROTATE_VIEW)
 			systemView:SetRotateMode(ui.isItemActive())
 
 			ui.separator()
 
-			showDvLine(icons.decrease, icons.delta, icons.increase, "factor", function(i) return i, "x" end, "Decrease delta factor", "Reset delta factor", "Increase delta factor")
+			showDvLine(icons.decrease, icons.delta, icons.increase, "factor", function(i) return i, "x" end, luc.DECREASE, lc.PLANNER_RESET_FACTOR, luc.INCREASE)
 			showDvLine(icons.decrease, icons.clock, icons.increase, "starttime",
 			function(i)
 				local now = Game.time
@@ -177,23 +178,23 @@ local function showOrbitPlannerWindow()
 				if start then
 					return ui.Format.Duration(math.floor(start - now)), ""
 				else
-					return "now", ""
+					return lc.NOW, ""
 				end
 			end,
-			"Decrease time", "Reset time", "Increase time")
-			showDvLine(icons.decrease, icons.orbit_prograde, icons.increase, "prograde", ui.Format.Speed, "Thrust retrograde", "Reset prograde thrust", "Thrust prograde")
-			showDvLine(icons.decrease, icons.orbit_normal, icons.increase, "normal", ui.Format.Speed, "Thrust antinormal", "Reset normal thrust", "Thrust normal")
-			showDvLine(icons.decrease, icons.orbit_radial, icons.increase, "radial", ui.Format.Speed, "Thrust radially out", "Reset radial thrust", "Thrust radially in")
+			luc.DECREASE, lc.PLANNER_RESET_START, luc.INCREASE)
+			showDvLine(icons.decrease, icons.orbit_prograde, icons.increase, "prograde", ui.Format.Speed, luc.DECREASE, lc.PLANNER_RESET_PROGRADE, luc.INCREASE)
+			showDvLine(icons.decrease, icons.orbit_normal, icons.increase, "normal", ui.Format.Speed, luc.DECREASE, lc.PLANNER_RESET_NORMAL, luc.INCREASE)
+			showDvLine(icons.decrease, icons.orbit_radial, icons.increase, "radial", ui.Format.Speed, luc.DECREASE, lc.PLANNER_RESET_RADIAL, luc.INCREASE)
 
 			ui.separator()
 
 			local t = systemView:GetOrbitPlannerTime()
-			ui.text(t and ui.Format.Datetime(t) or "now")
+			ui.text(t and ui.Format.Datetime(t) or lc.NOW)
 			local r = false
 			r = timeButton(icons.time_backward_100x, "-10,000,000x",-10000000) or r
 			r = timeButton(icons.time_backward_10x, "-100,000x", -100000) or r
 			r = timeButton(icons.time_backward_1x, "-1,000x", -1000) or r
-			r = timeButton(icons.time_center, "Now", nil) or r
+			r = timeButton(icons.time_center, lc.NOW, nil) or r
 			r = timeButton(icons.time_forward_1x, "1,000x", 1000) or r
 			r = timeButton(icons.time_forward_10x, "100,000x", 100000) or r
 			r = timeButton(icons.time_forward_100x, "10,000,000x", 10000000) or r
@@ -253,7 +254,7 @@ local function getBodyIcon(obj)
 			if icons[shipClass] then
 				return icons[shipClass]
 			else
-				print("data/pigui/game.lua: getBodyIcon unknown ship class " .. (shipClass and shipClass or "nil"))
+				print("system-view-ui.lua: getBodyIcon unknown ship class " .. (shipClass and shipClass or "nil"))
 				return icons.ship -- TODO: better icon
 			end
 		elseif body:IsHyperspaceCloud() then
@@ -263,7 +264,7 @@ local function getBodyIcon(obj)
 		elseif body:IsCargoContainer() then
 			return icons.rocky_planet -- TODO: better icon
 		else
-			print("data/pigui/game.lua: getBodyIcon not sure how to process body, supertype: " .. (st and st or "nil") .. ", type: " .. (t and t or "nil"))
+			print("system-view-ui.lua: getBodyIcon not sure how to process body, supertype: " .. (st and st or "nil") .. ", type: " .. (t and t or "nil"))
 			--utils.print_r(body)
 			return icons.ship
 		end
@@ -479,10 +480,10 @@ local function showTargetInfoWindow(obj)
 				-- some kind of hook that the target scanner can hook into to display
 				-- more info here.
 				-- This is what should be inserted:
-				table.insert(data, { name = "Ship Type", value = body:GetShipType() })
+				table.insert(data, { name = luc.SHIP_TYPE, value = body:GetShipType() })
 				if player:GetEquipCountOccupied('target_scanner') > 0 or player:GetEquipCountOccupied('advanced_target_scanner') > 0 then
 					local hd = body:GetEquip("engine", 1)
-					table.insert(data, { name = "Hyperdrive", value = hd and hd:GetName() or lc.NO_HYPERDRIVE })
+					table.insert(data, { name = lc.HYPERDRIVE, value = hd and hd:GetName() or lc.NO_HYPERDRIVE })
 					table.insert(data, { name = lc.MASS, value = Format.MassTonnes(body:GetStats().staticMass) })
 					table.insert(data, { name = lc.CARGO, value = Format.MassTonnes(body:GetStats().usedCargo) })
 				end

@@ -1095,6 +1095,10 @@
     "description": "",
     "message": "Orbital starport"
   },
+  "ORBIT_PLANNER": {
+    "description": "",
+    "message": "Orbit planner"
+  },
   "OUTDOOR_AGRICULTURAL_WORLD": {
     "description": "",
     "message": "Outdoor agricultural world."
