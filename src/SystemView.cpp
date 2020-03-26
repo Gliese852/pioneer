@@ -1,6 +1,8 @@
 // Copyright © 2008-2020 Pioneer Developers. See AUTHORS.txt for details
 // Licensed under the terms of the GPL v3. See licenses/GPL-3.txt
 
+#include "lua/LuaPiGui.h"
+
 #include "SystemView.h"
 
 #include "AnimationCurves.h"
@@ -18,6 +20,7 @@
 #include "graphics/Renderer.h"
 #include "graphics/TextureBuilder.h"
 #include "lua/LuaObject.h"
+#include "lua/LuaTable.h"
 #include <iomanip>
 #include <sstream>
 
@@ -584,16 +587,19 @@ void SystemView::Update()
 	AnimationCurves::Approach(m_rot_y, m_rot_y_to, ft);
 
 	if (Pi::input.MouseButtonState(SDL_BUTTON_MIDDLE) || m_rotateView) {
+		Pi::input.SetCapturingMouse(true);
 		int motion[2];
 		Pi::input.GetMouseMotion(motion);
 		m_rot_x_to += motion[1] * 20 * ft;
 		m_rot_y_to += motion[0] * 20 * ft;
 	}
-	if (m_zoomView) {
+	else if (m_zoomView) {
+		Pi::input.SetCapturingMouse(true);
 		int motion[2];
 		Pi::input.GetMouseMotion(motion);
 		m_zoomTo *= pow(ZOOM_IN_SPEED * 0.003 + 1, -motion[1]);
-	}
+	} else
+		Pi::input.SetCapturingMouse(false);
 
 	UIView::Update();
 }
@@ -741,17 +747,18 @@ void SystemView::SetVisibility(std::string param)
 		m_shipDrawing = BOXES;
 	else if (param == "SHIPS_ORBITS")
 		m_shipDrawing = ORBITS;
-	else if (param == "ZOOM_ON")
-		m_zoomView = true;
-	else if (param == "ROTATE_ON")
-		m_rotateView = true;
-	else if (param == "MOUSE_UP")
-	{
-		m_rotateView = false;
-		m_zoomView = false;
-	}
 	else
 		Output("Unknown visibility: %s\n", param.c_str());
+}
+
+void SystemView::SetZoomMode(bool enable)
+{
+	m_zoomView = enable;
+}
+
+void SystemView::SetRotateMode(bool enable)
+{
+	m_rotateView = enable;
 }
 
 Projectable *SystemView::GetSelectedObject()

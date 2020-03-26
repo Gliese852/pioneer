@@ -9,8 +9,6 @@
 #include "graphics/Drawables.h"
 #include "matrix4x4.h"
 #include "vector3.h"
-#include "lua/LuaTable.h"
-#include "lua/LuaPiGui.h"
 #include "enum_table.h"
 #include "Frame.h"
 
@@ -130,6 +128,8 @@ public:
 	std::vector<Projectable> GetProjected() const { return m_projected; }
 	void BodyInaccessible(Body *b);
 	void SetVisibility(std::string param);
+	void SetZoomMode(bool enable);
+	void SetRotateMode(bool enable);
 	double ProjectedSize(double size, vector3d pos);
 
 	// all used colors. defined in system-view-ui.lua

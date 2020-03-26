@@ -318,6 +318,22 @@ static int l_systemview_accelerate_time(lua_State *l)
 	return 0;
 }
 
+static int l_systemview_set_rotate_mode(lua_State *l)
+{
+	SystemView *sv = LuaObject<SystemView>::CheckFromLua(1);
+	bool b = LuaPull<bool>(l, 2);
+	sv->SetRotateMode(b);
+	return 0;
+}
+
+static int l_systemview_set_zoom_mode(lua_State *l)
+{
+	SystemView *sv = LuaObject<SystemView>::CheckFromLua(1);
+	bool b = LuaPull<bool>(l, 2);
+	sv->SetZoomMode(b);
+	return 0;
+}
+
 static int l_systemview_transfer_planner_get(lua_State *l)
 {
 	SystemView *sv = LuaObject<SystemView>::CheckFromLua(1);
@@ -406,11 +422,14 @@ void LuaObject<SystemView>::RegisterClass()
 		{ "SetSelectedObject", l_systemview_set_selected_object },
 		{ "SetVisibility", l_systemview_set_visibility },
 		{ "SetColor", l_systemview_set_color },
+		{ "SetRotateMode", l_systemview_set_rotate_mode },
+		{ "SetZoomMode" , l_systemview_set_zoom_mode },
 
 		{ "TransferPlannerAdd", l_systemview_transfer_planner_add },
 		{ "TransferPlannerGet", l_systemview_transfer_planner_get },
-		{ "TransferPlannerReset", l_systemview_transfer_planner_reset }
+		{ "TransferPlannerReset", l_systemview_transfer_planner_reset },
 
+		{ NULL, NULL }
 	};
 
 	LuaObjectBase::CreateClass(s_type, nullptr, l_methods, 0, 0);

@@ -161,16 +161,11 @@ local function showOrbitPlannerWindow()
 			end
 			ui.sameLine()
 			ui.coloredSelectedIconButton(icons.search_lens,mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Zoom")
-			if ui.isItemActive() then
-				Input:EnableViewTransformationMode()
-				systemView:SetVisibility("ZOOM_ON")
-			end
+			systemView:SetZoomMode(ui.isItemActive())
+
 			ui.sameLine()
 			ui.coloredSelectedIconButton(icons.rotate_view, mainButtonSize, false, mainButtonFramePadding, svColor.BUTTON_BACK, svColor.BUTTON_INK, "Rotate")
-			if ui.isItemActive() then
-				Input:EnableViewTransformationMode()
-				systemView:SetVisibility("ROTATE_ON")
-			end
+			systemView:SetRotateMode(ui.isItemActive())
 
 			ui.separator()
 
@@ -410,11 +405,7 @@ local function displayOnScreenObjects()
 				end
 			end)
 		end
-		-- mouse release handler
-		if ui.isMouseReleased(0) then
-			systemView:SetVisibility("MOUSE_UP")
-			Input:DisableViewTransformationMode()
-		end
+		-- mouse release handler for left button
 		if (mp - mainCoords):length() < click_radius then
 			if not ui.isAnyWindowHovered() and ui.isMouseReleased(0) and mainObject.type == Projectable.OBJECT then
 				systemView:SetSelectedObject(mainObject.type, mainObject.base, mainObject.ref)
