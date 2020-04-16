@@ -339,19 +339,19 @@ void SystemView::PutOrbit(Projectable::bases base, RefType *ref, const Orbit *or
 	Gui::Screen::EnterOrtho();
 	vector3d pos;
 	if (Gui::Screen::Project(offset + orbit->Perigeum(), pos) && pos.z < 1)
-		AddProjected<RefType>(Projectable::PERIAPSIS, base, ref, pos);
+		AddProjected<RefType>(Projectable::PERIAPSIS, base, ref, pos, offset + orbit->Perigeum());
 	if (Gui::Screen::Project(offset + orbit->Apogeum(), pos) && pos.z < 1)
-		AddProjected<RefType>(Projectable::APOAPSIS, base, ref, pos);
+		AddProjected<RefType>(Projectable::APOAPSIS, base, ref, pos, offset + orbit->Apogeum());
 
 	if (showLagrange && m_showL4L5 != LAG_OFF) {
 		const vector3d posL4 = orbit->EvenSpacedPosTrajectory((1.0 / 360.0) * 60.0, tMinust0);
 		if (Gui::Screen::Project(offset + posL4, pos) && pos.z < 1) {
-			AddProjected<RefType>(Projectable::L4, base, ref, pos);
+			AddProjected<RefType>(Projectable::L4, base, ref, pos, offset + posL4);
 		}
 
 		const vector3d posL5 = orbit->EvenSpacedPosTrajectory((1.0 / 360.0) * 300.0, tMinust0);
 		if (Gui::Screen::Project(offset + posL5, pos) && pos.z < 1) {
-			AddProjected<RefType>(Projectable::L5, base, ref, pos);
+			AddProjected<RefType>(Projectable::L5, base, ref, pos, offset + posL5);
 		}
 	}
 	Gui::Screen::LeaveOrtho();
@@ -663,24 +663,14 @@ void SystemView::DrawShips(const double t, const vector3d &offset)
 	}
 }
 
-void SystemView::PrepareGrid()
-{
-	// calculate lines for this system:
-	double diameter = std::floor(m_system->GetRootBody()->GetMaxChildOrbitalDistance() * 1.2 / AU);
-
-	m_grid_lines = int(diameter) + 1;
-
-	m_displayed_sbody.clear();
-	if (m_gridDrawing == GridDrawing::GRID_AND_LEGS) {
-		m_displayed_sbody = m_system->GetRootBody()->CollectAllChildren();
-	}
-}
-
 void SystemView::DrawGrid()
 {
-	PrepareGrid();
 
-	m_lineVerts.reset(new Graphics::VertexArray(Graphics::ATTRIB_POSITION, m_grid_lines * 4 + m_displayed_sbody.size() * 2));
+	// calculate lines for this system:
+	double diameter = std::floor(m_system->GetRootBody()->GetMaxChildOrbitalDistance() * 1.2 / AU);
+	m_grid_lines = int(diameter) + 1;
+
+	m_lineVerts.reset(new Graphics::VertexArray(Graphics::ATTRIB_POSITION, m_grid_lines * 4 + (m_gridDrawing == GridDrawing::GRID_AND_LEGS ? m_projected.size() * 2 : 0)));
 
 	float zoom = float(AU);
 	vector3d pos = m_trans;
@@ -697,31 +687,31 @@ void SystemView::DrawGrid()
 		m_lineVerts->Add(vector3f(x, 0.0f, +m_grid_lines * zoom) + vector3f(pos), svColor[GRID]);
 	}
 
-	for (SystemBody *sbody : m_displayed_sbody) {
-		vector3d offset(0.);
-		GetTransformTo(sbody, offset);
-		m_lineVerts->Add(vector3f(pos - offset), svColor[GRID] * 0.5);
-		offset.y = 0.0;
-		m_lineVerts->Add(vector3f(pos - offset), svColor[GRID] * 0.5);
-	}
+	if (m_gridDrawing == GridDrawing::GRID_AND_LEGS)
+		for (Projectable &p : m_projected) {
+			vector3d offset(p.worldpos);
+			offset.y = m_trans.y;
+			m_lineVerts->Add(vector3f(p.worldpos), svColor[GRID_LEG] * 0.5);
+			m_lineVerts->Add(vector3f(offset), svColor[GRID_LEG] * 0.5);
+		}
 
 	m_lines.SetData(m_lineVerts->GetNumVerts(), &m_lineVerts->position[0], &m_lineVerts->diffuse[0]);
 	m_lines.Draw(Pi::renderer, m_lineState);
 }
 
 template <typename T>
-void SystemView::AddNotProjected(Projectable::types type, Projectable::bases base, T *ref, const vector3d &worldscaledpos)
+void SystemView::AddNotProjected(Projectable::types type, Projectable::bases base, T *ref, const vector3d &worldpos)
 {
 	//project and add
 	Gui::Screen::EnterOrtho();
-	vector3d pos;
-	if (Gui::Screen::Project(worldscaledpos, pos) && pos.z < 1)
-		AddProjected<T>(type, base, ref, pos);
+	vector3d screenpos;
+	if (Gui::Screen::Project(worldpos, screenpos) && screenpos.z < 1)
+		AddProjected<T>(type, base, ref, screenpos, worldpos);
 	Gui::Screen::LeaveOrtho();
 }
 
 template <typename T>
-void SystemView::AddProjected(Projectable::types type, Projectable::bases base, T *ref, vector3d &pos)
+void SystemView::AddProjected(Projectable::types type, Projectable::bases base, T *ref, vector3d &pos, const vector3d &worldpos)
 {
 	float scale[2];
 	Gui::Screen::GetCoords2Pixels(scale);
@@ -729,6 +719,7 @@ void SystemView::AddProjected(Projectable::types type, Projectable::bases base, 
 	p.screenpos.x = pos.x / scale[0];
 	p.screenpos.y = pos.y / scale[1];
 	p.screenpos.z = pos.z;
+	p.worldpos = worldpos;
 	m_projected.push_back(p);
 }
 
