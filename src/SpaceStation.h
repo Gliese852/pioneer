@@ -55,6 +55,7 @@ public:
 	// Returns true on success, false if permission denied
 	bool LaunchShip(Ship *ship, const int port);
 	void SetDocked(Ship *ship, const int port);
+	void SetDockedLongAgo(Ship *ship, const int port);
 	void SwapDockedShipsPort(const int oldPort, const int newPort);
 
 	bool GetDockingClearance(Ship *s, std::string &outMsg);
@@ -85,6 +86,7 @@ private:
 	void DoLawAndOrder(const double timeStep);
 	bool IsPortLocked(const int bay) const;
 	void LockPort(const int bay, const bool lockIt);
+	void SetDockedAtStage(Ship *ship, const int port, const int stage);
 
 	/* Stage 0 means docking port empty
 	 * Stage 1 means docking clearance granted to ->ship

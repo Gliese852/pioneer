@@ -71,6 +71,7 @@ public:
 	ShipController *GetController() const { return m_controller; }
 
 	virtual void SetDockedWith(SpaceStation *, int port);
+	void PutInSpaceStation(SpaceStation *, int port); // set docked without triggering event
 	/** Use GetDockedWith() to determine if docked */
 	SpaceStation *GetDockedWith() const { return m_dockedWith; }
 	int GetDockingPort() const { return m_dockedWithPort; }

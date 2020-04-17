@@ -83,7 +83,7 @@ Game::Game(const SystemPath &path, const double startDateTime) :
 	m_player->SetFrame(b->GetFrame());
 
 	if (b->GetType() == Object::SPACESTATION) {
-		m_player->SetDockedWith(static_cast<SpaceStation *>(b), 0);
+		m_player->PutInSpaceStation(static_cast<SpaceStation *>(b), 0);
 	} else {
 		const SystemBody *sbody = b->GetSystemBody();
 		m_player->SetPosition(vector3d(0, 1.5 * sbody->GetRadius(), 0));

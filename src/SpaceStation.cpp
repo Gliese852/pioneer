@@ -267,17 +267,28 @@ int SpaceStation::GetFreeDockingPort(const Ship *s) const
 	return -1;
 }
 
-void SpaceStation::SetDocked(Ship *ship, const int port)
+// see stages in SpaceStation::DockingUpdate
+void SpaceStation::SetDockedAtStage(Ship *ship, const int port, const int stage)
 {
 	assert(m_shipDocking.size() > Uint32(port));
 	m_shipDocking[port].ship = ship;
-	m_shipDocking[port].stage = m_type->NumDockingStages() + 3;
+	m_shipDocking[port].stage = m_type->NumDockingStages() + stage;
 
 	// have to do this crap again in case it was called directly (Ship::SetDockWith())
 	ship->SetFlightState(Ship::DOCKED);
 	ship->SetVelocity(vector3d(0.0));
 	ship->SetAngVelocity(vector3d(0.0));
 	PositionDockedShip(ship, port);
+}
+
+void SpaceStation::SetDocked(Ship *ship, const int port)
+{
+	SetDockedAtStage(ship, port, 3);
+}
+
+void SpaceStation::SetDockedLongAgo(Ship *ship, const int port)
+{
+	SetDockedAtStage(ship, port, 4);
 }
 
 void SpaceStation::SwapDockedShipsPort(const int oldPort, const int newPort)

@@ -1435,6 +1435,20 @@ void Ship::SetDockedWith(SpaceStation *s, int port)
 	}
 }
 
+void Ship::PutInSpaceStation(SpaceStation *s, int port)
+{
+	if (s) {
+		m_dockedWith = s;
+		m_dockedWithPort = port;
+		m_wheelTransition = 0;
+		m_wheelState = 1.0f;
+		// hand position/state responsibility over to station
+		m_dockedWith->SetDockedLongAgo(this, port);
+	} else {
+		Undock();
+	}
+}
+
 void Ship::SetGunState(int idx, int state)
 {
 	if (m_flightState != FLYING)
