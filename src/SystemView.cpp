@@ -310,7 +310,7 @@ void SystemView::PutOrbit(Projectable::bases base, RefType *ref, const Orbit *or
 		if (fadingColors == 0 && t >= startTrailPercent * maxT)
 			fadingColors = i;
 		const vector3d pos = orbit->EvenSpacedPosTrajectory(t, tMinust0);
-		m_orbitVts[i] = vector3f(offset + pos * double(m_zoom));
+		m_orbitVts[i] = vector3f(offset + pos);
 		++num_vertices;
 		if (pos.Length() < planetRadius)
 			break;
@@ -338,19 +338,19 @@ void SystemView::PutOrbit(Projectable::bases base, RefType *ref, const Orbit *or
 
 	Gui::Screen::EnterOrtho();
 	vector3d pos;
-	if (Gui::Screen::Project(offset + orbit->Perigeum() * double(m_zoom), pos) && pos.z < 1)
+	if (Gui::Screen::Project(offset + orbit->Perigeum(), pos) && pos.z < 1)
 		AddProjected<RefType>(Projectable::PERIAPSIS, base, ref, pos);
-	if (Gui::Screen::Project(offset + orbit->Apogeum() * double(m_zoom), pos) && pos.z < 1)
+	if (Gui::Screen::Project(offset + orbit->Apogeum(), pos) && pos.z < 1)
 		AddProjected<RefType>(Projectable::APOAPSIS, base, ref, pos);
 
 	if (showLagrange && m_showL4L5 != LAG_OFF) {
 		const vector3d posL4 = orbit->EvenSpacedPosTrajectory((1.0 / 360.0) * 60.0, tMinust0);
-		if (Gui::Screen::Project(offset + posL4 * double(m_zoom), pos) && pos.z < 1) {
+		if (Gui::Screen::Project(offset + posL4, pos) && pos.z < 1) {
 			AddProjected<RefType>(Projectable::L4, base, ref, pos);
 		}
 
 		const vector3d posL5 = orbit->EvenSpacedPosTrajectory((1.0 / 360.0) * 300.0, tMinust0);
-		if (Gui::Screen::Project(offset + posL5 * double(m_zoom), pos) && pos.z < 1) {
+		if (Gui::Screen::Project(offset + posL5, pos) && pos.z < 1) {
 			AddProjected<RefType>(Projectable::L5, base, ref, pos);
 		}
 	}
@@ -369,10 +369,11 @@ void SystemView::PutBody(const SystemBody *b, const vector3d &offset, const matr
 			m_bodyIcon.reset(new Graphics::Drawables::Disk(m_renderer, solidState, svColor[SYSTEMBODY], 1.0f));
 		}
 
-		const double radius = b->GetRadius() * m_zoom;
+		const double radius = b->GetRadius();
 
 		matrix4x4f invRot = trans;
 		invRot.ClearToRotOnly();
+		invRot.Renormalize();
 		invRot = invRot.Inverse();
 
 		matrix4x4f bodyTrans = trans;
@@ -396,7 +397,7 @@ void SystemView::PutBody(const SystemBody *b, const vector3d &offset, const matr
 			if (is_zero_general(kid->GetOrbit().GetSemiMajorAxis()))
 				continue;
 
-			const double axisZoom = kid->GetOrbit().GetSemiMajorAxis() * m_zoom;
+			const double axisZoom = kid->GetOrbit().GetSemiMajorAxis();
 			//semimajor axis radius should be at least 1% of screen width to show the orbit
 			if (ProjectedSize(axisZoom, offset) > 0.01) {
 				const SystemBody::BodySuperType bst = kid->GetSuperType();
@@ -405,7 +406,7 @@ void SystemView::PutBody(const SystemBody *b, const vector3d &offset, const matr
 			}
 
 			// not using current time yet
-			const vector3d pos = kid->GetOrbit().OrbitalPosAtTime(m_time) * double(m_zoom);
+			const vector3d pos = kid->GetOrbit().OrbitalPosAtTime(m_time);
 			PutBody(kid, offset + pos, trans);
 		}
 	}
@@ -478,7 +479,7 @@ void SystemView::CalculateFramePositionAtTime(FrameId frameId, double t, vector3
 void SystemView::Draw3D()
 {
 	PROFILE_SCOPED()
-	m_renderer->SetPerspectiveProjection(CAMERA_FOV, m_renderer->GetDisplayAspect(), 1.f, 1000.f * m_zoom * float(AU) + DEFAULT_VIEW_DISTANCE * 2);
+	m_renderer->SetPerspectiveProjection(CAMERA_FOV, m_renderer->GetDisplayAspect(), 1.f, 1000.f * float(AU) + DEFAULT_VIEW_DISTANCE * 2);
 	m_renderer->ClearScreen();
 	m_projected.clear();
 	//TODO add reserve
@@ -507,6 +508,7 @@ void SystemView::Draw3D()
 	m_cameraSpace.Translate(0, 0, -DEFAULT_VIEW_DISTANCE);
 	m_cameraSpace.Rotate(DEG2RAD(m_rot_x), 1, 0, 0);
 	m_cameraSpace.Rotate(DEG2RAD(m_rot_y), 0, 1, 0);
+	m_cameraSpace.Scale(m_zoom);
 	m_renderer->SetTransform(m_cameraSpace);
 
 	// smooth transition animation
@@ -522,7 +524,7 @@ void SystemView::Draw3D()
 		m_trans = m_transTo;
 	}
 
-	vector3d pos = m_trans * m_zoom;
+	vector3d pos = m_trans;
 
 	// glLineWidth(2);
 	if (!m_system->GetUnexplored() && m_system->GetRootBody()) {
@@ -545,11 +547,11 @@ void SystemView::Draw3D()
 		Frame *playerNonRotFrame = Frame::GetFrame(playerNonRotFrameId);
 		SystemBody *playerAround = playerNonRotFrame->GetSystemBody();
 		CalculateShipPositionAtTime(static_cast<Ship *>(Pi::player), playerOrbit, m_time, ppos);
-		AddNotProjected<Body>(Projectable::OBJECT, Projectable::PLAYER, PlayerBody, ppos * m_zoom + pos);
+		AddNotProjected<Body>(Projectable::OBJECT, Projectable::PLAYER, PlayerBody, ppos + pos);
 
 		vector3d offset(0.0);
 		CalculateFramePositionAtTime(playerNonRotFrameId, m_time, offset);
-		offset = offset * m_zoom + pos;
+		offset = offset + pos;
 
 		if (Pi::player->GetFlightState() == Ship::FlightState::FLYING) {
 			PutOrbit<Body>(Projectable::PLAYER, PlayerBody, &playerOrbit, offset, svColor[PLAYER_ORBIT], playerAround->GetRadius());
@@ -560,9 +562,9 @@ void SystemView::Draw3D()
 					playerAround->GetMass());
 				PutOrbit<Body>(Projectable::PLANNER, PlayerBody, &plannedOrbit, offset, svColor[PLANNER_ORBIT], playerAround->GetRadius());
 				if (std::fabs(m_time - m_game->GetTime()) > 1. && (m_time - plannerStartTime) > 0.)
-					AddNotProjected<Body>(Projectable::OBJECT, Projectable::PLANNER, PlayerBody, offset + plannedOrbit.OrbitalPosAtTime(m_time - plannerStartTime) * static_cast<double>(m_zoom));
+					AddNotProjected<Body>(Projectable::OBJECT, Projectable::PLANNER, PlayerBody, offset + plannedOrbit.OrbitalPosAtTime(m_time - plannerStartTime));
 				else
-					AddNotProjected<Body>(Projectable::OBJECT, Projectable::PLANNER, PlayerBody, offset + m_planner->GetPosition() * static_cast<double>(m_zoom));
+					AddNotProjected<Body>(Projectable::OBJECT, Projectable::PLANNER, PlayerBody, offset + m_planner->GetPosition());
 			}
 		}
 	}
@@ -606,6 +608,16 @@ void SystemView::Update()
 		m_zoomTo *= pow(ZOOM_IN_SPEED * 0.003 + 1, -motion[1]);
 	}
 
+	// camera control signals from devices, sent to the SectorView
+	if (SectorView::InputBindings.mapViewZoom->IsActive())
+		m_zoomTo *= pow(ZOOM_IN_SPEED * 0.006 + 1, SectorView::InputBindings.mapViewZoom->GetValue());
+	if (SectorView::InputBindings.mapViewYaw->IsActive())
+		m_rot_y_to += SectorView::InputBindings.mapViewYaw->GetValue() * ft * 60;
+	if (SectorView::InputBindings.mapViewPitch->IsActive())
+		m_rot_x_to += SectorView::InputBindings.mapViewPitch->GetValue() * ft * 60;
+
+	m_rot_x_to = Clamp(m_rot_x_to, -80.0f, 80.0f);
+
 	UIView::Update();
 }
 
@@ -639,14 +651,14 @@ void SystemView::DrawShips(const double t, const vector3d &offset)
 	for (auto s = m_contacts.begin(); s != m_contacts.end(); s++) {
 		vector3d pos(0.0);
 		CalculateShipPositionAtTime((*s).first, (*s).second, t, pos);
-		pos = pos * m_zoom + offset;
+		pos = pos + offset;
 		//draw highlighted orbit for selected ship
 		const bool isSelected = m_selectedObject.type == Projectable::OBJECT && m_selectedObject.base != Projectable::SYSTEMBODY && m_selectedObject.ref.body == (*s).first;
 		AddNotProjected<Body>(Projectable::OBJECT, Projectable::SHIP, static_cast<Body *>((*s).first), pos);
 		if (m_shipDrawing == ORBITS && (*s).first->GetFlightState() == Ship::FlightState::FLYING) {
 			vector3d framepos(0.0);
 			CalculateFramePositionAtTime(Frame::GetFrame((*s).first->GetFrame())->GetNonRotFrame(), m_time, framepos);
-			PutOrbit<Body>(Projectable::SHIP, static_cast<Body *>((*s).first), &(*s).second, offset + framepos * m_zoom, isSelected ? svColor[SELECTED_SHIP_ORBIT] : svColor[SHIP_ORBIT], 0);
+			PutOrbit<Body>(Projectable::SHIP, static_cast<Body *>((*s).first), &(*s).second, offset + framepos, isSelected ? svColor[SELECTED_SHIP_ORBIT] : svColor[SHIP_ORBIT], 0);
 		}
 	}
 }
@@ -670,10 +682,8 @@ void SystemView::DrawGrid()
 
 	m_lineVerts.reset(new Graphics::VertexArray(Graphics::ATTRIB_POSITION, m_grid_lines * 4 + m_displayed_sbody.size() * 2));
 
-	float zoom = m_zoom * float(AU);
-	vector3d pos(0.);
-	if (m_selectedObject.type != Projectable::NONE) GetTransformTo(m_selectedObject, pos);
-	pos *= m_zoom;
+	float zoom = float(AU);
+	vector3d pos = m_trans;
 
 	for (int i = -m_grid_lines; i < m_grid_lines + 1; i++) {
 		float z = float(i) * zoom;
@@ -690,7 +700,6 @@ void SystemView::DrawGrid()
 	for (SystemBody *sbody : m_displayed_sbody) {
 		vector3d offset(0.);
 		GetTransformTo(sbody, offset);
-		offset *= m_zoom;
 		m_lineVerts->Add(vector3f(pos - offset), svColor[GRID] * 0.5);
 		offset.y = 0.0;
 		m_lineVerts->Add(vector3f(pos - offset), svColor[GRID] * 0.5);
