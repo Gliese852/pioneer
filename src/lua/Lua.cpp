@@ -32,6 +32,7 @@
 #include "SpaceStation.h"
 #include "Star.h"
 #include "SystemView.h"
+#include "SectorView.h"
 
 #include "galaxy/StarSystem.h"
 #include "gameui/Lua.h"
@@ -75,6 +76,7 @@ namespace Lua {
 		LuaObject<StarSystem>::RegisterClass();
 		LuaObject<SystemPath>::RegisterClass();
 		LuaObject<SystemView>::RegisterClass();
+		LuaObject<SectorView>::RegisterClass();
 		LuaObject<SystemBody>::RegisterClass();
 		LuaObject<Random>::RegisterClass();
 		LuaObject<Faction>::RegisterClass();
