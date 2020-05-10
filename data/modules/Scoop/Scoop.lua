@@ -33,7 +33,7 @@ local ILLEGAL = 2
 
 local mission_reputation = 1
 local mission_time = 14*24*60*60
-local max_dist = 30 * AU
+local max_dist = 50 * AU
 
 local ads = {}
 local missions = {}
@@ -44,6 +44,7 @@ local rescue_capsule = Equipment.EquipType.New({
 	slots = "cargo",
 	price = 500,
 	icon_name = "Default",
+	model_name = "escape_pod",
 	capabilities = { mass = 1, crew = 1 },
 	purchasable = false
 })
@@ -134,29 +135,25 @@ local flavours = {
 		cargo_type = nil,
 		reward = -500,
 		amount = 20,
-		risk = 0,
 	},
 	{
 		id = "ILLEGAL_GOODS",
 		cargo_type = nil,
 		reward = -1000,
 		amount = 10,
-		risk = 1,
 	},
 	{
 		id = "RESCUE",
 		cargo_type = rescue_capsules,
-		reward = 1000,
+		reward = 750,
 		amount = 4,
-		risk = 0,
 		return_to_station = true,
 	},
 	{
 		id = "ARMS_DEALER",
 		cargo_type = weapons,
-		reward = 750,
+		reward = 1000,
 		amount = 1,
-		risk = 0,
 		deliver_to_ship = true,
 	},
 }
@@ -189,13 +186,11 @@ local getNumberOfFlavours = function (str)
 	return num - 1
 end
 
--- Create a debris field in a random distance to a star
-local spawnDebris = function (debris, amount, star, lifetime)
+-- Create a debris field in a random distance to a system body
+local spawnDebris = function (debris, amount, sbody, min, max, lifetime)
 	local list = {}
 	local cargo
-	local min = math.max(1 * AU, star:GetSystemBody().radius * 2)
-	local max = math.max(3 * AU, star:GetSystemBody().radius * 4)
-	local body = Space.GetBody(star:GetSystemBody().index)
+	local body = Space.GetBody(sbody:GetSystemBody().index)
 
 	for i = 1, Engine.rand:Integer(math.ceil(amount / 4), amount) do
 		cargo = debris[Engine.rand:Integer(1, #debris)]
@@ -263,23 +258,24 @@ local spawnPirate = function (star, pirate_label)
 		pairs(ShipDef)))
 	local shipdef = shipdefs[Engine.rand:Integer(1, #shipdefs)]
 
-	local ship = Space.SpawnShipNear(shipdef.id,
-		Space.GetBody(star:GetSystemBody().index),
-		math.max(0.1 * AU/1000, star:GetSystemBody().radius/1000 * 2),
-		math.max(0.3 * AU/1000, star:GetSystemBody().radius/1000 * 3))
+	local radius = star:GetSystemBody().radius
+	local min, max
+	if star:GetSystemBody().type == "WHITE_DWARF" then
+		min = radius * 30
+		max = radius * 40
+	else
+		min = radius * 3.5
+		max = radius * 4.5
+	end
+
+	local ship = Space.SpawnShipOrbit(shipdef.id, Space.GetBody(star:GetSystemBody().index), min, max)
 
 	ship:SetLabel(pirate_label)
 	ship:AddEquip(Equipment.hyperspace["hyperdrive_" .. shipdef.hyperdriveClass])
 	ship:AddEquip(Equipment.laser.pulsecannon_2mw)
 	ship:AddEquip(Equipment.misc.shield_generator)
-	ship:AddEquip(Equipment.cargo.hydrogen, 10)
-	ship:AddEquip(Equipment.cargo.battle_weapons)
-	ship:AddEquip(Equipment.cargo.hand_weapons)
-	ship:AddEquip(Equipment.cargo.narcotics)
-	ship:AddEquip(Equipment.cargo.slaves)
-	ship:AddEquip(Equipment.misc.cargo_scoop)
-
-	ship:AIEnterHighOrbit(Space.GetBody(star:GetSystemBody().index))
+	local c = math.min(ship.totalCargo - ship.usedCargo - 1, 10)
+	ship:AddEquip(Equipment.cargo.hydrogen, c)
 
 	return ship
 end
@@ -310,7 +306,7 @@ end
 
 -- Cargo transfer to a ship
 local transferCargo = function (mission)
-	Timer:CallEvery(3, function ()
+	Timer:CallEvery(9, function ()
 		if not mission.pirate then return true end
 
 		if Game.player:DistanceTo(mission.pirate) <= 50 then
@@ -321,12 +317,15 @@ local transferCargo = function (mission)
 					if Game.player:RemoveEquip(e.cargo, 1, "cargo") == 1 then
 						mission.pirate:AddEquip(e.cargo, 1, "cargo")
 						mission.debris[i] = nil
+						mission.amount = mission.amount - 1
 					end
 				end
 			end
 
-			if #mission.debris == 0 then
+			if mission.amount == 0 then
 				mission.status = "COMPLETED"
+			elseif mission.destination == nil then
+				mission.status = "FAILED"
 			end
 		end
 
@@ -354,7 +353,7 @@ end
 local onChat = function (form, ref, option)
 	local ad = ads[ref]
 	local player = Game.player
-	local debris, ship
+	local debris, ship, radius, mindist, maxdist
 
 	form:Clear()
 
@@ -372,11 +371,14 @@ local onChat = function (form, ref, option)
 		return
 	end
 
+	form:AddNavButton(ad.planet)
+
 	if option == 0 then
 		local introtext = string.interp(ad.introtext, {
 			client = ad.client.name,
 			shipid = ad.pirate_label,
 			star   = ad.star:GetSystemBody().name,
+			planet = ad.planet:GetSystemBody().name,
 			cash   = Format.Money(math.abs(ad.reward), false),
 		})
 		form:SetMessage(introtext)
@@ -390,18 +392,28 @@ local onChat = function (form, ref, option)
 	elseif option == 3 then
 		if ad.reward > 0 and player:CountEquip(Equipment.misc.cargo_scoop) == 0 and player:CountEquip(Equipment.misc.multi_scoop) == 0 then
 			form:SetMessage(l.YOU_DO_NOT_HAVE_A_SCOOP)
+			form:RemoveNavButton()
 			return
 		end
 
 		if ad.reward < 0 and player:GetMoney() < math.abs(ad.reward) then
 			form:SetMessage(l.YOU_DO_NOT_HAVE_ENOUGH_MONEY)
+			form:RemoveNavButton()
 			return
 		end
 
 		form:RemoveAdvertOnClose()
 		ads[ref] = nil
 
-		debris = spawnDebris(ad.debris_type, ad.amount, ad.star, ad.due - Game.time)
+		radius = ad.planet:GetSystemBody().radius
+		if ad.planet:GetSystemBody().superType == "ROCKY_PLANET" then
+			mindist = radius * 2.5
+			maxdist = radius * 3.5
+		else
+			mindist = radius * 25
+			maxdist = radius * 35
+		end
+		debris = spawnDebris(ad.debris_type, ad.amount, ad.planet, mindist, maxdist, ad.due - Game.time)
 
 		if ad.reward < 0 then player:AddMoney(ad.reward) end
 		if ad.deliver_to_ship then
@@ -413,11 +425,13 @@ local onChat = function (form, ref, option)
 			location          = ad.location,
 			introtext         = ad.introtext,
 			client            = ad.client,
+			station           = ad.station.path,
 			star              = ad.star,
+			planet            = ad.planet,
 			id                = ad.id,
 			debris            = debris,
+			amount            = #debris,
 			reward            = ad.reward,
-			risk              = ad.risk,
 			due               = ad.due,
 			return_to_station = ad.return_to_station,
 			deliver_to_ship   = ad.deliver_to_ship,
@@ -428,6 +442,8 @@ local onChat = function (form, ref, option)
 
 		table.insert(missions, Mission.New(mission))
 		form:SetMessage(l["ACCEPTED_" .. ad.id])
+		form:RemoveNavButton()
+		form:AddNavButton(debris[1].body)
 		return
 	end
 
@@ -437,37 +453,53 @@ local onChat = function (form, ref, option)
 	form:AddOption(l.OK_AGREED, 3)
 end
 
+local getPlanets = function (system)
+	local planets = {}
+
+	for _, p in ipairs(system:GetBodyPaths()) do
+		if p:GetSystemBody().superType == "ROCKY_PLANET" or p:GetSystemBody().superType == "GAS_GIANT" then
+			table.insert(planets, p)
+		end
+	end
+	return planets
+end
+
+local planets = nil
+
 local makeAdvert = function (station)
-	local stars = Game.system:GetStars()
-	local star = stars[Engine.rand:Integer(1, #stars)]
-	local dist = station:DistanceTo(Space.GetBody(star.path:GetSystemBody().index))
-	local flavour = flavours[Engine.rand:Integer(1, #flavours)]
-	local due = Game.time + mission_time + dist / AU * 24*60*60 * Engine.rand:Number(0.9, 1.1)
-	local debris_type, reward
+	if planets == nil then planets = getPlanets(Game.system) end
+	if #planets == 0 then return end
 
 	if flavours[LEGAL].cargo_type == nil then
 		flavours[LEGAL].cargo_type, flavours[ILLEGAL].cargo_type = sortGoods(Equipment.cargo)
 	end
-	debris_type = flavour.cargo_type
+
+	local stars = Game.system:GetStars()
+	local star = stars[Engine.rand:Integer(1, #stars)]
+	local planet = planets[Engine.rand:Integer(1, #planets)]
+	local dist = station:DistanceTo(Space.GetBody(planet:GetSystemBody().index))
+	local flavour = flavours[Engine.rand:Integer(1, #flavours)]
+	local due = Game.time + mission_time * (1 + dist / max_dist) * Engine.rand:Number(0.8, 1.2)
+	local reward
 
 	if flavour.reward < 0 then
-		reward = flavour.reward * (1 - dist / AU / 10) * Engine.rand:Number(0.9, 1.1)
+		reward = flavour.reward * (1.15 - dist / max_dist) * Engine.rand:Number(0.9, 1.1)
 	else
-		reward = flavour.reward * (1 + dist / AU / 10) * Engine.rand:Number(0.9, 1.1)
+		reward = flavour.reward * (1 + dist / max_dist) * Engine.rand:Number(0.75, 1.25)
 	end
 
-	if #debris_type > 0 and dist < max_dist then
+	if #flavour.cargo_type > 0 and dist < max_dist and station:DistanceTo(Space.GetBody(star.index)) < max_dist then
 		local ad = {
 			station           = station,
-			location          = station.path,
+			location          = planet,
 			introtext         = l["INTROTEXT_" .. flavour.id],
 			client            = Character.New(),
 			star              = star.path,
+			planet            = planet,
 			id                = flavour.id,
-			debris_type       = debris_type,
+			debris_type       = flavour.cargo_type,
 			reward            = math.ceil(reward),
 			amount            = flavour.amount,
-			risk              = flavour.risk,
 			due               = due,
 			return_to_station = flavour.return_to_station,
 			deliver_to_ship   = flavour.deliver_to_ship,
@@ -511,7 +543,8 @@ local onShipEquipmentChanged = function (ship, equipment)
 	for ref, mission in pairs(missions) do
 		if not mission.police and not Game.system:IsCommodityLegal(equipment) and mission.location:IsSameSystem(Game.system.path) then
 			if (1 - Game.system.lawlessness) > Engine.rand:Number(4) then
-				mission.police = spawnPolice(Space.GetBody(mission.location.bodyIndex))
+				local station = ship:FindNearestTo("SPACESTATION")
+				if station then mission.police = spawnPolice(station) end
 			end
 		end
 	end
@@ -580,7 +613,7 @@ local onShipDestroyed = function (ship, attacker)
 			mission.pirate = nil
 			local msg = string.interp(l.SHIP_DESTROYED, {
 				shipid  = mission.pirate_label,
-				station = mission.location:GetSystemBody().name
+				station = mission.station:GetSystemBody().name
 			})
 			Comms.ImportantMessage(msg, mission.client.name)
 			break
@@ -609,21 +642,23 @@ local onShipDocked = function (player, station)
 				if e.body == nil then
 					if player:RemoveEquip(e.cargo, 1, "cargo") == 1 then
 						mission.debris[i] = nil
+						mission.amount = mission.amount - 1
 					end
 				end
 			end
-			if #mission.debris == 0 then mission.status = "COMPLETED" end
+			if mission.amount == 0 then
+				mission.status = "COMPLETED"
+			elseif mission.destination == nil then
+				mission.status = "FAILED"
+			end
 
 			if mission.status == "COMPLETED" or mission.status == "FAILED" then
 				removeMission(mission, ref)
 			end
 
 		-- remove stale missions, if any
-		elseif mission.deliver_to_ship and Game.time > mission.due then
-			mission.status = "FAILED"
-			removeMission(mission, ref)
-
-		elseif mission.reward < 0 and Game.time > mission.due then
+		-- all cargo related to flavour 1 and 2 scooped or destroyed
+		elseif mission.reward < 0 and mission.destination == nil then
 			mission:Remove()
 			missions[ref] = nil
 		end
@@ -658,10 +693,12 @@ local onEnterSystem = function (ship)
 	-- spawn random cargo (legal or illegal goods)
 	for i = 1, num do
 		local star = stars[Engine.rand:Integer(1, #stars)]
-		local flavour = flavours[Engine.rand:Integer(1, 2)]
+		local flavour = flavours[Engine.rand:Integer(LEGAL, ILLEGAL)]
 		local debris = flavour.cargo_type
 		if #debris > 0 then
-			spawnDebris(debris, flavour.amount, star.path, mission_time)
+			local min = math.max(1 * AU, star.path:GetSystemBody().radius * 2)
+			local max = math.max(3 * AU, star.path:GetSystemBody().radius * 4)
+			spawnDebris(debris, flavour.amount, star.path, min, max, mission_time)
 		end
 	end
 end
@@ -676,6 +713,7 @@ local onLeaveSystem = function (ship)
 				e.body = nil
 			end
 		end
+		planets = nil
 		flavours[LEGAL].cargo_type = nil
 		flavours[ILLEGAL].cargo_type = nil
 	end
@@ -699,6 +737,7 @@ local onClick = function (mission)
 						client = mission.client.name,
 						shipid = mission.pirate_label,
 						star = mission.star:GetSystemBody().name,
+						planet = mission.planet:GetSystemBody().name,
 						cash = Format.Money(math.abs(mission.reward), false)
 					})
 				),
@@ -738,7 +777,7 @@ local onClick = function (mission)
 					})
 					:SetColumn(1, {
 						ui:VBox():PackEnd({
-							ui:Label(mission.location:GetSystemBody().name)
+							ui:Label(mission.station:GetSystemBody().name)
 						})
 					}),
 				ui:Grid(2,1)
@@ -792,6 +831,7 @@ local onGameStart = function ()
 end
 
 local onGameEnd = function ()
+	planets = nil
 	flavours[LEGAL].cargo_type = nil
 	flavours[ILLEGAL].cargo_type = nil
 end

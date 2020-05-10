@@ -1,7 +1,7 @@
 {
   "ACCEPTED_ARMS_DEALER": {
     "description": "",
-    "message": "OK"
+    "message": "Great! Thank you."
   },
   "ACCEPTED_ILLEGAL_GOODS": {
     "description": "",
@@ -17,19 +17,19 @@
   },
   "ADTEXT_ARMS_DEALER": {
     "description": "",
-    "message": "PICK UP drifting container"
+    "message": "PICK UP drifting container."
   },
   "ADTEXT_ILLEGAL_GOODS": {
     "description": "",
-    "message": "EASY MONEY: Valuable information for sale"
+    "message": "EASY MONEY: Valuable information for sale."
   },
   "ADTEXT_LEGAL_GOODS": {
     "description": "",
-    "message": "INFORMATION FOR SALE: Knowing the location of a debris field with valuable cargo"
+    "message": "INFORMATION FOR SALE: Knowing the location of a debris field with valuable cargo."
   },
   "ADTEXT_RESCUE": {
     "description": "",
-    "message": "HELP NEEDED for a rescue operation"
+    "message": "HELP NEEDED for a rescue operation."
   },
   "CLIENT": {
     "description": "",
@@ -45,11 +45,11 @@
   },
   "DENY_1": {
     "description": "",
-    "message": "Sorry!"
+    "message": "Sorry, I'm too busy to talk to you right now!"
   },
   "DENY_2": {
     "description": "",
-    "message": "Sorry!"
+    "message": "Oh, I'm sorry, I don't have time right now."
   },
   "DETONATORS": {
     "description": "",
@@ -59,17 +59,9 @@
     "description": "",
     "message": "You fool. The client's not gonna like this! Good luck, loser!"
   },
-  "FAILURE_MSG_ILLEGAL_GOODS": {
-    "description": "",
-    "message": "You failed!"
-  },
-  "FAILURE_MSG_LEGAL_GOODS": {
-    "description": "",
-    "message": "You failed!"
-  },
   "FAILURE_MSG_RESCUE": {
     "description": "",
-    "message": "You failed!"
+    "message": "Your unreliability has caused great harm. Get out of my sight!"
   },
   "HOW_MUCH_TIME": {
     "description": "",
@@ -93,19 +85,19 @@
   },
   "INTROTEXT_ARMS_DEALER": {
     "description": "",
-    "message": "{client} scoop container at {star} and deliver to ship {shipid}. Pay {cash}"
+    "message": "Hello Commander. My name is {client}. It would be great if you could help me out. An unreliable freighter captain dropped my cargo near {planet} and has disappeared since. Your task would be to pick up the cargo and deliver it to ship {shipid} in orbit around {star}. I would pay you {cash}."
   },
   "INTROTEXT_ILLEGAL_GOODS": {
     "description": "",
-    "message": "Hey buddy, I know about a debris field with illegal goods. The police caught a smuggler close to {star}. They haven't had time to clean up the area yet. If you are quick, you can make easy money! I can give you the coordinates. It only costs you {cash}. Don't let the chance slip by!"
+    "message": "Hey buddy, I know about a debris field with illegal goods. The police caught a smuggler close to {planet}. They haven't had time to clean up the area yet. If you are quick, you can make easy money! I can give you the coordinates. It only costs you {cash}. Don't let the chance slip by!"
   },
   "INTROTEXT_LEGAL_GOODS": {
     "description": "",
-    "message": "Hello my friend. I'm {client}. I heard about a cargo hauler that got into trouble near {star} because of bad ship maintenance. Amazing who gets to fly a spaceship these days, isn't it? Anyway, this stupid had to dump a lot of the cargo. If you're quick, you can grab the cargo very easily! This info is as good as new! I'll sell you the coordinates for lousy {cash}. What do you say?"
+    "message": "Hello my friend. I'm {client}. I heard about a cargo hauler that got into trouble near {planet} because of bad ship maintenance. Amazing who gets to fly a spaceship these days, isn't it? Anyway, this stupid had to dump a lot of the cargo. If you're quick, you can grab the cargo very easily! This info is as good as new! I'll sell you the coordinates for lousy {cash}. What do you say?"
   },
   "INTROTEXT_RESCUE": {
     "description": "",
-    "message": "Hi, my name is {client}. The crew of a freighter had to abandon their ship after an incident. The owner of the ship does not want the information to be made public and is willing to pay {cash} for a rescue mission. The accident site is near {star}. Please pick up the crew and bring them to a station!"
+    "message": "Hi, my name is {client}. The crew of a freighter had to abandon their ship after an incident. The owner of the ship does not want the information to be made public and is willing to pay {cash} for a rescue mission. The accident site is near {planet}. Please pick up the crew and bring them to a station!"
   },
   "NUCLEAR_MISSILE": {
     "description": "",
@@ -153,19 +145,11 @@
   },
   "SUCCESS_MSG_ARMS_DEALER": {
     "description": "",
-    "message": "Thank you!"
-  },
-  "SUCCESS_MSG_ILLEGAL_GOODS": {
-    "description": "",
-    "message": "Thank you!"
-  },
-  "SUCCESS_MSG_LEGAL_GOODS": {
-    "description": "",
-    "message": "Thank you!"
+    "message": "Hey Ace, nice flying! Money's transferred."
   },
   "SUCCESS_MSG_RESCUE": {
     "description": "",
-    "message": "Thank you!"
+    "message": "Thank you very much! The crew would also like to express their thanks."
   },
   "TOXIC_WASTE": {
     "description": "",
