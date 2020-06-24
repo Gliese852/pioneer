@@ -110,6 +110,8 @@ public:
 		FLAG_LABEL_HIDDEN = (1 << 1),
 		FLAG_DRAW_LAST = (1 << 2) }; // causes the body drawn after other bodies in the z-sort
 
+	sigc::signal<void, Body *> OnFrameChanged;
+
 protected:
 	virtual void SaveToJson(Json &jsonObj, Space *space);
 	unsigned int m_flags;

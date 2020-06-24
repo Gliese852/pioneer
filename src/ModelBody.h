@@ -59,9 +59,9 @@ protected:
 private:
 	void RebuildCollisionMesh();
 	void DeleteGeoms();
+	void MoveGeoms(const matrix4x4d &, const vector3d &);
 	void AddGeomsToFrame(Frame *);
 	void RemoveGeomsFromFrame(Frame *);
-	void MoveGeoms(const matrix4x4d &, const vector3d &);
 
 	void CalcLighting(double &ambient, double &direct, const Camera *camera);
 

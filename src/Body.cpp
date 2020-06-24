@@ -221,6 +221,7 @@ void Body::SwitchToFrame(FrameId newFrameId)
 	SetFrame(newFrameId);
 
 	LuaEvent::Queue("onFrameChanged", this);
+	OnFrameChanged.emit(this);
 }
 
 void Body::UpdateFrame()

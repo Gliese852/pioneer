@@ -36,6 +36,9 @@ class TransferPlanner;
 class View;
 class SDLGraphics;
 class LuaSerializer;
+namespace PiGUI {
+	class PerfInfo;
+}
 
 #if ENABLE_SERVER_AGENT
 class ServerAgent;
@@ -207,6 +210,7 @@ public:
 	static bool doProfileOne;
 #endif
 
+	static PiGUI::PerfInfo *perfinfo;
 	static Input *input;
 	static Player *player;
 	static TransferPlanner *planner;

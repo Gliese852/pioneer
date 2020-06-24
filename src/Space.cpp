@@ -271,6 +271,15 @@ void Space::RebuildSystemBodyIndex()
 void Space::AddBody(Body *b)
 {
 	m_bodies.push_back(b);
+	if (b->GetType() == Object::SHIP)
+	{
+		Ship *s = static_cast<Ship*>(b);
+		s->onDock.connect(sigc::mem_fun(this, &Space::OnShipDocked));
+		s->onLanded.connect(sigc::mem_fun(this, &Space::OnShipDocked));
+		s->onUndock.connect(sigc::mem_fun(this, &Space::OnShipUndocked));
+	}
+	else if (b->GetType() == Object::PLAYER)
+		b->OnFrameChanged.connect(sigc::mem_fun(this, &Space::OnPlayerChangedFrame));
 }
 
 void Space::RemoveBody(Body *b)
@@ -298,6 +307,29 @@ void Space::KillBody(Body *b)
 		if (b != Pi::player)
 			m_killBodies.push_back(b);
 	}
+}
+
+void Space::FreezeBody(Body *b)
+{
+	if (std::find(m_bodies.cbegin(), m_bodies.cend(), b) != m_bodies.cend())
+		m_bodiesToFreeze.push_back(b);
+}
+
+void Space::UnfreezeBody(Body *b)
+{
+	if (std::find(m_bodiesFrozen.cbegin(), m_bodiesFrozen.cend(), b) != m_bodiesFrozen.cend())
+		m_bodiesToUnfreeze.push_back(b);
+}
+
+void Space::OnShipDocked(Body *b)
+{
+	if (b->GetFrame() != Pi::player->GetFrame())
+		FreezeBody(b);
+}
+
+void Space::OnShipUndocked(Body *b)
+{
+	UnfreezeBody(b);
 }
 
 void Space::GetHyperspaceExitParams(const SystemPath &source, const SystemPath &dest,
@@ -1009,6 +1041,9 @@ void Space::UpdateBodies()
 			b->NotifyRemoved(rmb);
 		if (Pi::GetView()) Pi::game->GetSystemView()->BodyInaccessible(rmb);
 		m_bodies.remove(rmb);
+		m_bodiesFrozen.remove(rmb);
+		m_bodiesToFreeze.remove(rmb);
+		m_bodiesToUnfreeze.remove(rmb);
 	}
 	m_removeBodies.clear();
 
@@ -1017,13 +1052,46 @@ void Space::UpdateBodies()
 			b->NotifyRemoved(killb);
 		if (Pi::GetView()) Pi::game->GetSystemView()->BodyInaccessible(killb);
 		m_bodies.remove(killb);
+		m_bodiesFrozen.remove(killb);
+		m_bodiesToFreeze.remove(killb);
+		m_bodiesToUnfreeze.remove(killb);
 		delete killb;
 	}
 	m_killBodies.clear();
 
+	for (Body *b : m_bodiesToFreeze) {
+		Output("%s freezed\n", b->GetLabel());
+		m_bodies.remove(b);
+		m_bodiesFrozen.push_back(b);
+	}
+	m_bodiesToFreeze.clear();
+
+	for (Body *b : m_bodiesToUnfreeze) {
+		Output("%s unfreezed\n", b->GetLabel());
+		m_bodiesFrozen.remove(b);
+		m_bodies.push_back(b);
+	}
+	m_bodiesToUnfreeze.clear();
+
 #ifndef NDEBUG
 	m_processingFinalizationQueue = false;
 #endif
+}
+
+void Space::OnPlayerChangedFrame(Body* some)
+{
+	for (Body *b : m_bodies)
+		if (b->GetType() == Object::Type::SHIP) {
+			Ship *const &s = static_cast<Ship*>(b);
+			if (s->IsDocked() && s->GetFrame() != Pi::player->GetFrame()) {
+				FreezeBody(b);
+			}
+		}
+	for(Body *b : m_bodiesFrozen)
+	{
+		if (b->GetFrame() == Pi::player->GetFrame())
+			UnfreezeBody(b);
+	}
 }
 
 static char space[256];

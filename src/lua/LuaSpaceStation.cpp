@@ -113,6 +113,12 @@ static int l_spacestation_attr_is_ground_station(lua_State *l)
 	lua_pushboolean(l, s->IsGroundStation());
 	return 1;
 }
+static int l_spacestation_attr_label(lua_State *l)
+{
+	SpaceStation *s = LuaObject<SpaceStation>::CheckFromLua(1);
+	lua_pushstring(l, s->GetLabel().c_str());
+	return 1;
+}
 
 template <>
 const char *LuaObject<SpaceStation>::s_type = "SpaceStation";
@@ -132,6 +138,7 @@ void LuaObject<SpaceStation>::RegisterClass()
 		{ "numDocks", l_spacestation_attr_num_docks },
 		{ "isGroundStation", l_spacestation_attr_is_ground_station },
 		{ "numShipsDocked", l_spacestation_attr_num_ships_docked },
+		{ "label", l_spacestation_attr_label },
 
 		{ 0, 0 }
 	};

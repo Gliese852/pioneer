@@ -137,6 +137,8 @@ void BvhTree::CollideGeom(Geom *g, const Aabb &geomAabb, int minMailboxValue, vo
 	BvhNode *node = m_root;
 
 	for (;;) {
+		//if (node->geomStart && node->numGeoms > 0 && node->geomStart[0]->IsEnabled())
+		if (false)
 		if (geomAabb.Intersects(node->aabb)) {
 			if (node->geomStart) {
 				for (int i = 0; i < node->numGeoms; i++) {

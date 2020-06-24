@@ -827,7 +827,6 @@ void Ship::SetFlightState(Ship::FlightState newState)
 	if (newState == FLYING) {
 		m_testLanded = false;
 		if (m_flightState == DOCKING || m_flightState == DOCKED)
-			onUndock.emit();
 
 		m_dockedWith = nullptr;
 
@@ -848,37 +847,44 @@ void Ship::SetFlightState(Ship::FlightState newState)
 
 	switch (m_flightState) {
 	case FLYING:
+		Output("%s FLYING in frame %d\n", GetLabel(), GetFrame().id());
 		SetMoving(true);
 		SetColliding(true);
 		SetStatic(false);
 		break;
 	case DOCKING:
+		Output("%s DOCKING in frame %d\n", GetLabel(), GetFrame().id());
 		SetMoving(false);
 		SetColliding(false);
 		SetStatic(false);
 		break;
 	case UNDOCKING:
+		Output("%s UNDOCKING in frame %d\n", GetLabel(), GetFrame().id());
 		SetMoving(false);
 		SetColliding(false);
 		SetStatic(false);
 		break;
 		// TODO: set collision index? dynamic stations... use landed for open-air?
 	case DOCKED:
+		Output("%s DOCKED in frame %d\n", GetLabel(), GetFrame().id());
 		SetMoving(false);
 		SetColliding(false);
 		SetStatic(false);
 		break;
 	case LANDED:
+		Output("%s LANDED in frame %d\n", GetLabel(), GetFrame().id());
 		SetMoving(false);
 		SetColliding(true);
 		SetStatic(true);
 		break;
 	case JUMPING:
+		Output("%s JUMPING\n", GetLabel());
 		SetMoving(true);
 		SetColliding(false);
 		SetStatic(false);
 		break;
 	case HYPERSPACE:
+		Output("%s HYPERSPACE\n", GetLabel());
 		SetMoving(false);
 		SetColliding(false);
 		SetStatic(false);
@@ -936,7 +942,7 @@ void Ship::TestLanded()
 				SetFlightState(LANDED);
 				Sound::BodyMakeNoise(this, "Rough_Landing", 1.0f);
 				LuaEvent::Queue("onShipLanded", this, f->GetBody());
-				onLanded.emit();
+				onLanded.emit(this);
 			}
 		}
 	}
@@ -960,7 +966,7 @@ void Ship::SetLandedOn(Planet *p, float latitude, float longitude)
 	ClearThrusterState();
 	SetFlightState(LANDED);
 	LuaEvent::Queue("onShipLanded", this, p);
-	onLanded.emit();
+	onLanded.emit(this);
 }
 
 void Ship::SetFrame(FrameId fId)
@@ -1417,11 +1423,13 @@ void Ship::NotifyRemoved(const Body *const removedBody)
 
 bool Ship::Undock()
 {
+	onUndock.emit(this);
 	return (m_dockedWith && m_dockedWith->LaunchShip(this, m_dockedWithPort));
 }
 
 void Ship::SetDockedWith(SpaceStation *s, int port)
 {
+	Output("%s SetDockedWith %s\n", GetLabel().c_str(), s->GetLabel().c_str());
 	if (s) {
 		m_dockedWith = s;
 		m_dockedWithPort = port;
@@ -1429,7 +1437,6 @@ void Ship::SetDockedWith(SpaceStation *s, int port)
 		m_wheelState = 1.0f;
 		// hand position/state responsibility over to station
 		m_dockedWith->SetDocked(this, port);
-		onDock.emit();
 	} else {
 		Undock();
 	}

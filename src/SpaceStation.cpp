@@ -23,6 +23,7 @@
 #include "scenegraph/Animation.h"
 #include "scenegraph/MatrixTransform.h"
 #include "scenegraph/ModelSkin.h"
+#include "pigui/PerfInfo.h"
 
 SpaceStation::SpaceStation(const SystemBody *sbody) :
 	ModelBody(),
@@ -250,7 +251,15 @@ int SpaceStation::NumShipsDocked() const
 int SpaceStation::GetFreeDockingPort(const Ship *s) const
 {
 	assert(s);
-	for (unsigned int i = 0; i < m_type->NumDockingPorts(); i++) {
+	int docks = m_type->NumDockingPorts();
+	Random rnd;
+	// first we’ll try to generate a random dock number 'docks' times, if we don’t succeed, let's take turns
+	for (unsigned int raw_i = 0; raw_i < docks * 2; raw_i++) {
+		unsigned int i;
+		if (raw_i < docks)
+			i = rnd.Int32(docks);
+		else
+			i = raw_i - docks;
 		if (m_shipDocking[i].ship == nullptr) {
 			// size-of-ship vs size-of-bay check
 			const SpaceStationType::SPort *const pPort = m_type->FindPortByBay(i);
@@ -364,6 +373,7 @@ bool SpaceStation::GetDockingClearance(Ship *s, std::string &outMsg)
 
 bool SpaceStation::OnCollision(Object *b, Uint32 flags, double relVel)
 {
+		m_collisions++;
 	if ((flags & 0x10) && (b->IsType(Object::SHIP))) {
 		Ship *s = static_cast<Ship *>(b);
 
@@ -456,9 +466,16 @@ bool SpaceStation::DoShipDamage(Ship *s, Uint32 flags, double relVel)
 void SpaceStation::DockingUpdate(const double timeStep)
 {
 	vector3d p1, p2, zaxis;
+	const bool &PlayerCantSee = this->GetFrame() != Pi::player->GetFrame();
 	for (Uint32 i = 0; i < m_shipDocking.size(); i++) {
 		shipDocking_t &dt = m_shipDocking[i];
 		if (!dt.ship) continue;
+		if (PlayerCantSee && dt.stage - m_type->NumDockingStages() >  3)
+		{
+			//ship docked, frozen, no one can see, so we just move it to the center of the station
+			dt.ship->SetPosition(GetPosition());
+			continue;
+		}
 		if (dt.stage > m_type->NumDockingStages()) {
 			int extraStage = dt.stage - m_type->NumDockingStages();
 			SpaceStationType::positionOrient_t dport;
@@ -506,6 +523,7 @@ void SpaceStation::DockingUpdate(const double timeStep)
 				LockPort(i, false);
 				m_doorAnimationStep = -0.3; // close door
 				dt.stage++;
+				dt.ship->onDock.emit(dt.ship);
 				continue;
 			case 4: // Docked
 			default: continue;
@@ -652,12 +670,15 @@ void SpaceStation::PositionDockedShip(Ship *ship, int port) const
 
 void SpaceStation::StaticUpdate(const float timeStep)
 {
+	Pi::perfinfo->AddStat("COLLISIONS", GetLabel() + ": " + to_string(m_collisions));
+	m_collisions = 0;
 	DockingUpdate(timeStep);
 	m_navLights->Update(timeStep);
 }
 
 void SpaceStation::TimeStepUpdate(const float timeStep)
 {
+
 	// rotate the thing
 	double len = m_type->AngVel() * timeStep;
 	if (!is_zero_exact(len)) {
@@ -667,6 +688,7 @@ void SpaceStation::TimeStepUpdate(const float timeStep)
 	m_oldAngDisplacement = len;
 
 	// reposition the ships that are docked or docking here
+	if (this->GetFrame() == Pi::player->GetFrame())
 	for (unsigned int i = 0; i < m_type->NumDockingPorts(); i++) {
 		const shipDocking_t &dt = m_shipDocking[i];
 		if (!dt.ship) { //free

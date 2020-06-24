@@ -107,6 +107,7 @@ LuaNameGen *Pi::luaNameGen;
 #ifdef ENABLE_SERVER_AGENT
 ServerAgent *Pi::serverAgent;
 #endif
+PiGUI::PerfInfo *Pi::perfinfo;
 Input *Pi::input;
 Player *Pi::player;
 View *Pi::currentView;
@@ -596,6 +597,7 @@ void LoadStep::Start()
 		Pi::planner = new TransferPlanner();
 
 		perfInfoDisplay.reset(new PiGUI::PerfInfo());
+		Pi::perfinfo = perfInfoDisplay.get();
 	});
 }
 
@@ -925,7 +927,7 @@ void Pi::App::RunJobs()
 }
 
 // FIXME: delete/move this function out of Pi.cpp
-static void OnPlayerDockOrUndock();
+static void OnPlayerDockOrUndock(Body *b);
 
 void GameLoop::Start()
 {
@@ -1275,7 +1277,7 @@ void Pi::OnChangeDetailLevel()
 	BaseSphere::OnChangeDetailLevel();
 }
 
-static void OnPlayerDockOrUndock()
+static void OnPlayerDockOrUndock(Body *b)
 {
 	Pi::game->RequestTimeAccel(Game::TIMEACCEL_1X);
 	Pi::game->SetTimeAccel(Game::TIMEACCEL_1X);

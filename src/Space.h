@@ -47,6 +47,8 @@ public:
 	void AddBody(Body *);
 	void RemoveBody(Body *);
 	void KillBody(Body *);
+	void FreezeBody(Body *);
+	void UnfreezeBody(Body *);
 
 	void TimeStep(float step);
 
@@ -67,8 +69,10 @@ public:
 	Body *FindBodyForPath(const SystemPath *path) const;
 
 	Uint32 GetNumBodies() const { return static_cast<Uint32>(m_bodies.size()); }
+	Uint32 GetNumFrozenBodies() const { return static_cast<Uint32>(m_bodiesFrozen.size()); }
 	IterationProxy<std::list<Body *>> GetBodies() { return MakeIterationProxy(m_bodies); }
 	const IterationProxy<const std::list<Body *>> GetBodies() const { return MakeIterationProxy(m_bodies); }
+
 
 	Background::Container *GetBackground() { return m_background.get(); }
 	void RefreshBackground();
@@ -85,6 +89,9 @@ public:
 	}
 
 	void DebugDumpFrames(bool details);
+
+	void OnShipDocked(Body *b);
+	void OnShipUndocked(Body *b);
 private:
 	void GenSectorCache(RefCountedPtr<Galaxy> galaxy, const SystemPath *here);
 	void UpdateStarSystemCache(const SystemPath *here);
@@ -95,6 +102,8 @@ private:
 	void UpdateBodies();
 
 	void CollideFrame(FrameId fId);
+
+	void OnPlayerChangedFrame(Body *b);
 
 	FrameId m_rootFrameId;
 
@@ -108,9 +117,17 @@ private:
 	// all the bodies we know about
 	std::list<Body *> m_bodies;
 
+	// bodies, temporarily excluded from space, at the moment, these are landed
+	// ships in a frame, other than where player is
+	std::list<Body *> m_bodiesFrozen;
+
 	// bodies that were removed/killed this timestep and need pruning at the end
 	std::list<Body *> m_removeBodies;
 	std::list<Body *> m_killBodies;
+
+	// bodies that were freezed/unfreezed this timestep and need pruning at the end
+	std::list<Body *> m_bodiesToFreeze;
+	std::list<Body *> m_bodiesToUnfreeze;
 
 	void RebuildBodyIndex();
 	void RebuildSystemBodyIndex();

@@ -3,7 +3,10 @@
 
 #include "PerfInfo.h"
 #include "Game.h"
+#include "Space.h"
 #include "Pi.h"
+#include "Player.h"
+#include "Frame.h"
 #include "graphics/Renderer.h"
 #include "graphics/Stats.h"
 #include "graphics/Texture.h"
@@ -215,6 +218,11 @@ void PerfInfo::DrawPerfWindow()
 			ImGui::EndTabItem();
 		}
 
+		if (Pi::game && ImGui::BeginTabItem("Misc")) {
+			DrawMiscStats();
+			ImGui::EndTabItem();
+		}
+
 		ImGui::EndTabBar();
 	}
 	ImGui::End();
@@ -291,6 +299,20 @@ void PerfInfo::DrawStatList(const Perf::Stats::FrameInfo &fi)
 	}
 	ImGui::Columns();
 	ImGui::EndChild();
+}
+
+void PerfInfo::DrawMiscStats()
+{
+	ImGui::Text("Player's frame: %s", Frame::GetFrame(Pi::player->GetFrame())->GetSystemBody()->GetName().c_str());
+	ImGui::Text("Hot bodies: %d", Pi::game->GetSpace()->GetNumBodies());
+	ImGui::Text("Frozen bodies: %d", Pi::game->GetSpace()->GetNumFrozenBodies());
+	ImGui::Text("Misc:");
+	for (auto &stat_group : m_stats) {
+		ImGui::Text("%s:", stat_group.first.c_str());
+		for (auto &stat : stat_group.second)
+			ImGui::Text(stat.c_str());
+	}
+	m_stats.clear();
 }
 
 // ============================================================================

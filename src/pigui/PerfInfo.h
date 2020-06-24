@@ -31,6 +31,11 @@ namespace PiGUI {
 		void SetShowDebugInfo(bool open);
 		void SetUpdatePause(bool pause);
 
+		void AddStat(std::string key, std::string val)
+		{
+			m_stats[key].push_back(val);
+		}
+
 	private:
 		void DrawPerfWindow();
 		void DrawTextureCache();
@@ -38,8 +43,10 @@ namespace PiGUI {
 
 		void DrawRendererStats();
 		void DrawImGuiStats();
+		void DrawMiscStats();
 		void DrawStatList(const Perf::Stats::FrameInfo &fi);
 
+		std::map<std::string, std::vector<std::string>> m_stats;
 		static const int NUM_FRAMES = 60;
 		std::array<float, NUM_FRAMES> m_fpsGraph;
 		std::array<float, NUM_FRAMES> m_physFpsGraph;

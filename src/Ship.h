@@ -215,9 +215,9 @@ public:
 
 	HyperspaceCloud *GetHyperspaceCloud() const { return m_hyperspaceCloud; }
 
-	sigc::signal<void> onDock; // JJ: check what these are for
-	sigc::signal<void> onUndock;
-	sigc::signal<void> onLanded;
+	sigc::signal<void, Body *> onDock; // JJ: check what these are for
+	sigc::signal<void, Body *> onUndock;
+	sigc::signal<void, Body *> onLanded;
 
 	// mutable because asking to know when state changes is not the same as
 	// actually changing state

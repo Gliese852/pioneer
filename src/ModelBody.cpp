@@ -132,11 +132,17 @@ void ModelBody::SetStatic(bool isStatic)
 
 void ModelBody::SetColliding(bool colliding)
 {
+	//const FrameId &fid = GetFrame();
 	m_colliding = colliding;
-	if (colliding)
+	if (colliding) {
+	//	if (fid != static_cast<FrameId>(FrameId::Invalid))
+	//		AddGeomsToFrame(Frame::GetFrame(fid));
 		m_geom->Enable();
-	else
+	}		else{
+	//	if (fid != static_cast<FrameId>(FrameId::Invalid))
+	//		RemoveGeomsFromFrame(Frame::GetFrame(fid));
 		m_geom->Disable();
+	}
 }
 
 void ModelBody::RebuildCollisionMesh()

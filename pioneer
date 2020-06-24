@@ -18,4 +18,4 @@ PROGRAM_NAME="$(basename "$0")"
 cmake --build build
 
 # Run main binary
-exec build/$PROGRAM_NAME "$@"
+exec gdb build/$PROGRAM_NAME "$@"

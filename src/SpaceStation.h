@@ -121,6 +121,7 @@ private:
 	SpaceStationType::TPorts m_ports;
 
 	double m_oldAngDisplacement;
+	int m_collisions;
 
 	void InitStation();
 	const SpaceStationType *m_type;
