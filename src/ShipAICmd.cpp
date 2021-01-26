@@ -857,7 +857,7 @@ void AICmdFlyTo::PostLoadFixup(Space *space)
 {
 	AICommand::PostLoadFixup(space);
 	m_target = space->GetBodyByIndex(m_targetIndex);
-	m_lockhead = true;
+	m_correct_course = false;
 	m_frameId = m_target ? m_target->GetFrame() : FrameId();
 	// Ensure needed sub-system:
 	m_prop.Reset(m_dBody->GetPropulsion());
@@ -872,7 +872,7 @@ AICmdFlyTo::AICmdFlyTo(DynamicBody *dBody, Body *target) :
 	assert(m_prop != nullptr);
 	m_frameId = FrameId::Invalid;
 	m_state = -6;
-	m_lockhead = true;
+	m_correct_course = false;
 	m_endvel = 0;
 	m_tangent = false;
 	m_is_flyto = true;
@@ -903,7 +903,7 @@ AICmdFlyTo::AICmdFlyTo(DynamicBody *dBody, FrameId targframe, const vector3d &po
 	m_endvel(endvel),
 	m_tangent(tangent),
 	m_state(-6),
-	m_lockhead(true),
+	m_correct_course(false),
 	m_frameId(FrameId::Invalid)
 {
 	m_prop.Reset(dBody->GetPropulsion());
@@ -1094,9 +1094,15 @@ bool AICmdFlyTo::TimeStepUpdate()
 	bool decel = sdiff <= 0;
 	// TODO: what is "SetDecelerating"??? => needs to be moved
 	m_dBody->SetDecelerating(decel);
-	if (decel)
-		m_prop->AIChangeVelBy(vdiff * m_dBody->GetOrient());
-	else
+	if (decel) {
+		// we correct the course only during active braking, or if the flag is set
+		if (!is_zero_exact(linaccel) || m_correct_course) {
+			m_prop->AIChangeVelBy(vdiff * m_dBody->GetOrient());
+		} else {
+			// free flight, flag not set - just kill linear thrust
+			m_prop->SetLinThrusterState(vector3d(0.0));
+		}
+	} else
 		m_prop->AIChangeVelDir(vdiff * m_dBody->GetOrient());
 
 	// work out which way to head
@@ -1123,8 +1129,26 @@ bool AICmdFlyTo::TimeStepUpdate()
 		}
 		m_prop->AIMatchAngVelObjSpace(vector3d(0.0));
 		return true;
-	} else
-		m_prop->AIFaceDirection(head);
+	} else { // state < 3
+		// free flight course correction
+		// turns on when the deviation is more than 3 degrees, turns off when the deviation is less than 0.5 degrees
+		// if m_correct_course is true, correction is enabled
+		if (is_zero_exact(linaccel)) {
+			const double enable_corr = 0.9986295;  // cos(3.0deg)
+			const double disable_corr = 0.9999619; // cos(0.5deg)
+			// actual cosine of deviation angle between target direction and direction of travel
+			const double dev = head.Normalized().Dot(m_dBody->GetVelocity().NormalizedSafe());
+			if (dev < enable_corr) m_correct_course = true;
+			if (dev > disable_corr) m_correct_course = false;
+			if (m_correct_course)
+				// if we correct the course, we also direct the nose to the target (not necessarily, in fact)
+				m_prop->AIFaceDirection(head);
+			else
+				// do not adjust the course - just kill the rotation
+				m_prop->AIFaceDirection(-m_dBody->GetOrient().VectorZ());
+		} else // active acceleration or deceleration
+			m_prop->AIFaceDirection(head);
+	}
 	if (body && body->IsType(ObjectType::PLANET) && m_dBody->GetPosition().LengthSqr() < 2 * erad * erad)
 		m_prop->AIFaceUpdir(m_dBody->GetPosition()); // turn bottom thruster towards planet
 
@@ -1281,24 +1305,60 @@ bool AICmdDock::TimeStepUpdate()
 
 	// state 0,2: Get docking data
 	if (m_state == eDockGetDataStart || m_state == eDockGetDataEnd || m_state == eDockingComplete) {
-		const SpaceStationType *type = m_target->GetStationType();
-		SpaceStationType::positionOrient_t dockpos;
-		type->GetShipApproachWaypoints(port, (m_state == 0) ? 1 : 2, dockpos);
-		if (m_state != eDockGetDataEnd) {
-			m_dockpos = dockpos.pos;
-		}
+		// we are already near the station, what could go wrong?
+		// set the fuel reserve to 0, since the fuel could become lower than the
+		// current reserve during the flight, and the ship will not fly anywhere
+		m_prop->SetFuelReserve(0.0);
 
-		m_dockdir = dockpos.zaxis.Normalized();
-		m_dockupdir = dockpos.yaxis.Normalized(); // don't trust these enough
-		if (type->IsOrbitalStation()) {
-			m_dockupdir = -m_dockupdir;
+		const SpaceStationType *type = m_target->GetStationType();
+		// calculate which we are in the queue.
+		int queue_pos = 0;
+		// since ground stations have a different path for each pad, this queue is
+		// not needed there
+		if (type->IsOrbitalStation())
+			for (auto body : Frame::GetBodiesInside(m_dBody->GetFrame()))
+				// we take all the docking ships in this frame
+				if (body->IsType(ObjectType::SHIP) &&
+					static_cast<Ship *>(body)->GetAICommand() &&
+					static_cast<Ship *>(body)->GetAICommand()->GetType() == AICommand::CMD_DOCK &&
+					m_target->GetPositionRelTo(body).LengthSqr() < targdist)
+					// and count the number of those that are closer to the station
+					// this will be our position in the queue
+					++queue_pos;
+
+		// two waypoints when docked
+		SpaceStationType::positionOrient_t dockpos1, dockpos2;
+		// start waypoint
+		type->GetShipApproachWaypoints(port, 1, dockpos1);
+		// end waypoint
+		type->GetShipApproachWaypoints(port, 2, dockpos2);
+
+		if (queue_pos > 0) {
+			// we are in the queue, so docking has not started yet
+			const double queue_step = 400; // meters
+			// we will return to this state while we in queue
+			m_state = eDockGetDataStart;
+			// we just continue "dockpos2->dockpos1" segment with segments of <queue_step> meters
+			m_dockpos = dockpos1.pos + (dockpos1.pos - dockpos2.pos).Normalized() * queue_step * queue_pos;
+		} else if (m_state == eDockGetDataStart) {
+			// in the case that the ship arrived and there was no queue at all
+			m_dockpos = dockpos1.pos;
+		} else if (m_state == eDockGetDataEnd) {
+			// this stage ends at the first docking point
+			m_dockpos = dockpos1.pos;
+			m_dockdir = dockpos2.zaxis.Normalized();
+			m_dockupdir = dockpos2.yaxis.Normalized(); // don't trust these enough
+			if (type->IsOrbitalStation()) {
+				m_dockupdir = -m_dockupdir;
+			}
 		} else if (m_state == eDockingComplete) {
+			// in fact, the final docking stage takes place at state eDockingComplete(4) and eInvalidDockingStage(5)
+			m_dockpos = dockpos2.pos;
 			m_dockpos -= m_dockupdir * (ship->GetLandingPosOffset() + 0.1);
 		}
-
-		if (m_state != eDockGetDataEnd) {
-			m_dockpos = m_target->GetOrient() * m_dockpos + m_target->GetPosition();
-		}
+		// recalculate m_dockpos into the frame in which we are (target's frame)
+		// (in the stage eDockGetDataEnd the variable is not touched at all)
+		m_dockpos = m_target->GetOrient() * m_dockpos + m_target->GetPosition();
 		IncrementState();
 		// should have m_dockpos in target frame, dirs relative to target orient
 	}

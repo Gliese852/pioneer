@@ -8,6 +8,7 @@
 #include "Sfx.h"
 #include "Space.h"
 #include "collider/CollisionSpace.h"
+#include "collider/Geom.h"
 #include "utils.h"
 
 std::vector<Frame> Frame::s_frames;
@@ -254,6 +255,16 @@ Frame *Frame::GetFrame(FrameId fId)
 		Error("In '%s': fId is valid but out of range (%zu)...\n", __func__, fId.id());
 
 	return nullptr;
+}
+
+std::vector<Body *> Frame::GetBodiesInside(FrameId FId)
+{
+	auto geoms = s_collisionSpaces[FId].GetGeoms();
+	std::vector<Body *> bodies;
+	for (auto geom : *geoms) {
+		bodies.push_back(static_cast<Body *>(geom->GetUserData()));
+	}
+	return bodies;
 }
 
 FrameId Frame::CreateCameraFrame(FrameId parent)

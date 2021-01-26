@@ -60,6 +60,7 @@ public:
 	static void DeleteFrames();
 
 	static Frame *GetFrame(FrameId FId);
+	static std::vector<Body *> GetBodiesInside(FrameId FId);
 
 	FrameId GetId() const { return m_thisId; }
 
