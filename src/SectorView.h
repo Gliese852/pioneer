@@ -110,6 +110,14 @@ private:
 		Color outOfRangeColor;
 	};
 
+	// for faction and star labels
+	struct Label {
+		std::string label;
+		int height;
+		vector3f screenPos;
+		Color color;
+	};
+
 	struct SystemLabels {
 		Gui::Label *systemName;
 		Gui::Label *sector;
