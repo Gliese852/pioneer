@@ -60,6 +60,8 @@ public:
 	static void DeleteFrames();
 
 	static Frame *GetFrame(FrameId FId);
+	static std::vector<Frame> &GetAllFrames() { return s_frames; }
+	static std::vector<CollisionSpace> &GetAllCollisionSpaces() { return s_collisionSpaces; }
 
 	FrameId GetId() const { return m_thisId; }
 

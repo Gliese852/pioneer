@@ -53,14 +53,14 @@ public:
 		return s_nextHandle++;
 	}
 
+	BvhTree *m_staticObjectTree;
+	BvhTree *m_dynamicObjectTree;
 private:
 	void CollideGeoms(Geom *a, int minMailboxValue, void (*callback)(CollisionContact *));
 	void CollideRaySphere(const vector3d &start, const vector3d &dir, isect_t *isect);
 	std::list<Geom *> m_geoms;
 	std::list<Geom *> m_staticGeoms;
 	bool m_needStaticGeomRebuild;
-	BvhTree *m_staticObjectTree;
-	BvhTree *m_dynamicObjectTree;
 	Sphere sphere;
 
 	uint32_t m_oldGeomsNumber;

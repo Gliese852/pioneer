@@ -1,7 +1,13 @@
 // Copyright © 2008-2021 Pioneer Developers. See AUTHORS.txt for details
 // Licensed under the terms of the GPL v3. See licenses/GPL-3.txt
 
+#include "collider/BVHTree.h"
+#include "collider/CollisionSpace.h"
+#include "collider/Geom.h"
+#include "collider/GeomTree.h"
+#include "graphics/Drawables.h"
 #include "graphics/Graphics.h"
+#include "graphics/RenderState.h"
 #include "pigui/LuaPiGui.h"
 
 #include "SystemView.h"
@@ -322,6 +328,143 @@ void SystemView::CalculateFramePositionAtTime(FrameId frameId, double t, vector3
 	}
 }
 
+/* volnode!!!!!!!!!!! */
+struct BvhNode {
+	Aabb aabb;
+
+	/* if geomStart == 0 then not leaf,
+	 * kids[] valid */
+	int numGeoms;
+	Geom **geomStart;
+
+	BvhNode *kids[2];
+
+	BvhNode()
+	{
+		kids[0] = 0;
+		geomStart = 0;
+	}
+
+	bool CollideRay(const vector3d &start, const vector3d &invDir, isect_t *isect)
+	{
+		PROFILE_SCOPED()
+		double
+			l1 = (aabb.min.x - start.x) * invDir.x,
+			l2 = (aabb.max.x - start.x) * invDir.x,
+			lmin = std::min(l1, l2),
+			lmax = std::max(l1, l2);
+
+		l1 = (aabb.min.y - start.y) * invDir.y;
+		l2 = (aabb.max.y - start.y) * invDir.y;
+		lmin = std::max(std::min(l1, l2), lmin);
+		lmax = std::min(std::max(l1, l2), lmax);
+
+		l1 = (aabb.min.z - start.z) * invDir.z;
+		l2 = (aabb.max.z - start.z) * invDir.z;
+		lmin = std::max(std::min(l1, l2), lmin);
+		lmax = std::min(std::max(l1, l2), lmax);
+
+		return ((lmax >= 0.f) & (lmax >= lmin) & (lmin < isect->dist));
+	}
+};
+
+/*
+ * Tree of objects in collision space (one tree for static objects, one for
+ * dynamic)
+ */
+class BvhTree {
+public:
+	Geom **m_geoms;
+	BvhNode *m_root;
+	BvhNode *m_nodesAlloc;
+	int m_nodesAllocPos;
+	int m_nodesAllocMax;
+	static constexpr int MAX_TREE_HEIGHT = 38;
+
+	BvhNode *AllocNode()
+	{
+		assert(m_nodesAllocPos < m_nodesAllocMax);
+		return &m_nodesAlloc[m_nodesAllocPos++];
+	}
+
+	// Avoid re-allocation of memory when m_geoms are less than before,
+	void Refresh(const std::list<Geom *> &m_geoms);
+
+	BvhTree(const std::list<Geom *> &geoms);
+	~BvhTree()
+	{
+		FreeAll();
+	}
+	void CollideGeom(Geom *, const Aabb &, int minMailboxValue, void (*callback)(CollisionContact *));
+
+private:
+	void BuildNode(BvhNode *node, const std::list<Geom *> &a_geoms, int &outGeomPos, int maxHeight);
+
+	void FreeAll()
+	{
+		if (m_geoms) delete[] m_geoms;
+		m_geoms = nullptr;
+		if (m_nodesAlloc) delete[] m_nodesAlloc;
+		m_nodesAlloc = nullptr;
+	}
+};
+
+static int count_depth = 0;
+static int max_depth = 0;
+
+static void draw_node(BvhTree *tree, BvhNode *node, Graphics::Renderer *m_renderer, Graphics::RenderState &rs, vector3d &trans) {
+	
+		const Aabb aabb = node->aabb;
+
+		++count_depth;
+		if (count_depth > max_depth)
+		{
+			Output("max nodes: %d\n", max_depth);
+			max_depth = count_depth;
+		}
+		
+		vector3f tr(trans);
+
+		const vector3f verts[16] = {
+			vector3f(aabb.min.x, aabb.min.y, aabb.min.z) + tr,
+			vector3f(aabb.max.x, aabb.min.y, aabb.min.z) + tr,
+			vector3f(aabb.max.x, aabb.max.y, aabb.min.z) + tr,
+			vector3f(aabb.min.x, aabb.max.y, aabb.min.z) + tr,
+			vector3f(aabb.min.x, aabb.min.y, aabb.min.z) + tr,
+			vector3f(aabb.min.x, aabb.min.y, aabb.max.z) + tr,
+			vector3f(aabb.max.x, aabb.min.y, aabb.max.z) + tr,
+			vector3f(aabb.max.x, aabb.min.y, aabb.min.z) + tr,
+
+			vector3f(aabb.max.x, aabb.max.y, aabb.max.z) + tr,
+			vector3f(aabb.min.x, aabb.max.y, aabb.max.z) + tr,
+			vector3f(aabb.min.x, aabb.min.y, aabb.max.z) + tr,
+			vector3f(aabb.max.x, aabb.min.y, aabb.max.z) + tr,
+			vector3f(aabb.max.x, aabb.max.y, aabb.max.z) + tr,
+			vector3f(aabb.max.x, aabb.max.y, aabb.min.z) + tr,
+			vector3f(aabb.min.x, aabb.max.y, aabb.min.z) + tr,
+			vector3f(aabb.min.x, aabb.max.y, aabb.max.z) + tr,
+		};
+		
+		Color cols[16];
+
+		const Color col(0, 0, 200, 255);
+		std::fill_n(cols, 16, col);
+		Graphics::Drawables::Lines lines;
+		lines.SetData(16, verts, cols);
+		lines.Draw(m_renderer, &rs, LINE_STRIP);
+		if (!node->geomStart && node->kids[0])
+		{
+			draw_node(tree, node->kids[1], m_renderer, rs, trans);
+			draw_node(tree, node->kids[0], m_renderer, rs, trans);
+		}
+}
+
+static void draw_tree(BvhTree *tree, Graphics::Renderer *r, Graphics::RenderState &rs, vector3d &trans) {
+	count_depth = 0;
+	if (tree->m_root)
+		draw_node(tree, tree->m_root, r, rs, trans);
+}
+
 void SystemView::Draw3D()
 {
 	PROFILE_SCOPED()
@@ -456,6 +599,15 @@ void SystemView::Draw3D()
 
 	if (m_gridDrawing != GridDrawing::OFF) {
 		DrawGrid();
+	}
+	// try to draw collision trees
+	
+	auto &css = Frame::GetAllCollisionSpaces();
+	auto &fr = Frame::GetAllFrames();
+	for(unsigned i = 0; i < css.size(); ++i) {
+		vector3d fr_shift = fr[i].GetPositionRelTo(Pi::game->GetSpace()->GetRootFrame()) + m_trans;
+		if (css[i].m_dynamicObjectTree) draw_tree(css[i].m_dynamicObjectTree, m_renderer, *m_lineState, fr_shift);
+		//if (cs.m_staticObjectTree) draw_tree(cs.m_staticObjectTree, m_renderer, *m_lineState);
 	}
 }
 

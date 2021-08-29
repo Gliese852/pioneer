@@ -284,16 +284,46 @@ static int l_space_put_ship_on_route(lua_State *l)
 			const vector3d safe1 = corrCS.Transpose() * (matrix3x3d::RotateY(+asin(erad / len)) * corrCS * -targpos).Normalized() * targdist;
 			const vector3d safe2 = corrCS.Transpose() * (matrix3x3d::RotateY(-asin(erad / len)) * corrCS * -targpos).Normalized() * targdist;
 			// choose the one that is closer to the current position oh the ship
-			if ((safe1 + relpos).Length() < (safe2 + relpos).Length())
-				ship->SetPosition(safe1 + targpos);
+			if ((safe1 + relpos).Length() < (safe2 + relpos).Length()) {
+				auto newPos = safe1 + targpos;
+				auto oldPos = ship->GetPosition();
+				ship->SetPosition(newPos);
+				Output("Correcting position\nfrom: ");
+				oldPos.Print();
+				Output("  to: ");
+				newPos.Print();
+				Output(" length: %f\n", (newPos-oldPos).Length());
+			}
 			else
-				ship->SetPosition(safe2 + targpos);
+			{
+				auto newPos = safe2 + targpos;
+				auto oldPos = ship->GetPosition();
+				ship->SetPosition(newPos);
+				Output("Correcting position\nfrom: ");
+				oldPos.Print();
+				Output("  to: ");
+				newPos.Print();
+				Output(" length: %f\n", (newPos-oldPos).Length());
+			}
 		} else {
 			// we are in target's frame, and target below the effective radius of planet. Position the ship direct above the target
-			ship->SetPosition(targpos + targpos.Normalized() * targdist);
+			auto newPos = targpos + targpos.Normalized() * targdist;
+			auto oldPos = ship->GetPosition();
+			ship->SetPosition(newPos);
+			Output("Correcting position\nfrom: ");
+			oldPos.Print();
+			Output("  to: ");
+			newPos.Print();
+			Output(" length: %f\n", (newPos-oldPos).Length());
 		}
 		// update velocity direction
-		ship->SetVelocity((targpos - ship->GetPosition()).Normalized() * pp.getVel() + targetbody->GetVelocityRelTo(ship->GetFrame()));
+		auto oldVel = ship->GetVelocity();
+		auto newVel = (targpos - ship->GetPosition()).Normalized() * pp.getVel() + targetbody->GetVelocityRelTo(ship->GetFrame());
+		ship->SetVelocity(newVel);
+		Output("Old velocity: (%f) ", oldVel.Length());
+		oldVel.Print();
+		Output("New velocity: (%f) ", newVel.Length());
+		newVel.Print();
 	}
 	LUA_DEBUG_END(l, 1);
 	return 0;
