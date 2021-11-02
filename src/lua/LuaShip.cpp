@@ -18,6 +18,7 @@
 #include "lua.h"
 #include "ship/PlayerShipController.h"
 #include "ship/PrecalcPath.h"
+#include "src/lua.h"
 
 /*
  * Class: Ship
@@ -996,12 +997,14 @@ static int l_ship_get_set_speed_target(lua_State *l)
 {
 	Ship *s = LuaObject<Ship>::CheckFromLua(1);
 	Body *t = s->GetController()->GetSetSpeedTarget();
+	/*
 	if (s->GetType() == ObjectType::PLAYER && t == nullptr) {
 		FrameId fId = s->GetFrame();
 		Frame *f = Frame::GetFrame(fId);
 		if (f)
 			t = f->GetBody();
 	}
+	*/
 	if (t)
 		LuaObject<Body>::PushToLua(t);
 	else

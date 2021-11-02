@@ -686,6 +686,59 @@ static int l_player_is_hyperspace_active(lua_State *l)
 	return 1;
 }
 
+static int l_player_get_fix_speed_mode(lua_State *l)
+{
+	Player *player = LuaObject<Player>::CheckFromLua(1);
+	auto mode = player->GetPlayerController()->GetFixSpeedMode();
+	auto str = EnumStrings::GetString("FixSpeedMode", mode);
+	assert(str && "Wrong get fix speed mode");
+	LuaPush<const char*>(l, str);
+	return 1;
+}
+
+static int l_player_set_follow_mode(lua_State *l)
+{
+	Player *player = LuaObject<Player>::CheckFromLua(1);
+	auto value = EnumStrings::GetValue("FollowMode", LuaPull<const char*>(l, 2));
+	assert(value != -1 && "Wrong set follow mode");
+	auto mode = static_cast<PlayerShipController::FollowMode>(value);
+	player->GetPlayerController()->SetFollowMode(mode);
+	return 0;
+}
+
+static int l_player_get_follow_mode(lua_State *l)
+{
+	Player *player = LuaObject<Player>::CheckFromLua(1);
+	auto mode = player->GetPlayerController()->GetFollowMode();
+	auto str = EnumStrings::GetString("FollowMode", mode);
+	assert(str && "Wrong get follow mode");
+	LuaPush<const char*>(l, str);
+	return 1;
+}
+
+static int l_player_set_speed_limit(lua_State *l)
+{
+	Player *player = LuaObject<Player>::CheckFromLua(1);
+	int s = LuaPull<int>(l, 2);
+	player->GetPlayerController()->SetSpeedLimit(s);
+	return 0;
+}
+
+static int l_player_set_main_thruster_active(lua_State *l)
+{
+	Player *player = LuaObject<Player>::CheckFromLua(1);
+	bool active = LuaPull<bool>(l, 2);
+	player->GetPropulsion()->SetMainThrusterActive(active);
+	return 0;
+}
+
+static int l_player_is_fixed_speed_reached(lua_State *l)
+{
+	Player *player = LuaObject<Player>::CheckFromLua(1);
+	LuaPush(l, player->GetPlayerController()->IsFixedSpeedReached());
+	return 1;
+}
+
 template <>
 const char *LuaObject<Player>::s_type = "Player";
 
@@ -724,6 +777,12 @@ void LuaObject<Player>::RegisterClass()
 		{ "SetLowThrustPower", l_set_low_thrust_power },
 		{ "IsHyperspaceActive", l_player_is_hyperspace_active },
 		{ "GetHyperspaceCountdown", l_player_get_hyperspace_countdown },
+		{ "GetFixSpeedMode", l_player_get_fix_speed_mode },
+		{ "SetFollowMode", l_player_set_follow_mode },
+		{ "GetFollowMode", l_player_get_follow_mode },
+		{ "SetSpeedLimit", l_player_set_speed_limit },
+		{ "SetMainThrusterActive", l_player_set_main_thruster_active },
+		{ "IsFixedSpeedReached", l_player_is_fixed_speed_reached },
 		{ 0, 0 }
 	};
 

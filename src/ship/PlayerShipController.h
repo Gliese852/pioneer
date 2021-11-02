@@ -4,6 +4,7 @@
 #pragma once
 
 #include "Input.h"
+#include "Ship.h"
 #include "ShipController.h"
 
 // autopilot AI + input
@@ -22,7 +23,7 @@ public:
 	bool IsMouseActive() const { return m_mouseActive; }
 	void SetDisableMouseFacing(bool disabled) { m_disableMouseFacing = disabled; }
 	double GetSetSpeed() const override { return m_setSpeed; }
-	void ChangeSetSpeed(double delta) override { m_setSpeed += delta; }
+	void ChangeSetSpeed(double delta) override { SetFixSpeed(m_setSpeed + delta); }
 	FlightControlState GetFlightControlState() const override { return m_flightControlState; }
 	vector3d GetMouseDir() const; // in local frame
 
@@ -51,6 +52,24 @@ public:
 	sigc::signal<void> onRotationDampingChanged;
 	sigc::signal<void> onChangeTarget;
 	sigc::signal<void> onChangeFlightControlState;
+
+	enum FixSpeedMode { // <enum scope='PlayerShipController' name=FixSpeedMode public>
+		SP_FLYING,
+		SP_DOCKING
+	};
+
+	enum FollowMode { // <enum scope='PlayerShipController' name=FollowMode public>
+		FM_POS,
+		FM_ORIENT
+	};
+
+	void SetFixSpeedMode(FixSpeedMode mode);
+	FixSpeedMode GetFixSpeedMode() const { return m_fixSpeedMode; }
+	void SetFollowMode(FollowMode mode) { m_followMode = mode; }
+	FollowMode GetFollowMode() const { return m_followMode; }
+	void SetSpeedLimit(double limit) { m_setSpeedLimit = limit; }
+
+	bool IsFixedSpeedReached() const;
 
 private:
 	struct InputBinding : public Input::InputFrame {
@@ -84,6 +103,11 @@ private:
 	// FIXME: separate the propusion controller from the input system, pass in wanted velocity correction directly.
 	friend class Propulsion;
 
+	void SetFixSpeed(double speed);
+	void SetFixSpeedFromActualVelocity();
+
+	double m_setSpeedLimit = .0;
+
 	bool IsAnyAngularThrusterKeyDown();
 	bool IsAnyLinearThrusterKeyDown();
 	//do a variety of checks to see if input is allowed
@@ -96,6 +120,7 @@ private:
 	bool m_mouseActive;
 	bool m_disableMouseFacing;
 	bool m_rotationDamping;
+	matrix3x3d m_followObjectPrevOrient;
 	double m_mouseX;
 	double m_mouseY;
 	double m_setSpeed;
@@ -108,7 +133,10 @@ private:
 	int m_setSpeedTargetIndex;
 	vector3d m_mouseDir;
 
+	FollowMode m_followMode = FM_POS;
+	FixSpeedMode m_fixSpeedMode = SP_DOCKING;
+
 	sigc::connection m_connRotationDampingToggleKey;
 	sigc::connection m_fireMissileKey;
-	sigc::connection m_setSpeedMode;
+	sigc::connection m_setSpeedToggle;
 };

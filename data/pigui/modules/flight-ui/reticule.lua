@@ -420,24 +420,57 @@ local function displayManeuverData(radius)
 	end
 end
 
+local function button_set_follow_mode(uiPos)
+	if player:GetSetSpeedTarget() then
+		ui.setNextWindowPos(uiPos + Vector2(0, 16), "Always")
+		ui.window("SET_FOLLOW_MODE_WINDOW", {"NoTitleBar", "AlwaysAutoResize", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings"},
+			function()
+				if ui.coloredSelectedButton(Game.player:GetFollowMode(), Vector2(0, 0), false, colors.buttonBlue, "", false) then
+					ui.openPopup("SET_FOLLOW_MODE_POPUP")
+				end
+				ui.popup("SET_FOLLOW_MODE_POPUP", function()
+					if ui.selectable("OFF") then Game.player:SetSetSpeedTarget(nil) end
+					if ui.selectable("FM_POS") then Game.player:SetFollowMode("FM_POS") end
+					if ui.selectable("FM_ORIENT") then Game.player:SetFollowMode("FM_ORIENT") end
+				end)
+			end)
+	end
+end
 
 local function displaySetSpeed(radius)
-	local setSpeed = player:GetSetSpeed()
-	if setSpeed ~= nil then
-		local distance, unit = ui.Format.Speed(setSpeed)
-		local uiPos = ui.pointOnClock(center, radius, 4.0)
+		local setSpeed = player:GetSetSpeed()
 		local target = player:GetSetSpeedTarget()
-		if target then
+		local uiPos
 			local color = colors.reticuleCircle
 			local colorDark = colors.reticuleCircleDark
+		if setSpeed then
+		local distance, unit = ui.Format.Speed(setSpeed)
+
+		-- flash it too big difference
+		if not player:IsFixedSpeedReached() and math.fmod(Game.time, 0.5) > 0.25 then
+			distance = ""
+			unit = ""
+		end
+
+		uiPos = ui.pointOnClock(center, radius, 3.7)
 			ui.addFancyText(uiPos, ui.anchor.left, ui.anchor.top, {
 				{ text=icons.autopilot_set_speed, color=color,     font=pionicons.medium,  tooltip="set speed" },
 				{ text=distance,                  color=color,     font=pionillium.medium, tooltip="set speed" },
 				{ text=unit,                      color=colorDark, font=pionillium.small,  tooltip="set speed" },
+			}, colors.lightBlackBackground)
+	end
+
+		uiPos = ui.pointOnClock(center, radius, 4.0)
+		if target then
+			local fixSpeedMode = player:GetFixSpeedMode()
+			ui.addFancyText(uiPos, ui.anchor.left, ui.anchor.top, {
+				{ text=fixSpeedMode,              color=colorDark, font=pionillium.medium, tooltip="set speed" },
 				{ text=' ' .. target.label,       color=color,     font=pionillium.medium, tooltip="set speed" }
 			}, colors.lightBlackBackground)
+	--		ui.addFancyText(uiPos + Vector2(0, 16), ui.anchor.left, ui.anchor.top, { { text=followMode,                color=colorDark, font=pionillium.medium, tooltip="set speed" }, }, colors.lightBlackBackground)
+	button_set_follow_mode(uiPos)
+
 		end
-	end
 end
 
 local function displayAlertMarker()

@@ -143,6 +143,7 @@ bool Player::SetWheelState(bool down)
 	bool did = Ship::SetWheelState(down);
 	if (did) {
 		s_soundUndercarriage.Play(down ? "UC_out" : "UC_in", 1.0f, 1.0f, 0);
+		GetPlayerController()->SetFixSpeedMode(down ? PlayerShipController::SP_DOCKING : PlayerShipController::SP_FLYING);
 	}
 	return did;
 }

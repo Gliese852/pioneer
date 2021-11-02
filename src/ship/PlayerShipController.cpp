@@ -77,7 +77,7 @@ PlayerShipController::PlayerShipController() :
 	m_fireMissileKey = InputBindings.secondaryFire->onPressed.connect(
 		sigc::mem_fun(this, &PlayerShipController::FireMissile));
 
-	m_setSpeedMode = InputBindings.toggleSetSpeed->onPressed.connect(
+	m_setSpeedToggle = InputBindings.toggleSetSpeed->onPressed.connect(
 		sigc::mem_fun(this, &PlayerShipController::ToggleSetSpeedMode));
 }
 
@@ -105,7 +105,7 @@ void PlayerShipController::InputBinding::RegisterBindings()
 
 PlayerShipController::~PlayerShipController()
 {
-	m_setSpeedMode.disconnect();
+	m_setSpeedToggle.disconnect();
 	m_fireMissileKey.disconnect();
 	m_connRotationDampingToggleKey.disconnect();
 
@@ -165,13 +165,80 @@ void PlayerShipController::StaticUpdate(const float timeStep)
 		switch (m_flightControlState) {
 		case CONTROL_FIXSPEED:
 			PollControls(timeStep, true, mouseMotion);
-			if (IsAnyLinearThrusterKeyDown()) break;
-			v = -m_ship->GetOrient().VectorZ() * m_setSpeed;
+
+			// apply current setspeed
+			switch (GetFixSpeedMode()) {
+				case SP_FLYING:
+					v = -m_ship->GetOrient().VectorZ() * m_setSpeed; break;
+				case  SP_DOCKING:
+					v = m_ship->GetOrient().VectorY() * m_setSpeed; break;
+				default: assert(false && "Unknown set speed mode");
+			}
+
+			if (IsAnyLinearThrusterKeyDown()) {
+				vector3d v1(0.0);
+				double maxStrafeSpeed = m_setSpeedLimit > 1e-5 ? m_setSpeedLimit : 1000; // m/s
+				if (InputBindings.thrustForward->IsActive()) {
+					auto itval = InputBindings.thrustForward->GetValue();
+					if(IsFixedSpeedReached() || GetFixSpeedMode() != SP_FLYING) {
+						v1 -= m_ship->GetOrient().VectorZ() * itval * maxStrafeSpeed;
+					}
+					if (GetFixSpeedMode() == SP_FLYING) {
+						if(IsFixedSpeedReached()) {
+							SetFixSpeedFromActualVelocity();
+						}
+						auto accel = ((itval > 0) - (itval < 0)) * m_ship->GetPropulsion()->GetAccel(itval < 0 ? THRUSTER_REVERSE : THRUSTER_FORWARD);
+						ChangeSetSpeed(accel * timeStep);
+					}
+				}
+
+				if (InputBindings.thrustUp->IsActive()) {
+					auto itval = InputBindings.thrustUp->GetValue();
+					if(IsFixedSpeedReached() || GetFixSpeedMode() != SP_DOCKING) {
+						v1 += m_ship->GetOrient().VectorY() * itval * maxStrafeSpeed;
+					}
+
+					if (GetFixSpeedMode() == SP_DOCKING) {
+						if(IsFixedSpeedReached()) {
+							SetFixSpeedFromActualVelocity();
+						}
+						auto accel = ((itval > 0) - (itval < 0)) * m_ship->GetPropulsion()->GetAccel(itval < 0 ? THRUSTER_DOWN : THRUSTER_UP);
+						ChangeSetSpeed(accel * timeStep);
+					}
+				}
+
+				if (InputBindings.thrustLeft->IsActive()) {
+					v1 += -m_ship->GetOrient().VectorX() * InputBindings.thrustLeft->GetValue() * maxStrafeSpeed;
+				}
+
+				v += v1;
+			}
+
+			// apply limit before custom frame
+			if (m_setSpeedLimit > 1e-5 && v.Length() > m_setSpeedLimit) {
+				v = v.Normalized() * m_setSpeedLimit;
+				Output("limit to: %.5f\n", v.Length());
+			}
+
+			// follow 'pos' & 'orient' mode
 			if (m_setSpeedTarget) {
 				v += m_setSpeedTarget->GetVelocityRelTo(m_ship->GetFrame());
 			}
+
+			// follow 'orient' mode
+			if(m_setSpeedTarget && m_followMode == FM_ORIENT) {
+				auto frm = Pi::player->GetFrame();
+				auto pos = Pi::player->GetPosition();
+				auto tpos = m_setSpeedTarget->GetPositionRelTo(frm);
+				auto rvel = m_setSpeedTarget->GetAngVelocity();
+				// need to calculate the tangential speed at the point where we are
+				auto tvel = rvel.Cross(pos - tpos);
+				v += tvel;
+			}
+
 			m_ship->AIMatchVel(v);
 			break;
+
 		case CONTROL_FIXHEADING_FORWARD:
 		case CONTROL_FIXHEADING_BACKWARD:
 		case CONTROL_FIXHEADING_NORMAL:
@@ -288,6 +355,8 @@ void PlayerShipController::PollControls(const float timeStep, const bool force_r
 			m_mouseX = m_mouseY = 0;
 			m_mouseActive = true;
 			Pi::input->SetCapturingMouse(true);
+			if (m_setSpeedTarget && m_followMode == FM_ORIENT)
+				m_followObjectPrevOrient = m_setSpeedTarget->GetOrient();
 		}
 		vector3d objDir = m_mouseDir * rot;
 
@@ -322,9 +391,7 @@ void PlayerShipController::PollControls(const float timeStep, const bool force_r
 			stickySpeedKey = false;
 
 		if (!stickySpeedKey) {
-			const double MAX_SPEED = 300000000;
-			m_setSpeed += InputBindings.speedControl->GetValue() * std::max(std::abs(m_setSpeed) * 0.05, 1.0);
-			m_setSpeed = Clamp(m_setSpeed, -MAX_SPEED, MAX_SPEED);
+			ChangeSetSpeed(InputBindings.speedControl->GetValue() * std::max(std::abs(m_setSpeed) * 0.05, 1.0));
 
 			if (((oldSpeed < 0.0) && (m_setSpeed >= 0.0)) ||
 				((oldSpeed > 0.0) && (m_setSpeed <= 0.0))) {
@@ -353,10 +420,34 @@ void PlayerShipController::PollControls(const float timeStep, const bool force_r
 		InputBindings.yaw->GetValue(),
 		InputBindings.roll->GetValue());
 
-	if (InputBindings.killRot->IsActive()) SetFlightControlState(CONTROL_FIXHEADING_KILLROT);
+	if(m_setSpeedTarget && m_followMode == FM_ORIENT) {
+		auto rvel = m_setSpeedTarget->GetAngVelocity() * Pi::player->GetOrient();
+		wantAngVel += rvel;
+	}
 
 	if (InputBindings.thrustLowPower->IsActive())
 		angThrustSoftness = 50.0;
+
+	if (m_mouseActive && !m_disableMouseFacing)
+	{
+		// mouse facing
+	 	//m_ship->AIFaceDirection(GetMouseDir());
+		auto &P = *Pi::player;
+		auto mouse_dir = GetMouseDir();
+		auto ship_dir = -P.GetOrient().VectorZ();
+		auto want_rot = abs(acos(mouse_dir.Dot(ship_dir)));
+		angThrustSoftness = 1.0;
+		if (want_rot > 0.000001) {
+			auto max_accel = P.GetShipType()->angThrust / P.GetAngularInertia() / angThrustSoftness;
+			auto good_speed = sqrt(2 * max_accel * want_rot) * 0.9;
+			auto rot_vel = (ship_dir.Cross(mouse_dir) * P.GetOrient()).Normalized() * good_speed;
+			wantAngVel += rot_vel;
+		}
+		else Output(" \n");
+	}
+
+	if (InputBindings.killRot->IsActive()) SetFlightControlState(CONTROL_FIXHEADING_KILLROT);
+
 
 	if (wantAngVel.Length() >= 0.001 || force_rotation_damping || m_rotationDamping) {
 		if (Pi::game->GetTimeAccel() != Game::TIMEACCEL_1X) {
@@ -367,7 +458,7 @@ void PlayerShipController::PollControls(const float timeStep, const bool force_r
 		m_ship->AIModelCoordsMatchAngVel(wantAngVel, angThrustSoftness);
 	}
 
-	if (m_mouseActive && !m_disableMouseFacing) m_ship->AIFaceDirection(GetMouseDir());
+	//if (m_mouseActive && !m_disableMouseFacing) m_ship->AIFaceDirection(GetMouseDir());
 }
 
 bool PlayerShipController::IsAnyAngularThrusterKeyDown()
@@ -390,15 +481,7 @@ void PlayerShipController::SetFlightControlState(FlightControlState s)
 	//set desired velocity to current actual
 	if (m_flightControlState == CONTROL_FIXSPEED) {
 		// Speed is set to the projection of the velocity onto the target.
-
-		vector3d shipVel = m_setSpeedTarget ?
-			// Ship's velocity with respect to the target, in current frame's coordinates
-			-m_setSpeedTarget->GetVelocityRelTo(m_ship) :
-			// Ship's velocity with respect to current frame
-			m_ship->GetVelocity();
-
-		// A change from Manual to Set Speed never sets a negative speed.
-		m_setSpeed = std::max(shipVel.Dot(-m_ship->GetOrient().VectorZ()), 0.0);
+		SetFixSpeedFromActualVelocity();
 	}
 
 	onChangeFlightControlState.emit();
@@ -476,4 +559,61 @@ void PlayerShipController::SetSetSpeedTarget(Body *const target)
 	m_setSpeedTarget = target;
 	// TODO: not sure, do we actually need this? we are only changing the set speed target
 	onChangeTarget.emit();
+}
+
+void PlayerShipController::SetFixSpeed(double speed)
+{
+	const double MAX_SPEED = m_setSpeedLimit == 0.0 ? 300000000 : m_setSpeedLimit;
+	m_setSpeed = Clamp(speed, -MAX_SPEED, MAX_SPEED);
+}
+
+
+bool PlayerShipController::IsFixedSpeedReached() const {
+
+	vector3d factVel;
+	vector3d setVel;
+	matrix3x3d orient;
+
+	const double MAX_DIFFERENCE_SQ = 10 * 10; // m/s (squared)
+
+	if(m_setSpeedTarget) {
+		factVel = m_ship->GetVelocityRelTo(m_setSpeedTarget);
+		orient = m_ship->GetOrientRelTo(m_setSpeedTarget->GetFrame());
+	} else {
+		factVel = m_ship->GetVelocity();
+		orient = m_ship->GetOrient();
+	}
+
+	switch (GetFixSpeedMode()) {
+	case SP_FLYING:
+		setVel = -orient.VectorZ() * m_setSpeed;
+		break;
+	case SP_DOCKING:
+		setVel = orient.VectorY() * m_setSpeed;
+		break;
+	default:
+		assert(false && "Unknown fix speed mode");
+	}
+
+	return (factVel - setVel).LengthSqr() < MAX_DIFFERENCE_SQ;
+}
+
+void PlayerShipController::SetFixSpeedFromActualVelocity() {
+	vector3d shipVel = m_setSpeedTarget ?
+		// Ship's velocity with respect to the target, in current frame's coordinates
+		-m_setSpeedTarget->GetVelocityRelTo(m_ship) :
+		// Ship's velocity with respect to current frame
+		m_ship->GetVelocity();
+
+	if (m_fixSpeedMode == SP_FLYING) {
+		SetFixSpeed(shipVel.Dot(-m_ship->GetOrient().VectorZ()));
+	} else { // SP_DOCKING
+		SetFixSpeed(shipVel.Dot(m_ship->GetOrient().VectorY()));
+	}
+}
+
+void PlayerShipController::SetFixSpeedMode(FixSpeedMode mode)
+{
+	m_fixSpeedMode = mode;
+	SetFixSpeedFromActualVelocity();
 }

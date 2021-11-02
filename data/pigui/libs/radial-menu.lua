@@ -55,6 +55,20 @@ function ui.openRadialMenu(target, mouse_button, size, actions)
 	radialMenuPos.y = math.min(math.max(radialMenuPos.y, size*3), ui.screenHeight - size*3)
 end
 
+local radial_menu_action_follow =
+	{icon=ui.theme.icons.medium_courier, tooltip="FOLLOW_IT",
+	action=function(target)
+		Game.player:SetSetSpeedTarget(target)
+		if target:IsStation() then
+			Game.player:SetFollowMode("FM_ORIENT")
+		else
+			Game.player:SetFollowMode("FM_POS")
+		end
+		if (Game.player:GetFlightControlState() == "CONTROL_AUTOPILOT") then
+			Game.player:SetFlightControlState("CONTROL_FIXSPEED")
+		end
+end}
+
 -- TODO: add cloud Lang::SET_HYPERSPACE_TARGET_TO_FOLLOW_THIS_DEPARTURE
 local radial_menu_actions_station = {
 	{icon=ui.theme.icons.comms, tooltip=lc.REQUEST_DOCKING_CLEARANCE,
@@ -137,10 +151,13 @@ function ui.openDefaultRadialMenu(body)
 			for _,v in pairs(radial_menu_actions_station) do
 				table.insert(actions, v)
 			end
+			table.insert(actions, radial_menu_action_follow)
 		elseif body:GetSystemBody() then
 			for _,v in pairs(radial_menu_actions_systembody) do
 				table.insert(actions, v)
 			end
+		else
+				table.insert(actions, radial_menu_action_follow)
 		end
 		ui.openRadialMenu(body, 1, 30, actions)
 	end

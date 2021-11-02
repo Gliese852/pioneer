@@ -18,6 +18,7 @@
 #include "lua/LuaFileSystem.h"
 #include "pigui/Face.h"
 #include "scenegraph/Model.h"
+#include "ship/PlayerShipController.h"
 #include "ship/Propulsion.h"
 #include "ship/ShipController.h"
 
@@ -252,6 +253,19 @@ const struct EnumItem ENUM_ModelDebugFlags[] = {
 	{ "WIREFRAME", int(SceneGraph::Model::DEBUG_WIREFRAME) },
 	{ "TAGS", int(SceneGraph::Model::DEBUG_TAGS) },
 	{ "DOCKING", int(SceneGraph::Model::DEBUG_DOCKING) },
+	{ "GEOMBBOX", int(SceneGraph::Model::DEBUG_GEOMBBOX) },
+	{ 0, 0 },
+};
+
+const struct EnumItem ENUM_FixSpeedMode[] = {
+	{ "SP_FLYING", int(PlayerShipController::SP_FLYING) },
+	{ "SP_DOCKING", int(PlayerShipController::SP_DOCKING) },
+	{ 0, 0 },
+};
+
+const struct EnumItem ENUM_FollowMode[] = {
+	{ "FM_POS", int(PlayerShipController::FM_POS) },
+	{ "FM_ORIENT", int(PlayerShipController::FM_ORIENT) },
 	{ 0, 0 },
 };
 
@@ -307,6 +321,8 @@ const struct EnumTable ENUM_TABLES[] = {
 	{ "FileSystemRoot", ENUM_FileSystemRoot },
 	{ "PiGuiFaceFlags", ENUM_PiGuiFaceFlags },
 	{ "ModelDebugFlags", ENUM_ModelDebugFlags },
+	{ "FixSpeedMode", ENUM_FixSpeedMode },
+	{ "FollowMode", ENUM_FollowMode },
 	{ "ShipTypeThruster", ENUM_ShipTypeThruster },
 	{ "PropulsionFuelStatus", ENUM_PropulsionFuelStatus },
 	{ "ShipControllerFlightControlState", ENUM_ShipControllerFlightControlState },
@@ -334,6 +350,8 @@ const struct EnumTable ENUM_TABLES_PUBLIC[] = {
 	{ "FileSystemRoot", ENUM_FileSystemRoot },
 	{ "PiGuiFaceFlags", ENUM_PiGuiFaceFlags },
 	{ "ModelDebugFlags", ENUM_ModelDebugFlags },
+	{ "FixSpeedMode", ENUM_FixSpeedMode },
+	{ "FollowMode", ENUM_FollowMode },
 	{ "ShipTypeThruster", ENUM_ShipTypeThruster },
 	{ "PropulsionFuelStatus", ENUM_PropulsionFuelStatus },
 	{ "ShipControllerFlightControlState", ENUM_ShipControllerFlightControlState },

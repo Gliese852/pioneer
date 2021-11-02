@@ -133,11 +133,6 @@ local function displayOnScreenObjects()
 					else
 						player:SetCombatTarget(nil)
 					end
-					-- if not in setspeed mode or ctrl-click and is setspeed target,
-					-- clear setspeed target
-					if not player:GetSetSpeed() or (ui.ctrlHeld() and group.hasSetSpeedTarget) then
-						player:SetSetSpeedTarget(nil)
-					end
 				elseif not group.multiple then
 					-- clicked on single, just set navtarget/combatTarget
 					setTarget(mainBody)
@@ -146,7 +141,7 @@ local function displayOnScreenObjects()
 						player:SetSetSpeedTarget(mainBody)
 					elseif not player:GetSetSpeed() then
 						-- clear setspeed target if not in setspeed mode
-						player:SetSetSpeedTarget(nil)
+						-- player:SetSetSpeedTarget(nil)
 					end
 				else
 					-- clicked on group, show popup
@@ -172,7 +167,7 @@ local function displayOnScreenObjects()
 						player:SetSetSpeedTarget(b)
 					elseif not player:GetSetSpeed() then
 						-- clear setspeed target if not in setspeed mode
-						player:SetSetSpeedTarget(nil)
+						-- player:SetSetSpeedTarget(nil)
 					end
 				end
 			end

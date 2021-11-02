@@ -36,6 +36,8 @@ extern const struct EnumItem ENUM_DetailLevel[];
 extern const struct EnumItem ENUM_FileSystemRoot[];
 extern const struct EnumItem ENUM_PiGuiFaceFlags[];
 extern const struct EnumItem ENUM_ModelDebugFlags[];
+extern const struct EnumItem ENUM_FixSpeedMode[];
+extern const struct EnumItem ENUM_FollowMode[];
 extern const struct EnumItem ENUM_ShipTypeThruster[];
 extern const struct EnumItem ENUM_PropulsionFuelStatus[];
 extern const struct EnumItem ENUM_ShipControllerFlightControlState[];

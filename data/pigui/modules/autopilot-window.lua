@@ -152,6 +152,18 @@ local function button_flight_control()
 
 end
 
+local speed_limit_str = "0"
+local function speed_limit()
+	ui.sameLine()
+	ui.text("SPDLIMIT")
+	ui.sameLine()
+	local new_str, changed = ui.inputText("", speed_limit_str, {"CharsDecimal", "CharsNoBlank", "EnterReturnsTrue"})
+	if changed then
+		speed_limit_str = new_str
+		Game.player:SetSpeedLimit(tonumber(new_str))
+	end
+end
+
 local function displayAutoPilotWindow()
 	if ui.optionsWindow.isOpen then return end
 	player = Game.player
@@ -165,6 +177,7 @@ local function displayAutoPilotWindow()
 								button_undock()
 
 								button_flight_control()
+								speed_limit()
 							end -- current_view == "world"
 	end)
 end
