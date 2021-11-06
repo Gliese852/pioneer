@@ -8,19 +8,12 @@
 #include "JsonUtils.h"
 #include "scenegraph/Model.h"
 #include "vector3.h"
+#include "ThrusterConfig.h"
 
 class Camera;
 class Space;
+struct ShipType;
 
-enum Thruster { // <enum scope='Thruster' name=ShipTypeThruster prefix=THRUSTER_ public>
-	THRUSTER_REVERSE,
-	THRUSTER_FORWARD,
-	THRUSTER_UP,
-	THRUSTER_DOWN,
-	THRUSTER_LEFT,
-	THRUSTER_RIGHT,
-	THRUSTER_MAX // <enum skip>
-};
 
 class Propulsion : public RefCounted {
 public:
@@ -28,14 +21,13 @@ public:
 	Propulsion();
 	virtual ~Propulsion(){};
 	// Acceleration cap is infinite
-	void Init(DynamicBody *b, SceneGraph::Model *m, const int tank_mass, const double effExVel, const float lin_Thrust[], const float ang_Thrust);
-	void Init(DynamicBody *b, SceneGraph::Model *m, const int tank_mass, const double effExVel, const float lin_Thrust[], const float ang_Thrust, const float lin_AccelerationCap[]);
+	void Init(DynamicBody *b, SceneGraph::Model *m, const ShipType *t);
 
 	virtual void SaveToJson(Json &jsonObj, Space *space);
 	virtual void LoadFromJson(const Json &jsonObj, Space *space);
 
 	// Bonus:
-	void SetThrustPowerMult(double p, const float lin_Thrust[], const float ang_Thrust);
+	void SetThrustPowerMult(double p, const ThrusterArray lin_Thrust, const float ang_Thrust);
 	void SetAccelerationCapMult(double p, const float lin_AccelerationCap[]);
 
 	// Thrust and thruster functions
@@ -116,8 +108,11 @@ public:
 	double AIFaceDirection(const vector3d &dir, double av = 0);
 	vector3d AIGetLeadDir(const Body *target, const vector3d &targaccel, double projspeed);
 
+	void SetMainThrusterActive(bool isActive);
+
 private:
 	// Thrust and thrusters
+	ThrusterArray m_linThrusterArray;
 	float m_linThrust[THRUSTER_MAX];
 	float m_angThrust;
 	vector3d m_linThrusters; // 0.0-1.0, thruster levels
@@ -131,6 +126,7 @@ private:
 	double m_reserveFuel; // 0.0-1.0, fuel not to touch for the current AI program
 	double m_effectiveExhaustVelocity;
 	bool m_fuelStateChange;
+	uint8_t m_thrusterConfig;
 
 	const DynamicBody *m_dBody;
 	SceneGraph::Model *m_smodel;

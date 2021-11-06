@@ -228,7 +228,7 @@ void Ship::Init()
 	p.Set("fuelMassLeft", m_stats.fuel_tank_mass_left);
 
 	// Init of Propulsion:
-	GetPropulsion()->Init(this, GetModel(), m_type->fuelTankMass, m_type->effectiveExhaustVelocity, m_type->linThrust, m_type->angThrust, m_type->linAccelerationCap);
+	GetPropulsion()->Init(this, GetModel(), m_type);
 
 	p.Set("shipName", m_shipName);
 

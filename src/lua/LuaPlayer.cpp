@@ -15,6 +15,7 @@
 #include "WorldView.h"
 #include "galaxy/Galaxy.h"
 #include "ship/PlayerShipController.h"
+#include "src/lua.h"
 
 /*
  * Class: Player

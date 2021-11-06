@@ -49,6 +49,7 @@ Intro::Intro(Graphics::Renderer *r, int width, int height) :
 	for (auto i : ShipType::player_ships) {
 		SceneGraph::Model *model = Pi::FindModel(ShipType::types[i].modelName)->MakeInstance();
 		model->SetThrust(vector3f(0.f, 0.f, -0.6f), vector3f(0.f));
+		model->SetMainThrusterActive(191); // 10111111 show only main thrusters 
 		if (ShipType::types[i].isGlobalColorDefined) model->SetThrusterColor(ShipType::types[i].globalThrusterColor);
 		for (int j = 0; j < THRUSTER_MAX; j++) {
 			if (!ShipType::types[i].isDirectionColorDefined[j]) continue;

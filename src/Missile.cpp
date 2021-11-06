@@ -44,7 +44,7 @@ Missile::Missile(const ShipType::Id &shipId, Body *owner, int power)
 	m_aiMessage = AIERROR_NONE;
 	m_decelerating = false;
 
-	GetPropulsion()->Init(this, GetModel(), m_type->fuelTankMass, m_type->effectiveExhaustVelocity, m_type->linThrust, m_type->angThrust);
+	GetPropulsion()->Init(this, GetModel(), m_type);
 }
 
 Missile::Missile(const Json &jsonObj, Space *space) :
@@ -69,7 +69,7 @@ Missile::Missile(const Json &jsonObj, Space *space) :
 		throw SavedGameCorruptException();
 	}
 
-	GetPropulsion()->Init(this, GetModel(), m_type->fuelTankMass, m_type->effectiveExhaustVelocity, m_type->linThrust, m_type->angThrust);
+	GetPropulsion()->Init(this, GetModel(), m_type);
 }
 
 void Missile::SaveToJson(Json &jsonObj, Space *space)

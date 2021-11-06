@@ -8,6 +8,9 @@
 #include "Pi.h"
 #include "Player.h"
 #include "PlayerShipController.h"
+#include "enum_table.h"
+#include "EnumStrings.h"
+#include "ship/ThrusterConfig.h"
 
 void Propulsion::SaveToJson(Json &jsonObj, Space *space)
 {
@@ -49,37 +52,39 @@ Propulsion::Propulsion()
 	m_thrusterFuel = 0.0; //0.0-1.0, remaining fuel
 	m_reserveFuel = 0.0;
 	m_fuelStateChange = false;
+	m_thrusterConfig = 0;
 	m_linThrusters = vector3d(0, 0, 0);
 	m_angThrusters = vector3d(0, 0, 0);
 	m_smodel = nullptr;
 	m_dBody = nullptr;
 }
 
-void Propulsion::Init(DynamicBody *b, SceneGraph::Model *m, const int tank_mass, const double effExVel, const float lin_Thrust[], const float ang_Thrust)
+
+void Propulsion::Init(DynamicBody *b, SceneGraph::Model *m, const ShipType *t)
 {
-	m_fuelTankMass = tank_mass;
-	m_effectiveExhaustVelocity = effExVel;
+	m_fuelTankMass = t->fuelTankMass;
+	m_effectiveExhaustVelocity = t->effectiveExhaustVelocity;
 	for (int i = 0; i < Thruster::THRUSTER_MAX; i++)
-		m_linThrust[i] = lin_Thrust[i];
+		for(int j = 0; j < THRTYPE_MAX; ++j)
+			m_linThrusterArray[i][j] = t->linThrust[i][j];
 	for (int i = 0; i < Thruster::THRUSTER_MAX; i++)
 		m_linAccelerationCap[i] = INFINITY;
-	m_angThrust = ang_Thrust;
+	m_thrusterConfig = t->mainThrusters;
+	SetMainThrusterActive(false);
+	m_angThrust = t->angThrust;
 	m_smodel = m;
 	m_dBody = b;
-}
-
-void Propulsion::Init(DynamicBody *b, SceneGraph::Model *m, const int tank_mass, const double effExVel, const float lin_Thrust[], const float ang_Thrust, const float lin_AccelerationCap[])
-{
-	Init(b, m, tank_mass, effExVel, lin_Thrust, ang_Thrust);
 	for (int i = 0; i < Thruster::THRUSTER_MAX; i++)
-		m_linAccelerationCap[i] = lin_AccelerationCap[i];
+		m_linAccelerationCap[i] = t->linAccelerationCap[i];
 }
 
-void Propulsion::SetThrustPowerMult(double p, const float lin_Thrust[], const float ang_Thrust)
+
+void Propulsion::SetThrustPowerMult(double p, const ThrusterArray lin_Thrust, const float ang_Thrust)
 {
 	// Init of Propulsion:
 	for (int i = 0; i < Thruster::THRUSTER_MAX; i++)
-		m_linThrust[i] = lin_Thrust[i] * p;
+		for (int j = 0; j < THRTYPE_MAX; ++j)
+			m_linThrusterArray[i][j] = lin_Thrust[i][j] * p;
 	m_angThrust = ang_Thrust * p;
 }
 
@@ -230,7 +235,10 @@ void Propulsion::Render(Graphics::Renderer *r, const Camera *camera, const vecto
 	 * thruster and so on)... this code is :-/
 	*/
 	//angthrust negated, for some reason
-	if (m_smodel != nullptr) m_smodel->SetThrust(vector3f(GetLinThrusterState()), -vector3f(GetAngThrusterState()));
+	if (m_smodel != nullptr) { 
+		m_smodel->SetThrust(vector3f(GetLinThrusterState()), -vector3f(GetAngThrusterState()));
+		m_smodel->SetMainThrusterActive(m_thrusterConfig);
+	}
 }
 
 void Propulsion::AIModelCoordsMatchAngVel(const vector3d &desiredAngVel, double softness)
@@ -468,4 +476,11 @@ vector3d Propulsion::AIGetLeadDir(const Body *target, const vector3d &targaccel,
 		leadpos = targpos;
 	}
 	return leadpos.Normalized();
+}
+
+void Propulsion::SetMainThrusterActive(bool isActive) {
+	m_thrusterConfig = isActive ? m_thrusterConfig | TF_MAIN : m_thrusterConfig ^ TF_MAIN;
+	for(int i = 0; i < THRUSTER_MAX; ++i) {
+		m_linThrust[i] = m_linThrusterArray[i][isActive ? THRTYPE_MAIN : THRTYPE_RCS];
+	}
 }

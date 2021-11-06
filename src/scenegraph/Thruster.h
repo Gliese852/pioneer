@@ -8,6 +8,8 @@
  */
 #include "Node.h"
 #include "libs.h"
+#include "ship/ThrusterConfig.h"
+#include <random>
 
 namespace Graphics {
 	class Renderer;
@@ -20,7 +22,7 @@ namespace SceneGraph {
 
 	class Thruster : public Node {
 	public:
-		Thruster(Graphics::Renderer *, bool linear, const vector3f &pos, const vector3f &dir);
+		Thruster(Graphics::Renderer *, uint8_t flags, const vector3f &pos, const vector3f &dir);
 		Thruster(const Thruster &, NodeCopyCache *cache = 0);
 		Node *Clone(NodeCopyCache *cache = 0) override;
 		virtual void Accept(NodeVisitor &v) override;
@@ -40,7 +42,7 @@ namespace SceneGraph {
 
 		RefCountedPtr<Graphics::Material> m_tMat;
 		RefCountedPtr<Graphics::Material> m_glowMat;
-		bool linearOnly;
+		uint8_t flags;
 		vector3f dir;
 		vector3f pos;
 		Color currentColor;

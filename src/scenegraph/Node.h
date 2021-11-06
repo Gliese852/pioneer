@@ -44,6 +44,7 @@ namespace SceneGraph {
 	struct RenderData {
 		float linthrust[3]; // 1.0 to -1.0
 		float angthrust[3]; // 1.0 to -1.0
+		uint8_t mainThrusterActive;
 		Color customColor;
 
 		float boundingRadius; //updated by model and passed to submodels
@@ -52,6 +53,7 @@ namespace SceneGraph {
 		RenderData() :
 			linthrust(),
 			angthrust(),
+			mainThrusterActive(),
 			boundingRadius(0.f),
 			nodemask(NODE_SOLID) //draw solids
 		{

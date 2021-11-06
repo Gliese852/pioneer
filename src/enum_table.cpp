@@ -21,6 +21,7 @@
 #include "ship/PlayerShipController.h"
 #include "ship/Propulsion.h"
 #include "ship/ShipController.h"
+#include "ship/ThrusterConfig.h"
 
 const struct EnumItem ENUM_PhysicsObjectType[] = {
 	{ "BODY", int(ObjectType::BODY) },
@@ -269,16 +270,6 @@ const struct EnumItem ENUM_FollowMode[] = {
 	{ 0, 0 },
 };
 
-const struct EnumItem ENUM_ShipTypeThruster[] = {
-	{ "REVERSE", int(Thruster::THRUSTER_REVERSE) },
-	{ "FORWARD", int(Thruster::THRUSTER_FORWARD) },
-	{ "UP", int(Thruster::THRUSTER_UP) },
-	{ "DOWN", int(Thruster::THRUSTER_DOWN) },
-	{ "LEFT", int(Thruster::THRUSTER_LEFT) },
-	{ "RIGHT", int(Thruster::THRUSTER_RIGHT) },
-	{ 0, 0 },
-};
-
 const struct EnumItem ENUM_PropulsionFuelStatus[] = {
 	{ "OK", int(Propulsion::FUEL_OK) },
 	{ "WARNING", int(Propulsion::FUEL_WARNING) },
@@ -297,6 +288,16 @@ const struct EnumItem ENUM_ShipControllerFlightControlState[] = {
 	{ "CONTROL_FIXHEADING_RADIALLY_OUTWARD", int(FlightControlState::CONTROL_FIXHEADING_RADIALLY_OUTWARD) },
 	{ "CONTROL_FIXHEADING_KILLROT", int(FlightControlState::CONTROL_FIXHEADING_KILLROT) },
 	{ "CONTROL_AUTOPILOT", int(FlightControlState::CONTROL_AUTOPILOT) },
+	{ 0, 0 },
+};
+
+const struct EnumItem ENUM_ShipTypeThruster[] = {
+	{ "REVERSE", int(Thruster::THRUSTER_REVERSE) },
+	{ "FORWARD", int(Thruster::THRUSTER_FORWARD) },
+	{ "UP", int(Thruster::THRUSTER_UP) },
+	{ "DOWN", int(Thruster::THRUSTER_DOWN) },
+	{ "LEFT", int(Thruster::THRUSTER_LEFT) },
+	{ "RIGHT", int(Thruster::THRUSTER_RIGHT) },
 	{ 0, 0 },
 };
 
@@ -323,9 +324,9 @@ const struct EnumTable ENUM_TABLES[] = {
 	{ "ModelDebugFlags", ENUM_ModelDebugFlags },
 	{ "FixSpeedMode", ENUM_FixSpeedMode },
 	{ "FollowMode", ENUM_FollowMode },
-	{ "ShipTypeThruster", ENUM_ShipTypeThruster },
 	{ "PropulsionFuelStatus", ENUM_PropulsionFuelStatus },
 	{ "ShipControllerFlightControlState", ENUM_ShipControllerFlightControlState },
+	{ "ShipTypeThruster", ENUM_ShipTypeThruster },
 	{ 0, 0 },
 };
 
@@ -352,8 +353,8 @@ const struct EnumTable ENUM_TABLES_PUBLIC[] = {
 	{ "ModelDebugFlags", ENUM_ModelDebugFlags },
 	{ "FixSpeedMode", ENUM_FixSpeedMode },
 	{ "FollowMode", ENUM_FollowMode },
-	{ "ShipTypeThruster", ENUM_ShipTypeThruster },
 	{ "PropulsionFuelStatus", ENUM_PropulsionFuelStatus },
 	{ "ShipControllerFlightControlState", ENUM_ShipControllerFlightControlState },
+	{ "ShipTypeThruster", ENUM_ShipTypeThruster },
 	{ 0, 0 },
 };

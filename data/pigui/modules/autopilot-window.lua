@@ -154,13 +154,23 @@ end
 
 local speed_limit_str = "0"
 local function speed_limit()
-	ui.sameLine()
-	ui.text("SPDLIMIT")
+	ui.text("SPEED LIMIT")
 	ui.sameLine()
 	local new_str, changed = ui.inputText("", speed_limit_str, {"CharsDecimal", "CharsNoBlank", "EnterReturnsTrue"})
 	if changed then
 		speed_limit_str = new_str
 		Game.player:SetSpeedLimit(tonumber(new_str))
+	end
+end
+
+local main_thruster_enabled = false
+local function main_thruster()
+	ui.text("MAIN THRUSTER: ")
+	ui.sameLine()
+	if ui.selectable(main_thruster_enabled and "ON" or "OFF") then
+	-- if ui.selectable("TOGGLE") then
+		main_thruster_enabled = not main_thruster_enabled
+		Game.player:SetMainThrusterActive(main_thruster_enabled)
 	end
 end
 
@@ -177,6 +187,13 @@ local function displayAutoPilotWindow()
 								button_undock()
 
 								button_flight_control()
+							end -- current_view == "world"
+	end)
+	ui.setNextWindowPos(Vector2(ui.screenWidth/2 + ui.reticuleCircleRadius / 4 * 3 + mainButtonSize.x, ui.screenHeight - mainButtonSize.y * 3.5 - 8) , "Always")
+	ui.window("TestFeatures", {"NoTitleBar", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings"},
+						function()
+							if current_view == "world" then
+								main_thruster()
 								speed_limit()
 							end -- current_view == "world"
 	end)

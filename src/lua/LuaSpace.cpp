@@ -18,6 +18,7 @@
 #include "Space.h"
 #include "SpaceStation.h"
 #include "ship/PrecalcPath.h"
+#include "ship/ThrusterConfig.h"
 
 /*
  * Interface: Space
@@ -241,7 +242,7 @@ static int l_space_put_ship_on_route(lua_State *l)
 		route.Length(), // distance
 		0.0,			// velocity at start
 		st->effectiveExhaustVelocity,
-		st->linThrust[THRUSTER_FORWARD],
+		st->linThrust[THRUSTER_FORWARD][THRTYPE_RCS],
 		st->linAccelerationCap[THRUSTER_FORWARD],
 		1000 * (ss.static_mass + ss.fuel_tank_mass_left), // 100% mass of the ship
 		1000 * ss.fuel_tank_mass_left * 0.8,			  // multipied to 0.8 have fuel reserve

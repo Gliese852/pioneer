@@ -5,6 +5,7 @@
 #define _SHIPTYPE_H
 
 #include "ship/Propulsion.h"
+#include "ship/ThrusterConfig.h"
 #include <map>
 #include <string>
 #include <vector>
@@ -34,7 +35,8 @@ struct ShipType {
 	std::string manufacturer;
 	std::string modelName;
 	std::string cockpitName;
-	float linThrust[THRUSTER_MAX];
+	ThrusterArray linThrust;
+	uint8_t mainThrusters;
 	float angThrust;
 	float linAccelerationCap[THRUSTER_MAX];
 	std::map<std::string, int> slots;

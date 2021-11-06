@@ -13,6 +13,7 @@
 #include "graphics/Renderer.h"
 #include "graphics/TextureBuilder.h"
 #include "scenegraph/Animation.h"
+#include "ship/ThrusterConfig.h"
 #include "utils.h"
 #include <assimp/material.h>
 #include <assimp/postprocess.h>
@@ -743,7 +744,9 @@ namespace SceneGraph {
 		PROFILE_SCOPED()
 		if (!m_mostDetailedLod) return AddLog("Thruster outside highest LOD, ignored");
 
-		const bool linear = starts_with(name, "thruster_linear");
+		uint8_t flags = 0;
+		flags |= starts_with(name, "thruster_linear") * TF_LINEAR;
+		flags |= bool(pi_strcasestr(name.c_str(), "main")) * TF_MAIN;
 
 		matrix4x4f transform = m;
 
@@ -754,7 +757,9 @@ namespace SceneGraph {
 
 		const vector3f direction = transform * vector3f(0.f, 0.f, 1.f);
 
-		Thruster *thruster = new Thruster(m_renderer, linear,
+		flags |= ThrusterFlagFromDirection(direction);
+
+		Thruster *thruster = new Thruster(m_renderer, flags,
 			pos, direction.Normalized());
 
 		thruster->SetName(name);

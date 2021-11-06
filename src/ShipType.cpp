@@ -1,6 +1,8 @@
 // Copyright © 2008-2021 Pioneer Developers. See AUTHORS.txt for details
 // Licensed under the terms of the GPL v3. See licenses/GPL-3.txt
 
+#include "ship/Propulsion.h"
+#include "ship/ThrusterConfig.h"
 #define ALLOW_LUA_SHIP_DEF 0
 
 #include "ShipType.h"
@@ -33,7 +35,7 @@ const std::string ShipType::MISSILE_UNGUIDED = "missile_unguided";
 float ShipType::GetFuelUseRate() const
 {
 	const float denominator = fuelTankMass * effectiveExhaustVelocity * 10;
-	return denominator > 0 ? linThrust[THRUSTER_FORWARD] / denominator : 1e9;
+	return denominator > 0 ? linThrust[0][THRUSTER_FORWARD] / denominator : 1e9;
 }
 
 // returns velocity of engine exhausts in m/s
@@ -77,12 +79,31 @@ ShipType::ShipType(const Id &_id, const std::string &path)
 	modelName = data.value("model", "");
 	cockpitName = data.value("cockpit", "");
 
-	linThrust[THRUSTER_REVERSE] = data.value("reverse_thrust", 0.0f);
-	linThrust[THRUSTER_FORWARD] = data.value("forward_thrust", 0.0f);
-	linThrust[THRUSTER_UP] = data.value("up_thrust", 0.0f);
-	linThrust[THRUSTER_DOWN] = data.value("down_thrust", 0.0f);
-	linThrust[THRUSTER_LEFT] = data.value("left_thrust", 0.0f);
-	linThrust[THRUSTER_RIGHT] = data.value("right_thrust", 0.0f);
+	linThrust[THRUSTER_REVERSE][THRTYPE_RCS] = data.value("reverse_thrust", 0.0f);
+	linThrust[THRUSTER_FORWARD][THRTYPE_RCS] = data.value("forward_thrust", 0.0f);
+	linThrust[THRUSTER_UP][THRTYPE_RCS] = data.value("up_thrust", 0.0f);
+	linThrust[THRUSTER_DOWN][THRTYPE_RCS] = data.value("down_thrust", 0.0f);
+	linThrust[THRUSTER_LEFT][THRTYPE_RCS] = data.value("left_thrust", 0.0f);
+	linThrust[THRUSTER_RIGHT][THRTYPE_RCS] = data.value("right_thrust", 0.0f);
+
+	linThrust[THRUSTER_REVERSE][THRTYPE_MAIN] = data.value("reverse_thrust_main", 0.0f);
+	linThrust[THRUSTER_FORWARD][THRTYPE_MAIN] = data.value("forward_thrust_main", 0.0f);
+	linThrust[THRUSTER_UP][THRTYPE_MAIN] = data.value("up_thrust_main", 0.0f);
+	linThrust[THRUSTER_DOWN][THRTYPE_MAIN] = data.value("down_thrust_main", 0.0f);
+	linThrust[THRUSTER_LEFT][THRTYPE_MAIN] = data.value("left_thrust_main", 0.0f);
+	linThrust[THRUSTER_RIGHT][THRTYPE_MAIN] = data.value("right_thrust_main", 0.0f);
+
+	// determine the configuration of the main engines
+	// in which direction the main engine is present
+	mainThrusters = 0;
+	for(int i = 0; i < 6; ++i) { // XXX: DO "MAX" after erasing THRUSTER_MAIN
+		if (linThrust[i][THRTYPE_MAIN] > 1e-6) {
+			mainThrusters |= 1 << i;
+		} else {
+			linThrust[i][THRTYPE_MAIN] = linThrust[i][THRTYPE_RCS];
+		}
+	}
+
 	angThrust = data.value("angular_thrust", 0.0f);
 
 	linAccelerationCap[THRUSTER_REVERSE] = data.value("reverse_acceleration_cap", INFINITY);
@@ -221,7 +242,7 @@ ShipType::ShipType(const Id &_id, const std::string &path)
 		effectiveExhaustVelocity = 55000000;
 	} else if (effectiveExhaustVelocity < 0 && thruster_fuel_use >= 0) {
 		// v_c undefined and thruster fuel use defined -- use it!
-		effectiveExhaustVelocity = GetEffectiveExhaustVelocity(fuelTankMass, thruster_fuel_use, linThrust[Thruster::THRUSTER_FORWARD]);
+		effectiveExhaustVelocity = GetEffectiveExhaustVelocity(fuelTankMass, thruster_fuel_use, linThrust[0][Thruster::THRUSTER_FORWARD]);
 	} else {
 		if (thruster_fuel_use >= 0) {
 			Output("Warning: Both thruster_fuel_use and effective_exhaust_velocity defined for %s, using effective_exhaust_velocity.\n", modelName.c_str());

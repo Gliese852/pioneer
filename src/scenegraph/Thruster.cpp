@@ -12,6 +12,8 @@
 #include "graphics/TextureBuilder.h"
 #include "graphics/VertexArray.h"
 #include "graphics/VertexBuffer.h"
+#include "ship/ThrusterConfig.h"
+#include <random>
 
 namespace SceneGraph {
 
@@ -21,13 +23,14 @@ namespace SceneGraph {
 	static const std::string thrusterTextureFilename("textures/thruster.dds");
 	static const std::string thrusterGlowTextureFilename("textures/halo.dds");
 	static Color baseColor(178, 153, 255, 255);
+	static Color mainColor(255, 165, 0, 255);
 
-	Thruster::Thruster(Graphics::Renderer *r, bool _linear, const vector3f &_pos, const vector3f &_dir) :
+	Thruster::Thruster(Graphics::Renderer *r, uint8_t _flags, const vector3f &_pos, const vector3f &_dir) :
 		Node(r, NODE_TRANSPARENT),
-		linearOnly(_linear),
+		flags(_flags),
 		dir(_dir),
 		pos(_pos),
-		currentColor(baseColor)
+		currentColor( flags & TF_MAIN ? mainColor : baseColor)
 	{
 		//set up materials
 		Graphics::MaterialDescriptor desc;
@@ -42,19 +45,19 @@ namespace SceneGraph {
 		m_tMat.Reset(r->CreateMaterial("unlit", desc, rsd));
 		m_tMat->SetTexture(Graphics::Renderer::GetName("texture0"),
 			Graphics::TextureBuilder::Billboard(thrusterTextureFilename).GetOrCreateTexture(r, "billboard"));
-		m_tMat->diffuse = baseColor;
+		m_tMat->diffuse = currentColor;
 
 		m_glowMat.Reset(r->CreateMaterial("unlit", desc, rsd));
 		m_glowMat->SetTexture(Graphics::Renderer::GetName("texture0"),
 			Graphics::TextureBuilder::Billboard(thrusterGlowTextureFilename).GetOrCreateTexture(r, "billboard"));
-		m_glowMat->diffuse = baseColor;
+		m_glowMat->diffuse = currentColor;
 	}
 
 	Thruster::Thruster(const Thruster &thruster, NodeCopyCache *cache) :
 		Node(thruster, cache),
 		m_tMat(thruster.m_tMat),
 		m_glowMat(thruster.m_glowMat),
-		linearOnly(thruster.linearOnly),
+		flags(thruster.flags),
 		dir(thruster.dir),
 		pos(thruster.pos),
 		currentColor(thruster.currentColor)
@@ -76,7 +79,20 @@ namespace SceneGraph {
 		PROFILE_SCOPED()
 		float power = -dir.Dot(vector3f(rd->linthrust));
 
-		if (!linearOnly) {
+		// main thruster - don't render if main engines display disabled
+		if (flags & TF_MAIN && !(rd->mainThrusterActive & TF_MAIN) &&
+				// judging by the configuration, there should be main engines in the this direction
+				flags & rd->mainThrusterActive
+				) return;
+		// rcs - don't render if
+		if (!(flags & TF_MAIN) &&
+				// main engines display enabled
+				rd->mainThrusterActive & TF_MAIN &&
+				// judging by the configuration, there are main engines in the same direction
+				flags & rd->mainThrusterActive
+				) return;
+
+		if (!(flags & TF_LINEAR)) {
 			// pitch X
 			// yaw   Y
 			// roll  Z
@@ -99,6 +115,13 @@ namespace SceneGraph {
 		}
 		if (power < 0.001f) return;
 
+		// some random
+		std::random_device rdev;
+		std::seed_seq seed{rdev()};
+		std::mt19937 eng(seed);
+		std::uniform_real_distribution<double> urd(0.8, 1.0);
+		power *= urd(eng);
+
 		m_tMat->diffuse = m_glowMat->diffuse = currentColor * power;
 
 		//directional fade
@@ -120,17 +143,17 @@ namespace SceneGraph {
 	void Thruster::Save(NodeDatabase &db)
 	{
 		Node::Save(db);
-		db.wr->Bool(linearOnly);
+		db.wr->Byte(flags);
 		db.wr->Vector3f(dir);
 		db.wr->Vector3f(pos);
 	}
 
 	Thruster *Thruster::Load(NodeDatabase &db)
 	{
-		const bool linear = db.rd->Bool();
+		const uint8_t flags = db.rd->Byte();
 		const vector3f dir = db.rd->Vector3f();
 		const vector3f pos = db.rd->Vector3f();
-		Thruster *t = new Thruster(db.loader->GetRenderer(), linear, pos, dir);
+		Thruster *t = new Thruster(db.loader->GetRenderer(), flags, pos, dir);
 		return t;
 	}
 
