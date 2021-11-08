@@ -25,9 +25,11 @@
 	"fuel_tank_mass": 4,
 	"hyperdrive_class": 0,
 
-	"forward_thrust": 700000,
+	"forward_thrust": 200000,
+	"forward_thrust_main": 700000,
 	"forward_acceleration_cap": 38.9457,
-	"reverse_thrust": 300000,
+	"reverse_thrust": 200000,
+	"reverse_thrust_main": 300000,
 	"reverse_acceleration_cap": 24.525,
 	"up_thrust": 300000,
 	"up_acceleration_cap": 24.525,
