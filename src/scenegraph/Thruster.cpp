@@ -12,8 +12,12 @@
 #include "graphics/TextureBuilder.h"
 #include "graphics/VertexArray.h"
 #include "graphics/VertexBuffer.h"
+#include "pigui/PerfInfo.h"
 #include "ship/ThrusterConfig.h"
 #include <random>
+#include "ship/PowerSystem.h"
+#include "utils.h"
+#include "Pi.h"
 
 namespace SceneGraph {
 
@@ -25,12 +29,13 @@ namespace SceneGraph {
 	static Color baseColor(178, 153, 255, 255);
 	static Color mainColor(255, 165, 0, 255);
 
-	Thruster::Thruster(Graphics::Renderer *r, uint8_t _flags, const vector3f &_pos, const vector3f &_dir) :
+	Thruster::Thruster(Graphics::Renderer *r, unsigned _id, ThrusterConfig _config, const vector3f &_pos, const vector3f &_dir) :
 		Node(r, NODE_TRANSPARENT),
-		flags(_flags),
+		id(_id),
+		config(_config),
 		dir(_dir),
 		pos(_pos),
-		currentColor( flags & TF_MAIN ? mainColor : baseColor)
+		currentColor( config.type == ThrusterConfig::TYPE_MAIN ? mainColor : baseColor)
 	{
 		//set up materials
 		Graphics::MaterialDescriptor desc;
@@ -57,7 +62,7 @@ namespace SceneGraph {
 		Node(thruster, cache),
 		m_tMat(thruster.m_tMat),
 		m_glowMat(thruster.m_glowMat),
-		flags(thruster.flags),
+		config(thruster.config),
 		dir(thruster.dir),
 		pos(thruster.pos),
 		currentColor(thruster.currentColor)
@@ -77,59 +82,24 @@ namespace SceneGraph {
 	void Thruster::Render(const matrix4x4f &trans, const RenderData *rd)
 	{
 		PROFILE_SCOPED()
-		float power = -dir.Dot(vector3f(rd->linthrust));
 
-		// main thruster - don't render if main engines display disabled
-		if (flags & TF_MAIN && !(rd->mainThrusterActive & TF_MAIN) &&
-				// judging by the configuration, there should be main engines in the this direction
-				flags & rd->mainThrusterActive
-				) return;
-		// rcs - don't render if
-		if (!(flags & TF_MAIN) &&
-				// main engines display enabled
-				rd->mainThrusterActive & TF_MAIN &&
-				// judging by the configuration, there are main engines in the same direction
-				flags & rd->mainThrusterActive
-				) return;
-
-		if (!(flags & TF_LINEAR)) {
-			// pitch X
-			// yaw   Y
-			// roll  Z
-			//model center is at 0,0,0, no need for invSubModelMat stuff
-			const vector3f at = vector3f(rd->angthrust);
-			const vector3f angdir = pos.Cross(dir);
-
-			const float xp = angdir.x * at.x;
-			const float yp = angdir.y * at.y;
-			const float zp = angdir.z * at.z;
-
-			if (xp + yp + zp > 0) {
-				if (xp > yp && xp > zp && fabs(at.x) > power)
-					power = fabs(at.x);
-				else if (yp > xp && yp > zp && fabs(at.y) > power)
-					power = fabs(at.y);
-				else if (zp > xp && zp > yp && fabs(at.z) > power)
-					power = fabs(at.z);
-			}
-		}
-		if (power < 0.001f) return;
-
-		// some random
-		std::random_device rdev;
-		std::seed_seq seed{rdev()};
-		std::mt19937 eng(seed);
-		std::uniform_real_distribution<double> urd(0.8, 1.0);
-		power *= urd(eng);
+		if(!rd->engine) return;
+		// we get the level from the power system of the vehicle
+		float power = rd->engine->GetLevel(id);
 
 		m_tMat->diffuse = m_glowMat->diffuse = currentColor * power;
 
-		//directional fade
-		vector3f cdir = vector3f(trans * -dir).Normalized();
-		vector3f vdir = vector3f(trans[2], trans[6], -trans[10]).Normalized();
-		// XXX check this for transition to new colors.
-		m_glowMat->diffuse.a = Easing::Circ::EaseIn(Clamp(vdir.Dot(cdir), 0.f, 1.f), 0.f, 1.f, 1.f) * 255;
-		m_tMat->diffuse.a = 255 - m_glowMat->diffuse.a;
+		// * directional fade *
+		// direction from the camera to the tip of the flame
+		// (note that the trans matrix is scaled by the size of the flame now)
+		vector3f cdir = (trans * vector3f(0.f, 0.f, -1.f)).Normalized();
+		// direction of the flame
+		vector3f vdir = vector3f(trans[8], trans[9], trans[10]).Normalized();
+		// cross planes visibility
+		int alpha = Easing::Circ::EaseIn(fabs(vdir.Dot(cdir)), 0.f, 1.f, 1.f) * 255;
+		m_glowMat->diffuse.a = alpha;
+		// fill planes visibility
+		m_tMat->diffuse.a = 255 - alpha;
 
 		Graphics::Renderer *r = GetRenderer();
 		if (!s_thrustMesh.Valid())
@@ -143,17 +113,21 @@ namespace SceneGraph {
 	void Thruster::Save(NodeDatabase &db)
 	{
 		Node::Save(db);
-		db.wr->Byte(flags);
+		db.wr->Int32(id);
+		db.wr->Int32(int(config.type));
+		db.wr->Bool(config.isLinear);
 		db.wr->Vector3f(dir);
 		db.wr->Vector3f(pos);
 	}
 
 	Thruster *Thruster::Load(NodeDatabase &db)
 	{
-		const uint8_t flags = db.rd->Byte();
+		const unsigned id = db.rd->Int32();
+		ThrusterConfig::Type type = ThrusterConfig::Type(db.rd->Int32());
+		bool isLinear = db.rd->Bool();
 		const vector3f dir = db.rd->Vector3f();
 		const vector3f pos = db.rd->Vector3f();
-		Thruster *t = new Thruster(db.loader->GetRenderer(), flags, pos, dir);
+		Thruster *t = new Thruster(db.loader->GetRenderer(), id, {type, isLinear}, pos, dir);
 		return t;
 	}
 

@@ -10,11 +10,13 @@
 #include "LuaVector.h"
 #include "Pi.h"
 #include "Player.h"
+#include "ship/PowerSystem.h"
 #include "SectorView.h"
 #include "TerrainBody.h"
 #include "WorldView.h"
 #include "galaxy/Galaxy.h"
 #include "ship/PlayerShipController.h"
+#include "ship/ThrusterConfig.h"
 #include "src/lua.h"
 
 /*
@@ -729,7 +731,9 @@ static int l_player_set_main_thruster_active(lua_State *l)
 {
 	Player *player = LuaObject<Player>::CheckFromLua(1);
 	bool active = LuaPull<bool>(l, 2);
-	player->GetPropulsion()->SetMainThrusterActive(active);
+	auto multiMode = player->GetPropulsion()->GetEngine().GetMultiMode();
+	assert(multiMode && "Player's ship power system don't have multi mode?");
+	multiMode->SetThrusterMode(active ? ThrusterConfig::MODE_MAIN : ThrusterConfig::MODE_RCS);
 	return 0;
 }
 
@@ -737,6 +741,15 @@ static int l_player_is_fixed_speed_reached(lua_State *l)
 {
 	Player *player = LuaObject<Player>::CheckFromLua(1);
 	LuaPush(l, player->GetPlayerController()->IsFixedSpeedReached());
+	return 1;
+}
+
+static int l_player_is_main_thruster_active(lua_State *l)
+{
+	Player *player = LuaObject<Player>::CheckFromLua(1);
+	auto multiMode = player->GetPropulsion()->GetEngine().GetMultiMode();
+	assert(multiMode && "Player's ship power system don't have multi mode?");
+	LuaPush(l, multiMode->GetThrusterMode() == ThrusterConfig::MODE_MAIN);
 	return 1;
 }
 
@@ -784,6 +797,7 @@ void LuaObject<Player>::RegisterClass()
 		{ "SetSpeedLimit", l_player_set_speed_limit },
 		{ "SetMainThrusterActive", l_player_set_main_thruster_active },
 		{ "IsFixedSpeedReached", l_player_is_fixed_speed_reached },
+		{ "IsMainThrusterActive", l_player_is_main_thruster_active },
 		{ 0, 0 }
 	};
 

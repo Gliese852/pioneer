@@ -4,6 +4,7 @@
 #ifndef _SHIP_H
 #define _SHIP_H
 
+#include <memory>
 #include <unordered_map>
 
 #include "DynamicBody.h"
@@ -12,6 +13,7 @@
 #include "lua/LuaRef.h"
 #include "scenegraph/ModelSkin.h"
 #include "sound/Sound.h"
+#include "ship/DoublePowerSystem.h"
 
 #include "FixedGuns.h"
 #include "ship/Propulsion.h"
@@ -90,8 +92,8 @@ public:
 
 	inline void ClearThrusterState()
 	{
-		ClearAngThrusterState();
-		if (m_launchLockTimeout <= 0.0f) ClearLinThrusterState();
+		m_engine->ClearAngThrusterState();
+		if (m_launchLockTimeout <= 0.0f) m_engine->ClearLinThrusterState();
 	}
 	void UpdateLuaStats();
 	void UpdateEquipStats();
@@ -293,6 +295,7 @@ private:
 	const ShipType *m_type;
 	SceneGraph::ModelSkin m_skin;
 
+	std::unique_ptr<PowerSystem> m_engine;
 	Sound::Event m_beamLaser[2];
 
 	FlightState m_flightState;
@@ -326,8 +329,6 @@ private:
 	std::string m_shipName;
 
 public:
-	void ClearAngThrusterState() { GetPropulsion()->ClearAngThrusterState(); }
-	void ClearLinThrusterState() { GetPropulsion()->ClearLinThrusterState(); }
 	double GetAccelFwd() { return GetPropulsion()->GetAccelFwd(); }
 	void SetAngThrusterState(const vector3d &levels) { GetPropulsion()->SetAngThrusterState(levels); }
 	double GetFuel() const { return GetPropulsion()->GetFuel(); }

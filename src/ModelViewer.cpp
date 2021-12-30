@@ -942,8 +942,8 @@ void ModelViewer::DrawShipControls()
 		valuesChanged |= ImGui::SliderFloat("Yaw", &m_angularThrust.y, -1.0, 1.0);
 		valuesChanged |= ImGui::SliderFloat("Roll", &m_angularThrust.z, -1.0, 1.0);
 
-		if (valuesChanged)
-			m_model->SetThrust(m_linearThrust, m_angularThrust);
+		if (valuesChanged) //XXX
+			//m_model->SetThrust(m_linearThrust, m_angularThrust);
 
 		ImGui::Spacing();
 	}

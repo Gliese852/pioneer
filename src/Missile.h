@@ -6,8 +6,10 @@
 
 #include "DynamicBody.h"
 #include "ShipType.h"
+#include <memory>
 
 class AICommand;
+class PowerSystem;
 
 class Missile : public DynamicBody {
 public:
@@ -40,6 +42,7 @@ private:
 	Body *m_owner;
 	bool m_armed;
 	const ShipType *m_type;
+	std::unique_ptr<PowerSystem> m_engine;
 
 	int m_ownerIndex; // deserialisation
 };

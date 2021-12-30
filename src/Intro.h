@@ -9,6 +9,8 @@
 #include "ShipType.h"
 #include "scenegraph/ModelSkin.h"
 
+class PowerSystem;
+
 class Intro : public Cutscene {
 public:
 	Intro(Graphics::Renderer *r, int width, int height);
@@ -21,6 +23,7 @@ public:
 private:
 	void Reset();
 	bool m_needReset;
+	std::unique_ptr<PowerSystem> engine;
 
 	std::vector<SceneGraph::Model *> m_models;
 	SceneGraph::ModelSkin m_skin;

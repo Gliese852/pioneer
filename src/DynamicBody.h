@@ -30,7 +30,7 @@ public:
 	void SetAngVelocity(const vector3d &v) override;
 	virtual bool OnCollision(Body *o, Uint32 flags, double relVel) override;
 	vector3d GetAngularMomentum() const;
-	double GetAngularInertia() const { return m_angInertia; }
+	double GetAngularInertia() const override { return m_angInertia; }
 	void SetMassDistributionFromModel();
 	void SetMoving(bool isMoving) { m_isMoving = isMoving; }
 	bool IsMoving() const { return m_isMoving; }

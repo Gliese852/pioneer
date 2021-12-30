@@ -3,14 +3,18 @@
 
 #include "ShipAICmd.h"
 
+#include "Body.h"
+#include "DynamicBody.h"
 #include "Frame.h"
 #include "Game.h"
 #include "Pi.h"
 #include "Planet.h"
+#include "ship/PowerSystem.h"
 #include "Ship.h"
 #include "Space.h"
 #include "SpaceStation.h"
 #include "perlin.h"
+#include "ship/ThrusterConfig.h"
 
 static const double VICINITY_MIN = 15000.0;
 static const double VICINITY_MUL = 4.0;
@@ -214,6 +218,51 @@ double AICmdKill::MaintainDistance(double curdist, double curspeed, double reqdi
 }
 */
 
+static void SetMainThrusterActiveIfHas(Body *b, PowerSystem &engine, bool active) {
+	auto multiMode = engine.GetMultiMode();
+	if (multiMode) {
+		multiMode->SetThrusterMode(active ? ThrusterConfig::MODE_MAIN : ThrusterConfig::MODE_RCS);
+	}
+}
+
+// return true if safe altitude is gained / not needed
+static bool GainSafeDistance(DynamicBody *dynb, Body *body, float safeDist)
+{
+	if (!body || !dynb) return true;
+	if (!dynb->IsType(ObjectType::SHIP)) return true;
+	Ship *ship = static_cast<Ship*>(dynb);
+
+	const float LEAVE_SPEED = 500.0f;
+
+	vector3d pos = ship->GetPosition();
+	double center_dist = pos.Length();
+	auto prop = ship->GetPropulsion();
+
+	if (body->IsType(ObjectType::TERRAINBODY)) {
+		auto terrain = static_cast<const TerrainBody *>(body);
+		double radius = terrain->GetMaxFeatureRadius();
+		if(center_dist <= 3.0 * radius) {
+			radius = terrain->GetTerrainHeight(pos.Normalized());
+		}
+		double altitude = center_dist - radius;
+		if (altitude > safeDist) return true;
+		// turn off the main engine (if has)
+		SetMainThrusterActiveIfHas(ship, prop->GetEngine(), false);
+		// belly down
+		prop->AIFaceUpdirPitch(pos.Normalized());
+	} else if (body->IsType(ObjectType::SPACESTATION)) {
+		if(center_dist > safeDist) return true;
+		// turn off the main engine (if has)
+		SetMainThrusterActiveIfHas(ship, prop->GetEngine(), false);
+		// face out of the station
+		prop->AIFaceDirection(pos);
+	} else return true;
+	// go away
+	prop->AIMatchVel(LEAVE_SPEED * pos.Normalized());
+	// we should be launched again
+	return false;
+}
+
 static void LaunchShip(Ship *ship)
 {
 	if (ship->GetFlightState() == Ship::LANDED)
@@ -303,8 +352,8 @@ bool AICmdKamikaze::TimeStepUpdate()
 	const vector3d aimVel = aimRelSpeed * targetDir + m_target->GetVelocityRelTo(m_dBody->GetFrame());
 	const vector3d accelDir = (aimVel - m_dBody->GetVelocity()).NormalizedSafe();
 
-	m_prop->ClearLinThrusterState();
-	m_prop->ClearAngThrusterState();
+	m_prop->GetEngine().ClearLinThrusterState();
+	m_prop->GetEngine().ClearAngThrusterState();
 	m_prop->AIFaceDirection(accelDir);
 
 	m_prop->AIAccelToModelRelativeVelocity(aimVel * m_dBody->GetOrient());
@@ -892,6 +941,8 @@ AICmdFlyTo::AICmdFlyTo(DynamicBody *dBody, Body *target) :
 	}
 
 	if (dBody->GetPositionRelTo(target).Length() <= VICINITY_MIN) m_targframeId = FrameId::Invalid;
+	// activate the main engine
+	SetMainThrusterActiveIfHas(m_dBody, m_prop->GetEngine(), true);
 }
 
 // Specified pos, endvel should be > 0
@@ -1012,8 +1063,17 @@ bool AICmdFlyTo::TimeStepUpdate()
 				m_child.reset();
 			}
 		} else if (coll == 1) { // below feature height, target not below
-			double ang = m_prop->AIFaceDirection(m_dBody->GetPosition());
-			m_prop->AIMatchVel(ang < 0.05 ? 1000.0 * m_dBody->GetPosition().Normalized() : vector3d(0.0));
+			// do not use main engines too close to the surface
+			if (GainSafeDistance(m_dBody, body, SAFE_DIST)) {
+				// safe altitude is reached, turn it on
+				SetMainThrusterActiveIfHas(m_dBody, m_prop->GetEngine(), true);
+			} else {
+				return false;
+			}
+			// face up
+			m_prop->AIFaceDirection(m_dBody->GetPosition());
+			// go up
+			m_prop->AIMatchVel(1000.0 * m_dBody->GetPosition().Normalized());
 		} else { // same thing for 2/3/4
 			if (!m_child) m_child.reset(new AICmdFlyAround(m_dBody, Frame::GetFrame(m_frameId)->GetBody(), erad * 1.05, 0.0));
 			static_cast<AICmdFlyAround *>(m_child.get())->SetTargPos(targpos);
@@ -1311,6 +1371,7 @@ bool AICmdDock::TimeStepUpdate()
 
 	// second docking waypoint
 	ship->SetWheelState(true);
+	SetMainThrusterActiveIfHas(m_dBody, m_prop->GetEngine(), false);
 	const vector3d targpos = GetPosInFrame(m_dBody->GetFrame(), m_target->GetFrame(), m_dockpos);
 	const vector3d relpos = targpos - m_dBody->GetPosition();
 	const vector3d reldir = relpos.NormalizedSafe();
@@ -1319,7 +1380,7 @@ bool AICmdDock::TimeStepUpdate()
 	const double maxdecel = m_prop->GetAccelUp() - GetGravityAtPos(m_target->GetFrame(), m_dockpos);
 	const double ispeed = calc_ivel(relpos.Length(), 0.0, maxdecel);
 	const vector3d vdiff = ispeed * reldir - relvel;
-	m_prop->AIChangeVelDir(vdiff * m_dBody->GetOrient());
+	m_prop->AIChangeVelBy(vdiff * m_dBody->GetOrient());
 	if (vdiff.Dot(reldir) < 0) {
 		m_dBody->SetDecelerating(true);
 	}
@@ -1542,8 +1603,15 @@ bool AICmdFlyAround::TimeStepUpdate()
 
 	// max feature avoidance check, response
 	if (obsdist < MaxFeatureRad(m_obstructor)) {
-		double ang = m_prop->AIFaceDirection(-obsdir);
-		m_prop->AIMatchVel(ang < 0.05 ? 1000.0 * -obsdir : vector3d(0.0));
+		// do not use main engines too close to the surface
+		if (GainSafeDistance(m_dBody, m_obstructor, SAFE_DIST)) {
+			// safe altitude is reached, turn it on
+			SetMainThrusterActiveIfHas(m_dBody, m_prop->GetEngine(), true);
+		} else {
+			return false;
+		}
+		m_prop->AIFaceDirection(-obsdir);
+		m_prop->AIMatchVel(1000.0 * -obsdir);
 		return false;
 	}
 

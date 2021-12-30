@@ -58,8 +58,6 @@ Ship::Ship(const ShipType::Id &shipId) :
 	Properties().Set("flightState", EnumStrings::GetString("ShipFlightState", m_flightState));
 	Properties().Set("alertStatus", EnumStrings::GetString("ShipAlertStatus", m_alertState));
 
-	SetFuel(1.0);
-	SetFuelReserve(0.0);
 	m_lastAlertUpdate = 0.0;
 	m_lastFiringAlert = 0.0;
 	m_shipNear = false;
@@ -74,8 +72,6 @@ Ship::Ship(const ShipType::Id &shipId) :
 	m_dockedWith = nullptr;
 	m_dockedWithPort = 0;
 	SetShipId(shipId);
-	ClearAngThrusterState();
-	ClearLinThrusterState();
 
 	m_hyperspace.countdown = 0;
 	m_hyperspace.now = false;
@@ -85,8 +81,6 @@ Ship::Ship(const ShipType::Id &shipId) :
 	m_curAICmd = 0;
 	m_aiMessage = AIERROR_NONE;
 	m_decelerating = false;
-
-	InitEquipSet();
 
 	SetModel(m_type->modelName.c_str());
 	// Setting thrusters colors
@@ -112,6 +106,11 @@ Ship::Ship(const ShipType::Id &shipId) :
 		GetModel()->SetPattern(Pi::rng.Int32(0, GetModel()->GetNumPatterns() - 1));
 
 	Init();
+	InitEquipSet();
+	SetFuel(1.0);
+	GetModel()->SetEngine(m_engine.get());
+	SetFuelReserve(0.0);
+	ClearThrusterState();
 	SetController(new ShipController());
 }
 
@@ -127,8 +126,8 @@ Ship::Ship(const Json &jsonObj, Space *space) :
 		GetPropulsion()->LoadFromJson(shipObj, space);
 
 		SetShipId(shipObj["ship_type_id"]); // XXX handle missing thirdparty ship
-		GetPropulsion()->SetFuelTankMass(GetShipType()->fuelTankMass);
-		m_stats.fuel_tank_mass_left = GetPropulsion()->FuelTankMassLeft();
+
+
 
 		m_skin.LoadFromJson(shipObj);
 		m_skin.Apply(GetModel());
@@ -165,6 +164,8 @@ Ship::Ship(const Json &jsonObj, Space *space) :
 		m_dockedWithPort = shipObj["docked_with_port"];
 		m_dockedWithIndex = shipObj["index_for_body_docked_with"];
 		Init();
+		m_engine->GetSerializator()->LoadFromJson(shipObj);
+		m_stats.fuel_tank_mass_left = m_engine->GetFuel() * m_type->fuelTankMass;
 		m_stats.hull_mass_left = shipObj["hull_mass_left"]; // must be after Init()...
 		m_stats.shield_mass_left = shipObj["shield_mass_left"];
 		m_shieldCooldown = shipObj["shield_cooldown"];
@@ -217,6 +218,12 @@ void Ship::Init()
 	m_navLights->SetEnabled(true);
 
 	SetMassDistributionFromModel();
+
+	// Init of Propulsion:
+	m_engine.reset(new DoublePowerSystem(this, m_type, GetModel()));
+	GetPropulsion()->Init(this, m_engine.get());
+	GetModel()->SetEngine(m_engine.get());
+
 	UpdateEquipStats();
 	m_stats.hull_mass_left = float(m_type->hullMass);
 	m_stats.shield_mass_left = 0;
@@ -227,8 +234,6 @@ void Ship::Init()
 	p.Set("shieldMassLeft", m_stats.shield_mass_left);
 	p.Set("fuelMassLeft", m_stats.fuel_tank_mass_left);
 
-	// Init of Propulsion:
-	GetPropulsion()->Init(this, GetModel(), m_type);
 
 	p.Set("shipName", m_shipName);
 
@@ -267,6 +272,7 @@ void Ship::SaveToJson(Json &jsonObj, Space *space)
 	Json shipObj({}); // Create JSON object to contain ship data.
 
 	GetPropulsion()->SaveToJson(shipObj, space);
+	m_engine->GetSerializator()->SaveToJson(shipObj);
 
 	m_skin.SaveToJson(shipObj);
 	shipObj["wheel_transition"] = m_wheelTransition;
@@ -327,6 +333,7 @@ void Ship::InitEquipSet()
 		p.Set("totalCargo", totalCargo);
 	}
 	lua_pop(l, 2);
+
 	LUA_DEBUG_END(l, 0);
 }
 
@@ -381,7 +388,7 @@ void Ship::SetPercentHull(float p)
 
 void Ship::UpdateMass()
 {
-	SetMass(((double)m_stats.static_mass + GetPropulsion()->FuelTankMassLeft()) * 1000);
+	SetMass(((double)m_stats.static_mass + m_engine->GetFuel() * m_type->fuelTankMass) * 1000);
 }
 
 template <typename T>
@@ -664,7 +671,8 @@ void Ship::UpdateEquipStats()
 	unsigned int thruster_power_cap = 0;
 	p.Get("thruster_power_cap", thruster_power_cap);
 	const double power_mul = m_type->thrusterUpgrades[Clamp(thruster_power_cap, 0U, 3U)];
-	GetPropulsion()->SetThrustPowerMult(power_mul, m_type->linThrust, m_type->angThrust);
+	auto upgrades = m_engine->GetUpgrades();
+	if(upgrades) upgrades->SetThrustPowerMult(power_mul);
 
 	m_stats.hyperspace_range = m_stats.hyperspace_range_max = 0;
 	p.Set("hyperspaceRange", m_stats.hyperspace_range);
@@ -749,7 +757,7 @@ void Ship::UpdateGunsStats()
 
 void Ship::UpdateFuelStats()
 {
-	m_stats.fuel_tank_mass_left = GetPropulsion()->FuelTankMassLeft();
+	m_stats.fuel_tank_mass_left = m_engine->GetFuel() * m_type->fuelTankMass;
 	Properties().Set("fuelMassLeft", m_stats.fuel_tank_mass_left);
 
 	UpdateMass();
@@ -859,16 +867,14 @@ void Ship::SetFlightState(Ship::FlightState newState)
 
 		m_dockedWith = nullptr;
 
-		// lock thrusters on for amount of time needed to push us out of station
-		static const double MASS_LOCK_REFERENCE(40000.0); // based purely on experimentation
-		// limit the time to between 2.0 and 20.0 seconds of thrust, the player can override
-		m_launchLockTimeout = std::min(std::max(2.0, 2.0 * (GetMass() / MASS_LOCK_REFERENCE)), 20.0);
+		// during this time, the thrusters will be fixed in the level that they
+		// were at the moment of the undocking
+		m_launchLockTimeout = 2.0; // s
 	}
 
 	if (newState == DOCKED) {
 		m_launchLockTimeout = 0.0;
-		ClearLinThrusterState();
-		ClearAngThrusterState();
+		ClearThrusterState();
 	}
 
 	m_flightState = newState;
@@ -1004,9 +1010,8 @@ void Ship::TimeStepUpdate(const float timeStep)
 	// If docked, station is responsible for updating position/orient of ship
 	// but we call this crap anyway and hope it doesn't do anything bad
 
-	const vector3d thrust = GetPropulsion()->GetActualLinThrust();
-	AddRelForce(thrust);
-	AddRelTorque(GetPropulsion()->GetActualAngThrust());
+	AddRelForce(vector3d(m_engine->GetForce()));
+	AddRelTorque(vector3d(m_engine->GetTorque()));
 
 	//apply extra atmospheric flight forces
 	AddTorque(CalcAtmoTorque());
@@ -1493,8 +1498,6 @@ void Ship::Render(Graphics::Renderer *renderer, const Camera *camera, const vect
 {
 	if (IsDead()) return;
 
-	GetPropulsion()->Render(renderer, camera, viewCoords, viewTransform);
-
 	// transpose the interpolated orient to convert velocity into shipspace, then into view space
 	// FIXME: this produces a vector oriented to the top of the ship when velocity is forward.
 	vector3f heatingNormal = matrix3x3f(viewTransform.GetOrient()).Inverse().Transpose() * vector3f(GetVelocity().Normalized());
@@ -1618,7 +1621,10 @@ void Ship::SetShipType(const ShipType::Id &shipId)
 	SetModel(m_type->modelName.c_str());
 	m_skin.SetDecal(m_type->manufacturer);
 	m_skin.Apply(GetModel());
+	auto fuel = m_engine ? m_engine->GetFuel() : 1.0f;
 	Init();
+	SetFuel(fuel);
+	GetModel()->SetEngine(m_engine.get());
 	onFlavourChanged.emit();
 	if (IsType(ObjectType::PLAYER))
 		Pi::game->GetWorldView()->shipView->GetCameraController()->Reset();

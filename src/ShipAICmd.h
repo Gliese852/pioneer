@@ -30,6 +30,9 @@ public:
 		CMD_FORMATION
 	};
 
+	// at what distance to station/surface is the use of the main engine considered safe
+	static constexpr float SAFE_DIST = 1000.f; // m
+
 	AICommand(DynamicBody *dBody, CmdName name) :
 		m_dBody(dBody),
 		m_cmdName(name)

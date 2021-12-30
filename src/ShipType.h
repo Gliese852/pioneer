@@ -25,6 +25,7 @@ struct ShipType {
 	typedef std::string Id;
 
 	ShipType(){};
+
 	ShipType(const Id &id, const std::string &path);
 
 	////////
@@ -36,9 +37,9 @@ struct ShipType {
 	std::string modelName;
 	std::string cockpitName;
 	ThrusterArray linThrust;
-	uint8_t mainThrusters;
+	ThrusterModes thrusterModes;
 	float angThrust;
-	float linAccelerationCap[THRUSTER_MAX];
+	ThrustBox linAccelerationCap;
 	std::map<std::string, int> slots;
 	std::map<std::string, bool> roles;
 	Color globalThrusterColor; // Override default color for thrusters

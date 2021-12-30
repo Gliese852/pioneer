@@ -3,6 +3,7 @@
 
 #include "DumpVisitor.h"
 #include "Group.h"
+#include "Thruster.h"
 #include "LOD.h"
 #include "Model.h"
 #include "Node.h"
@@ -55,6 +56,16 @@ namespace SceneGraph {
 		m_stats.nodeCount++;
 	}
 
+	void DumpVisitor::ApplyThruster(Thruster &t)
+	{
+		PutIndent();
+		if (t.GetName().empty())
+			Output("%d %s\n", t.GetID(), t.GetTypeName());
+		else
+			Output("%d %s - %s\n", t.GetID(), t.GetTypeName(), t.GetName().c_str());
+		m_stats.nodeCount++;
+	}
+
 	void DumpVisitor::ApplyGroup(Group &g)
 	{
 		PutIndent();
@@ -96,7 +107,8 @@ namespace SceneGraph {
 	void DumpVisitor::PutIndent() const
 	{
 		for (unsigned int i = 0; i < m_level; i++)
-			Output("  ");
+			// output trims whitespaces
+			Output("__");
 	}
 
 	void DumpVisitor::PutNodeName(const Node &g) const

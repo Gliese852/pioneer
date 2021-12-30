@@ -43,6 +43,7 @@ namespace SceneGraph {
 		bool m_doLog;
 		bool m_loadSGMs;
 		bool m_mostDetailedLod;
+		unsigned m_thrusterCounter; // for calculating the IDs of the trusters
 		std::vector<std::string> m_logMessages;
 		std::string m_curMeshDef; //for logging
 
@@ -59,7 +60,7 @@ namespace SceneGraph {
 		void ConvertAnimations(const aiScene *, const AnimList &, Node *meshRoot);
 		void ConvertNodes(aiNode *node, Group *parent, std::vector<RefCountedPtr<StaticGeometry>> &meshes, const matrix4x4f &);
 		void CreateLabel(Group *parent, const matrix4x4f &);
-		void CreateThruster(const std::string &name, const matrix4x4f &nodeTrans);
+		void CreateThruster(const std::string &name, unsigned id, const matrix4x4f &nodeTrans);
 		void CreateNavlight(const std::string &name, const matrix4x4f &nodeTrans);
 		RefCountedPtr<CollisionGeometry> CreateCollisionGeometry(RefCountedPtr<StaticGeometry>, unsigned int collFlag);
 		void LoadCollision(const std::string &filename);

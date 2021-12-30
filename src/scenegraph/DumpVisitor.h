@@ -31,6 +31,7 @@ namespace SceneGraph {
 
 		virtual void ApplyNode(Node &);
 		virtual void ApplyGroup(Group &);
+		virtual void ApplyThruster(Thruster &);
 		virtual void ApplyLOD(LOD &);
 		virtual void ApplyStaticGeometry(StaticGeometry &);
 

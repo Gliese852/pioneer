@@ -242,7 +242,7 @@ static int l_space_put_ship_on_route(lua_State *l)
 		route.Length(), // distance
 		0.0,			// velocity at start
 		st->effectiveExhaustVelocity,
-		st->linThrust[THRUSTER_FORWARD][THRTYPE_RCS],
+		st->linThrust[ThrusterConfig::MODE_MAIN][THRUSTER_FORWARD],
 		st->linAccelerationCap[THRUSTER_FORWARD],
 		1000 * (ss.static_mass + ss.fuel_tank_mass_left), // 100% mass of the ship
 		1000 * ss.fuel_tank_mass_left * 0.8,			  // multipied to 0.8 have fuel reserve
@@ -252,6 +252,10 @@ static int l_space_put_ship_on_route(lua_State *l)
 	ship->SetPosition(ship->GetPosition() + route.Normalized() * pp.getDist());
 	ship->SetVelocity(route.Normalized() * pp.getVel() + targetbody->GetVelocityRelTo(ship->GetFrame()));
 	ship->SetFuel((0.001 * pp.getMass() - ss.static_mass) / st->fuelTankMass);
+
+	if (pp.getVel() > ship->GetPropulsion()->GetSpeedReachedWithFuel()) {
+		Output("suck");
+	}
 
 	ship->UpdateFrame();
 	// check for collision at spawn position
@@ -294,8 +298,16 @@ static int l_space_put_ship_on_route(lua_State *l)
 		// update velocity direction
 		ship->SetVelocity((targpos - ship->GetPosition()).Normalized() * pp.getVel() + targetbody->GetVelocityRelTo(ship->GetFrame()));
 	}
+		LuaPush(l, route.Length() / AU);
+		LuaPush(l, pp.getDist() / AU);
+		LuaPush(l, pp.getVel());
+		LuaPush(l, ship->GetVelocity().Length());
+		LuaPush(l, ship->GetPropulsion()->GetSpeedReachedWithFuel());
+		LuaPush(l, ship->GetFuel());
+		LuaPush(l, pp.getState());
+		LuaPush(l, pp.getMass() / 1000);
 	LUA_DEBUG_END(l, 1);
-	return 0;
+	return 8;
 }
 
 /*

@@ -163,14 +163,12 @@ local function speed_limit()
 	end
 end
 
-local main_thruster_enabled = false
 local function main_thruster()
+	local main_thruster_enabled = Game.player:IsMainThrusterActive()
 	ui.text("MAIN THRUSTER: ")
 	ui.sameLine()
 	if ui.selectable(main_thruster_enabled and "ON" or "OFF") then
-	-- if ui.selectable("TOGGLE") then
-		main_thruster_enabled = not main_thruster_enabled
-		Game.player:SetMainThrusterActive(main_thruster_enabled)
+		Game.player:SetMainThrusterActive(not main_thruster_enabled)
 	end
 end
 

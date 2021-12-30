@@ -356,6 +356,8 @@ namespace SceneGraph {
 		// special features that are absolute-positioned (thrusters)
 		RefCountedPtr<Node> meshRoot(new Group(m_renderer));
 
+		m_thrusterCounter = 0;
+
 		ConvertNodes(scene->mRootNode, static_cast<Group *>(meshRoot.Get()), geoms, matrix4x4f::Identity());
 		ConvertAnimations(scene, animDefs, static_cast<Group *>(meshRoot.Get()));
 
@@ -739,14 +741,14 @@ namespace SceneGraph {
 		parent->AddChild(trans);
 	}
 
-	void Loader::CreateThruster(const std::string &name, const matrix4x4f &m)
+	void Loader::CreateThruster(const std::string &name, unsigned id, const matrix4x4f &m)
 	{
 		PROFILE_SCOPED()
 		if (!m_mostDetailedLod) return AddLog("Thruster outside highest LOD, ignored");
 
-		uint8_t flags = 0;
-		flags |= starts_with(name, "thruster_linear") * TF_LINEAR;
-		flags |= bool(pi_strcasestr(name.c_str(), "main")) * TF_MAIN;
+		ThrusterConfig config;
+		config.isLinear = starts_with(name, "thruster_linear");
+		config.type = pi_strcasestr(name.c_str(), "main") ? ThrusterConfig::TYPE_MAIN : ThrusterConfig::TYPE_RCS;
 
 		matrix4x4f transform = m;
 
@@ -757,10 +759,7 @@ namespace SceneGraph {
 
 		const vector3f direction = transform * vector3f(0.f, 0.f, 1.f);
 
-		flags |= ThrusterFlagFromDirection(direction);
-
-		Thruster *thruster = new Thruster(m_renderer, flags,
-			pos, direction.Normalized());
+		Thruster *thruster = new Thruster(m_renderer, id, config, pos, direction.Normalized());
 
 		thruster->SetName(name);
 		trans->AddChild(thruster);
@@ -832,7 +831,7 @@ namespace SceneGraph {
 			if (starts_with(nodename, "navlight_")) {
 				CreateNavlight(nodename, accum * m);
 			} else if (starts_with(nodename, "thruster_")) {
-				CreateThruster(nodename, accum * m);
+				CreateThruster(nodename, m_thrusterCounter++, accum * m);
 			} else if (starts_with(nodename, "label_")) {
 				CreateLabel(parent, m);
 			} else if (starts_with(nodename, "tag_")) {

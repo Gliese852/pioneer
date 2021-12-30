@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "Lang.h"
 #include "Pi.h"
+#include "ship/SimplePowerSystem.h"
 #include "Sfx.h"
 #include "Ship.h"
 #include "ShipAICmd.h"
@@ -37,6 +38,9 @@ Missile::Missile(const ShipType::Id &shipId, Body *owner, int power)
 
 	Disarm();
 
+	m_engine.reset(new SimplePowerSystem(this, m_type, GetModel()));
+	GetPropulsion()->Init(this, m_engine.get());
+
 	GetPropulsion()->SetFuel(1.0);
 	GetPropulsion()->SetFuelReserve(0.0);
 
@@ -44,7 +48,6 @@ Missile::Missile(const ShipType::Id &shipId, Body *owner, int power)
 	m_aiMessage = AIERROR_NONE;
 	m_decelerating = false;
 
-	GetPropulsion()->Init(this, GetModel(), m_type);
 }
 
 Missile::Missile(const Json &jsonObj, Space *space) :
@@ -69,7 +72,7 @@ Missile::Missile(const Json &jsonObj, Space *space) :
 		throw SavedGameCorruptException();
 	}
 
-	GetPropulsion()->Init(this, GetModel(), m_type);
+	GetPropulsion()->Init(this, m_engine.get());
 }
 
 void Missile::SaveToJson(Json &jsonObj, Space *space)
@@ -114,8 +117,8 @@ void Missile::StaticUpdate(const float timeStep)
 	// Note: direct call to AI->TimeStepUpdate
 
 	if (!m_curAICmd) {
-		GetPropulsion()->ClearLinThrusterState();
-		GetPropulsion()->ClearAngThrusterState();
+		m_engine->ClearLinThrusterState();
+		m_engine->ClearAngThrusterState();
 	} else if (m_curAICmd->TimeStepUpdate()) {
 		delete m_curAICmd;
 		m_curAICmd = nullptr;
@@ -134,9 +137,8 @@ void Missile::StaticUpdate(const float timeStep)
 void Missile::TimeStepUpdate(const float timeStep)
 {
 
-	const vector3d thrust = GetPropulsion()->GetActualLinThrust();
-	AddRelForce(thrust);
-	AddRelTorque(GetPropulsion()->GetActualAngThrust());
+	AddRelForce(vector3d(m_engine->GetForce()));
+	AddRelTorque(vector3d(m_engine->GetTorque()));
 
 	DynamicBody::TimeStepUpdate(timeStep);
 	GetPropulsion()->UpdateFuel(timeStep);
@@ -249,7 +251,6 @@ void Missile::Render(Graphics::Renderer *renderer, const Camera *camera, const v
 {
 	if (IsDead()) return;
 
-	GetPropulsion()->Render(renderer, camera, viewCoords, viewTransform);
 	RenderModel(renderer, camera, viewCoords, viewTransform);
 }
 

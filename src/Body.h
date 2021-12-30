@@ -81,6 +81,11 @@ public:
 		assert(0);
 		return 0;
 	}
+	virtual double GetAngularInertia() const
+	{
+		assert(0);
+		return 0;
+	}
 
 	// return true if to do collision response and apply damage
 	virtual bool OnCollision(Body *o, Uint32 flags, double relVel) { return false; }

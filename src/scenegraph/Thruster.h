@@ -22,7 +22,7 @@ namespace SceneGraph {
 
 	class Thruster : public Node {
 	public:
-		Thruster(Graphics::Renderer *, uint8_t flags, const vector3f &pos, const vector3f &dir);
+		Thruster(Graphics::Renderer *, unsigned id, ThrusterConfig config, const vector3f &pos, const vector3f &dir);
 		Thruster(const Thruster &, NodeCopyCache *cache = 0);
 		Node *Clone(NodeCopyCache *cache = 0) override;
 		virtual void Accept(NodeVisitor &v) override;
@@ -32,6 +32,8 @@ namespace SceneGraph {
 		static Thruster *Load(NodeDatabase &);
 		void SetColor(const Color c) { currentColor = c; }
 		const vector3f &GetDirection() { return dir; }
+		unsigned GetID() { return id; }
+		ThrusterConfig GetConfig() { return config; }
 
 	private:
 		// thruster geometry is shared between all instances of Thruster
@@ -42,7 +44,8 @@ namespace SceneGraph {
 
 		RefCountedPtr<Graphics::Material> m_tMat;
 		RefCountedPtr<Graphics::Material> m_glowMat;
-		uint8_t flags;
+		unsigned id;
+		ThrusterConfig config;
 		vector3f dir;
 		vector3f pos;
 		Color currentColor;

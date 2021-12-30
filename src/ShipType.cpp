@@ -35,7 +35,7 @@ const std::string ShipType::MISSILE_UNGUIDED = "missile_unguided";
 float ShipType::GetFuelUseRate() const
 {
 	const float denominator = fuelTankMass * effectiveExhaustVelocity * 10;
-	return denominator > 0 ? linThrust[0][THRUSTER_FORWARD] / denominator : 1e9;
+	return denominator > 0 ? linThrust[ThrusterConfig::MODE_MAIN][THRUSTER_FORWARD] / denominator : 1e9;
 }
 
 // returns velocity of engine exhausts in m/s
@@ -79,28 +79,35 @@ ShipType::ShipType(const Id &_id, const std::string &path)
 	modelName = data.value("model", "");
 	cockpitName = data.value("cockpit", "");
 
-	linThrust[THRUSTER_REVERSE][THRTYPE_RCS] = data.value("reverse_thrust", 0.0f);
-	linThrust[THRUSTER_FORWARD][THRTYPE_RCS] = data.value("forward_thrust", 0.0f);
-	linThrust[THRUSTER_UP][THRTYPE_RCS] = data.value("up_thrust", 0.0f);
-	linThrust[THRUSTER_DOWN][THRTYPE_RCS] = data.value("down_thrust", 0.0f);
-	linThrust[THRUSTER_LEFT][THRTYPE_RCS] = data.value("left_thrust", 0.0f);
-	linThrust[THRUSTER_RIGHT][THRTYPE_RCS] = data.value("right_thrust", 0.0f);
+	using tc = ThrusterConfig;
 
-	linThrust[THRUSTER_REVERSE][THRTYPE_MAIN] = data.value("reverse_thrust_main", 0.0f);
-	linThrust[THRUSTER_FORWARD][THRTYPE_MAIN] = data.value("forward_thrust_main", 0.0f);
-	linThrust[THRUSTER_UP][THRTYPE_MAIN] = data.value("up_thrust_main", 0.0f);
-	linThrust[THRUSTER_DOWN][THRTYPE_MAIN] = data.value("down_thrust_main", 0.0f);
-	linThrust[THRUSTER_LEFT][THRTYPE_MAIN] = data.value("left_thrust_main", 0.0f);
-	linThrust[THRUSTER_RIGHT][THRTYPE_MAIN] = data.value("right_thrust_main", 0.0f);
+	linThrust[tc::MODE_RCS][THRUSTER_REVERSE] = data.value("reverse_thrust", 0.0f);
+	linThrust[tc::MODE_RCS][THRUSTER_FORWARD] = data.value("forward_thrust", 0.0f);
+	linThrust[tc::MODE_RCS][THRUSTER_UP] = data.value("up_thrust", 0.0f);
+	linThrust[tc::MODE_RCS][THRUSTER_DOWN] = data.value("down_thrust", 0.0f);
+	linThrust[tc::MODE_RCS][THRUSTER_LEFT] = data.value("left_thrust", 0.0f);
+	linThrust[tc::MODE_RCS][THRUSTER_RIGHT] = data.value("right_thrust", 0.0f);
 
-	// determine the configuration of the main engines
-	// in which direction the main engine is present
-	mainThrusters = 0;
-	for(int i = 0; i < 6; ++i) { // XXX: DO "MAX" after erasing THRUSTER_MAIN
-		if (linThrust[i][THRTYPE_MAIN] > 1e-6) {
-			mainThrusters |= 1 << i;
+	linThrust[tc::MODE_MAIN][THRUSTER_REVERSE] = data.value("reverse_thrust_main", 0.0f);
+	linThrust[tc::MODE_MAIN][THRUSTER_FORWARD] = data.value("forward_thrust_main", 0.0f);
+	linThrust[tc::MODE_MAIN][THRUSTER_UP] = data.value("up_thrust_main", 0.0f);
+	linThrust[tc::MODE_MAIN][THRUSTER_DOWN] = data.value("down_thrust_main", 0.0f);
+	linThrust[tc::MODE_MAIN][THRUSTER_LEFT] = data.value("left_thrust_main", 0.0f);
+	linThrust[tc::MODE_MAIN][THRUSTER_RIGHT] = data.value("right_thrust_main", 0.0f);
+
+	// filling the modes-configuration array of the thrusters
+	// it is hardcoded to the main/rcs model for now
+	for(int i = 0; i < THRUSTER_MAX; ++i) {
+		// in the 'RCS' mode only rcs-type thrusters work in all directions
+		thrusterModes[tc::MODE_RCS][i] = tc::TYPE_RCS;
+		// in the 'MAIN' mode, if there is a main-type thruster in this direction - it is used
+		if (linThrust[tc::MODE_MAIN][i] > 1e-6) {
+			thrusterModes[tc::MODE_MAIN][i] = tc::TYPE_MAIN;
 		} else {
-			linThrust[i][THRTYPE_MAIN] = linThrust[i][THRTYPE_RCS];
+			//if not - rcs-type is used
+			thrusterModes[tc::MODE_MAIN][i] = tc::TYPE_RCS;
+			// also copy thrust
+			linThrust[tc::MODE_MAIN][i] = linThrust[tc::MODE_RCS][i];
 		}
 	}
 

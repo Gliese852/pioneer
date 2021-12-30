@@ -387,15 +387,9 @@ namespace SceneGraph {
 		return m_activeAnimations & (1 << index);
 	}
 
-	void Model::SetThrust(const vector3f &lin, const vector3f &ang)
+	void Model::SetEngine(PowerSystem *ps)
 	{
-		m_renderData.linthrust[0] = lin.x;
-		m_renderData.linthrust[1] = lin.y;
-		m_renderData.linthrust[2] = lin.z;
-
-		m_renderData.angthrust[0] = ang.x;
-		m_renderData.angthrust[1] = ang.y;
-		m_renderData.angthrust[2] = ang.z;
+		m_renderData.engine = ps;
 	}
 
 	void Model::SetThrusterColor(const vector3f &dir, const Color &color)

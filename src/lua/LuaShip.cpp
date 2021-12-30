@@ -10,6 +10,7 @@
 #include "LuaVector.h"
 #include "Missile.h"
 #include "Pi.h"
+#include "ship/PowerSystem.h"
 #include "Ship.h"
 #include "ShipAICmd.h"
 #include "ShipType.h"
@@ -691,7 +692,7 @@ static int l_ship_get_duration_for_distance(lua_State *l)
 		distance, // distance
 		0.0,	  // velocity at start
 		st->effectiveExhaustVelocity,
-		st->linThrust[THRUSTER_FORWARD][THRTYPE_RCS],
+		st->linThrust[ThrusterConfig::MODE_MAIN][THRUSTER_FORWARD],
 		st->linAccelerationCap[THRUSTER_FORWARD],
 		1000 * (ss.static_mass + ss.fuel_tank_mass_left), // 100% mass of the ship
 		1000 * ss.fuel_tank_mass_left * 0.8,			  // multipied to 0.8 have fuel reserve
@@ -1545,6 +1546,14 @@ static int l_ship_get_current_ai_command(lua_State *l)
 	}
 }
 
+static int l_ship_get_engine_mode(lua_State *l)
+{
+	Ship *s = LuaObject<Ship>::CheckFromLua(1);
+	auto mode = int(s->GetPropulsion()->GetEngine().GetMultiMode()->GetThrusterMode());
+	LuaPush(l, mode);
+	return 1;
+}
+
 /*
  * Method: CancelAI
  *
@@ -1682,6 +1691,8 @@ void LuaObject<Ship>::RegisterClass()
 		{ "GetFlightControlState", l_ship_get_flight_control_state },
 		{ "SetFlightControlState", l_ship_set_flight_control_state },
 		{ "GetCurrentAICommand", l_ship_get_current_ai_command },
+
+		{ "GetEngineMode", l_ship_get_engine_mode },
 
 		{ 0, 0 }
 	};

@@ -7,6 +7,7 @@
 #include "LuaPiGui.h"
 #include "Pi.h"
 #include "Player.h"
+#include "ship/PowerSystem.h"
 #include "Space.h"
 #include "graphics/Renderer.h"
 #include "graphics/Stats.h"
@@ -14,6 +15,7 @@
 #include "lua/Lua.h"
 #include "lua/LuaManager.h"
 #include "scenegraph/Model.h"
+#include "EnumStrings.h"
 
 #include <imgui/imgui.h>
 #include <algorithm>
@@ -45,12 +47,17 @@ struct PerfInfo::ImGuiState {
 	std::pair<std::string, std::string> selectedTexture;
 };
 
+
+
 PerfInfo::PerfInfo() :
 	m_state(new ImGuiState({}))
 {
 	m_fpsCounter.history.fill(0.0);
 	m_physCounter.history.fill(0.0);
 	m_piguiCounter.history.fill(0.0);
+	for (int i = 0; i < THRUST_COUNT; ++i) {
+		m_thrustInfo[i].history.fill(0.0);
+	}
 }
 
 PerfInfo::~PerfInfo()
@@ -202,6 +209,41 @@ void PerfInfo::Draw()
 		ImGui::ShowMetricsWindow(&m_state->metricsWindowOpen);
 }
 
+void PerfInfo::DrawPropulsionStats()
+{
+	if (!Pi::game || Pi::game->IsPaused()) return;
+	// update plots with what is left in the player's propulsion after the frame
+	// moving plots to the left
+	for(auto &counter : m_thrustInfo) {
+		std::move(counter.history.begin() + 1, counter.history.end(), counter.history.begin());
+	}
+
+	ThrustBox thrParams;
+	for(unsigned i = 0; i < thrParams.size(); ++i) {
+		ImGui::Text("%s: %.5f", EnumStrings::GetString("ShipTypeThruster", i),
+				Pi::player->GetPropulsion()->GetAccel(Thruster(i)));
+	}
+
+	ImGui::Text("fuel: %.5f", Pi::player->GetPropulsion()->GetFuel());
+	ImGui::Text("dv: %.5f", Pi::player->GetPropulsion()->GetSpeedReachedWithFuel());
+	auto lin = Pi::player->GetPropulsion()->GetEngine().GetSimpleThrust()->GetThrustLevels();
+	auto ang = Pi::player->GetPropulsion()->GetAngThrusterState();
+	auto last = m_thrustInfo[0].history.size() - 1;
+	m_thrustInfo[0].history[last] = lin[0];
+	m_thrustInfo[1].history[last] = lin[1];
+	m_thrustInfo[2].history[last] = lin[2];
+	m_thrustInfo[3].history[last] = ang[0];
+	m_thrustInfo[4].history[last] = ang[1];
+	m_thrustInfo[5].history[last] = ang[2];
+
+	for(unsigned i = 0; i < m_thrustInfo.size(); ++i) {
+		auto &counter = m_thrustInfo[i];
+		char str[10];
+		snprintf(str, 10, "%.5f", counter.history[0]);
+		ImGui::PlotLines(EnumStrings::GetString("ShipTypeThruster", i), counter.history.data(), counter.history.size(), 0, str, -1.0, 1.0, { NUM_FRAMES * 5, 60 });
+	}
+}
+
 void PerfInfo::DrawPerfWindow()
 {
 	if (ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_NoNav)) {
@@ -219,6 +261,12 @@ void PerfInfo::DrawPerfWindow()
 		ImGui::Spacing();
 
 		if (ImGui::BeginTabBar("PerfInfoTabs")) {
+
+			if (ImGui::BeginTabItem("Propulsion")) {
+				DrawPropulsionStats();
+				ImGui::EndTabItem();
+			}
+
 			if (ImGui::BeginTabItem("Renderer")) {
 				DrawRendererStats();
 				DrawImGuiStats();

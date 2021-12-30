@@ -45,6 +45,7 @@ namespace PiGui {
 		void DrawTextureCache();
 		void DrawTextureInspector();
 
+		void DrawPropulsionStats();
 		void DrawRendererStats();
 		void DrawWorldViewStats();
 		void DrawImGuiStats();
@@ -64,6 +65,9 @@ namespace PiGui {
 		CounterInfo m_fpsCounter;
 		CounterInfo m_physCounter;
 		CounterInfo m_piguiCounter;
+		static constexpr int THRUST_COUNT = 6;
+		static constexpr std::array<const char*, THRUST_COUNT> m_thrustName = { "Linear_X", "Linear_Y", "Linear_Z", "Angular_X", "Angular_Y", "Angular_Z" };
+		std::array<CounterInfo, THRUST_COUNT> m_thrustInfo;
 
 		MemoryInfo process_mem;
 		size_t lua_mem = 0;

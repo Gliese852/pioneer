@@ -3,21 +3,26 @@
 
 #include "Propulsion.h"
 
+#include "Body.h"
 #include "Game.h"
 #include "GameSaveError.h"
 #include "Pi.h"
 #include "Player.h"
 #include "PlayerShipController.h"
+#include "PowerSystem.h"
 #include "enum_table.h"
 #include "EnumStrings.h"
+#include "fmt/format.h"
 #include "ship/ThrusterConfig.h"
+
+
 
 void Propulsion::SaveToJson(Json &jsonObj, Space *space)
 {
 	//Json PropulsionObj(Json::objectValue); // Create JSON object to contain propulsion data.
-	jsonObj["ang_thrusters"] = m_angThrusters;
-	jsonObj["thrusters"] = m_linThrusters;
-	jsonObj["thruster_fuel"] = m_thrusterFuel;
+	//jsonObj["ang_thrusters"] = m_angThrusters;
+	// jsonObj["thrusters"] = m_linThrusters;
+	// jsonObj["thruster_fuel"] = m_thrusterFuel;
 	jsonObj["reserve_fuel"] = m_reserveFuel;
 	// !!! These are commented to avoid savegame bumps:
 	//jsonObj["tank_mass"] = m_fuelTankMass;
@@ -27,10 +32,10 @@ void Propulsion::SaveToJson(Json &jsonObj, Space *space)
 void Propulsion::LoadFromJson(const Json &jsonObj, Space *space)
 {
 	try {
-		SetAngThrusterState(jsonObj["ang_thrusters"]);
-		SetLinThrusterState(jsonObj["thrusters"]);
+		//SetAngThrusterState(jsonObj["ang_thrusters"]);
+		//SetLinThrusterState(jsonObj["thrusters"]);
 
-		m_thrusterFuel = jsonObj["thruster_fuel"];
+		//m_thrusterFuel = jsonObj["thruster_fuel"];
 		m_reserveFuel = jsonObj["reserve_fuel"];
 
 		// !!! This is commented to avoid savegame bumps:
@@ -42,137 +47,49 @@ void Propulsion::LoadFromJson(const Json &jsonObj, Space *space)
 
 Propulsion::Propulsion()
 {
-	m_fuelTankMass = 1;
-	for (int i = 0; i < Thruster::THRUSTER_MAX; i++)
-		m_linThrust[i] = 0.0;
-	for (int i = 0; i < Thruster::THRUSTER_MAX; i++)
-		m_linAccelerationCap[i] = INFINITY;
-	m_angThrust = 0.0;
-	m_effectiveExhaustVelocity = 100000.0;
-	m_thrusterFuel = 0.0; //0.0-1.0, remaining fuel
 	m_reserveFuel = 0.0;
 	m_fuelStateChange = false;
-	m_thrusterConfig = 0;
-	m_linThrusters = vector3d(0, 0, 0);
-	m_angThrusters = vector3d(0, 0, 0);
-	m_smodel = nullptr;
 	m_dBody = nullptr;
+	m_engine = nullptr;
 }
 
-
-void Propulsion::Init(DynamicBody *b, SceneGraph::Model *m, const ShipType *t)
+void Propulsion::Init(DynamicBody *b, PowerSystem *engine)
 {
-	m_fuelTankMass = t->fuelTankMass;
-	m_effectiveExhaustVelocity = t->effectiveExhaustVelocity;
-	for (int i = 0; i < Thruster::THRUSTER_MAX; i++)
-		for(int j = 0; j < THRTYPE_MAX; ++j)
-			m_linThrusterArray[i][j] = t->linThrust[i][j];
-	for (int i = 0; i < Thruster::THRUSTER_MAX; i++)
-		m_linAccelerationCap[i] = INFINITY;
-	m_thrusterConfig = t->mainThrusters;
-	SetMainThrusterActive(false);
-	m_angThrust = t->angThrust;
-	m_smodel = m;
 	m_dBody = b;
-	for (int i = 0; i < Thruster::THRUSTER_MAX; i++)
-		m_linAccelerationCap[i] = t->linAccelerationCap[i];
+	m_engine = engine;
 }
 
-
-void Propulsion::SetThrustPowerMult(double p, const ThrusterArray lin_Thrust, const float ang_Thrust)
-{
-	// Init of Propulsion:
-	for (int i = 0; i < Thruster::THRUSTER_MAX; i++)
-		for (int j = 0; j < THRTYPE_MAX; ++j)
-			m_linThrusterArray[i][j] = lin_Thrust[i][j] * p;
-	m_angThrust = ang_Thrust * p;
-}
-
-void Propulsion::SetAccelerationCapMult(double p, const float lin_AccelerationCap[])
-{
-	for (int i = 0; i < Thruster::THRUSTER_MAX; i++)
-		m_linAccelerationCap[i] = lin_AccelerationCap[i] * p;
-}
 
 void Propulsion::SetAngThrusterState(const vector3d &levels)
 {
-	if (m_thrusterFuel <= 0.f) {
-		m_angThrusters = vector3d(0.0);
-	} else {
-		m_angThrusters.x = Clamp(levels.x, -1.0, 1.0);
-		m_angThrusters.y = Clamp(levels.y, -1.0, 1.0);
-		m_angThrusters.z = Clamp(levels.z, -1.0, 1.0);
+	for(auto axis : { 0, 1, 2 }) {
+		m_engine->SetAngThrustLevel(axis, levels[axis]);
 	}
-}
-
-double Propulsion::ClampLinThrusterState(int axis, double level) const
-{
-	level = Clamp(level, -1.0, 1.0);
-	Thruster thruster;
-
-	if (axis == 0) {
-		thruster = (level > 0) ? THRUSTER_RIGHT : THRUSTER_LEFT;
-	} else if (axis == 1) {
-		thruster = (level > 0) ? THRUSTER_UP : THRUSTER_DOWN;
-	} else {
-		thruster = (level > 0) ? THRUSTER_REVERSE : THRUSTER_FORWARD;
-	}
-
-	return m_linThrust[thruster] > 0.0 ? level * GetThrust(thruster) / m_linThrust[thruster] : 0.0;
-}
-
-vector3d Propulsion::ClampLinThrusterState(const vector3d &levels) const
-{
-	vector3d clamped = levels;
-	Thruster thruster;
-
-	thruster = (clamped.x > 0) ? THRUSTER_RIGHT : THRUSTER_LEFT;
-	clamped.x = Clamp(clamped.x, -1.0, 1.0);
-	clamped.x *= GetThrust(thruster) / m_linThrust[thruster];
-
-	thruster = (clamped.y > 0) ? THRUSTER_UP : THRUSTER_DOWN;
-	clamped.y = Clamp(clamped.y, -1.0, 1.0);
-	clamped.y *= GetThrust(thruster) / m_linThrust[thruster];
-
-	thruster = (clamped.z > 0) ? THRUSTER_REVERSE : THRUSTER_FORWARD;
-	clamped.z = Clamp(clamped.z, -1.0, 1.0);
-	clamped.z *= GetThrust(thruster) / m_linThrust[thruster];
-
-	return clamped;
 }
 
 void Propulsion::SetLinThrusterState(int axis, double level)
 {
-	if (m_thrusterFuel <= 0.f) level = 0.0;
-	m_linThrusters[axis] = ClampLinThrusterState(axis, level);
+	// if (m_dBody->IsType(ObjectType::PLAYER)){ Output("prop_slts_axis: %d level %f\n", axis, level); }
+	m_engine->SetThrustLevel(axis, level);
 }
 
 void Propulsion::SetLinThrusterState(const vector3d &levels)
 {
-	if (m_thrusterFuel <= 0.f) {
-		m_linThrusters = vector3d(0.0);
-	} else {
-		m_linThrusters = ClampLinThrusterState(levels);
+	if (m_dBody->IsType(ObjectType::PLAYER)){
+		//Output("prop_slts_vec: "); levels.Print();
 	}
-}
-
-double Propulsion::GetThrust(Thruster thruster) const
-{
-	// acceleration = thrust / mass
-	// thrust = acceleration * mass
-	const float mass = static_cast<float>(m_dBody->GetMass());
-	return std::min(
-		m_linThrust[thruster],
-		m_linAccelerationCap[thruster] * mass);
+	for(auto axis : { 0, 1, 2 }) {
+		m_engine->SetThrustLevel(axis, levels[axis]);
+	}
 }
 
 vector3d Propulsion::GetThrust(const vector3d &dir) const
 {
 	vector3d maxThrust;
 
-	maxThrust.x = (dir.x > 0) ? GetThrust(THRUSTER_RIGHT) : GetThrust(THRUSTER_LEFT);
-	maxThrust.y = (dir.y > 0) ? GetThrust(THRUSTER_UP) : GetThrust(THRUSTER_DOWN);
-	maxThrust.z = (dir.z > 0) ? GetThrust(THRUSTER_REVERSE) : GetThrust(THRUSTER_FORWARD);
+	maxThrust.x = (dir.x > 0) ? m_engine->GetThrust(THRUSTER_RIGHT) : m_engine->GetThrust(THRUSTER_LEFT);
+	maxThrust.y = (dir.y > 0) ? m_engine->GetThrust(THRUSTER_UP) : m_engine->GetThrust(THRUSTER_DOWN);
+	maxThrust.z = (dir.z > 0) ? m_engine->GetThrust(THRUSTER_REVERSE) : m_engine->GetThrust(THRUSTER_FORWARD);
 
 	return maxThrust;
 }
@@ -180,37 +97,17 @@ vector3d Propulsion::GetThrust(const vector3d &dir) const
 double Propulsion::GetThrustMin() const
 {
 	// These are the weakest thrusters in a ship
-	double val = static_cast<double>(m_linThrust[THRUSTER_UP]);
-	val = std::min(val, static_cast<double>(m_linThrust[THRUSTER_RIGHT]));
-	val = std::min(val, static_cast<double>(m_linThrust[THRUSTER_LEFT]));
+	double val = static_cast<double>(m_engine->GetThrust(THRUSTER_UP));
+	val = std::min(val, static_cast<double>(m_engine->GetThrust(THRUSTER_RIGHT)));
+	val = std::min(val, static_cast<double>(m_engine->GetThrust(THRUSTER_LEFT)));
 	return val;
-}
-
-vector3d Propulsion::GetThrustUncapped(const vector3d &dir) const
-{
-	vector3d maxThrust;
-
-	maxThrust.x = (dir.x > 0) ? m_linThrust[THRUSTER_RIGHT] : m_linThrust[THRUSTER_LEFT];
-	maxThrust.y = (dir.y > 0) ? m_linThrust[THRUSTER_UP] : m_linThrust[THRUSTER_DOWN];
-	maxThrust.z = (dir.z > 0) ? m_linThrust[THRUSTER_REVERSE] : m_linThrust[THRUSTER_FORWARD];
-
-	return maxThrust;
-}
-
-float Propulsion::GetFuelUseRate()
-{
-	const float denominator = m_fuelTankMass * m_effectiveExhaustVelocity * 10;
-	return denominator > 0 ? m_linThrust[THRUSTER_FORWARD] / denominator : 1e9;
 }
 
 void Propulsion::UpdateFuel(const float timeStep)
 {
-	const double fuelUseRate = GetFuelUseRate() * 0.01;
-	double totalThrust = (fabs(m_linThrusters.x) + fabs(m_linThrusters.y) + fabs(m_linThrusters.z));
 	FuelState lastState = GetFuelState();
-	m_thrusterFuel -= timeStep * (totalThrust * fuelUseRate);
+	m_engine->UpdateFuel(timeStep);
 	FuelState currentState = GetFuelState();
-
 	if (currentState != lastState)
 		m_fuelStateChange = true;
 	else
@@ -220,30 +117,12 @@ void Propulsion::UpdateFuel(const float timeStep)
 // returns speed that can be reached using fuel minus reserve according to the Tsiolkovsky equation
 double Propulsion::GetSpeedReachedWithFuel() const
 {
-	const double mass = m_dBody->GetMass();
-	// Why is the fuel mass multiplied by 1000 and the fuel use rate divided by 1000?
-	// (see Propulsion::UpdateFuel and Propulsion::GetFuelUseRate)
-	const double fuelmass = 1000 * m_fuelTankMass * (m_thrusterFuel - m_reserveFuel);
-	if (fuelmass < 0) return 0.0;
-	return m_effectiveExhaustVelocity * log(mass / (mass - fuelmass));
-}
-
-void Propulsion::Render(Graphics::Renderer *r, const Camera *camera, const vector3d &viewCoords, const matrix4x4d &viewTransform)
-{
-	/* TODO: allow Propulsion to know SceneGraph::Thruster and
-	 * to work directly with it (this could lead to movable
-	 * thruster and so on)... this code is :-/
-	*/
-	//angthrust negated, for some reason
-	if (m_smodel != nullptr) { 
-		m_smodel->SetThrust(vector3f(GetLinThrusterState()), -vector3f(GetAngThrusterState()));
-		m_smodel->SetMainThrusterActive(m_thrusterConfig);
-	}
+	return m_engine->GetDeltaV(THRUSTER_FORWARD, m_reserveFuel);
 }
 
 void Propulsion::AIModelCoordsMatchAngVel(const vector3d &desiredAngVel, double softness)
 {
-	double angAccel = m_angThrust / m_dBody->GetAngularInertia();
+	double angAccel = m_engine->GetAngThrust(0) / m_dBody->GetAngularInertia();
 	const double softTimeStep = Pi::game->GetTimeStep() * softness;
 
 	vector3d angVel = desiredAngVel - m_dBody->GetAngVelocity() * m_dBody->GetOrient();
@@ -358,28 +237,56 @@ bool Propulsion::AIChangeVelBy(const vector3d &diffvel)
 // Change object-space velocity in direction of param
 vector3d Propulsion::AIChangeVelDir(const vector3d &reqdiffvel)
 {
-	// get max thrust in desired direction after external force compensation
+	//maximum thrust along the axes coinciding in sign with the required direction
 	vector3d maxthrust = GetThrust(reqdiffvel);
-	maxthrust += m_dBody->GetExternalForce() * m_dBody->GetOrient();
-	vector3d maxFA = maxthrust * (Pi::game->GetTimeStep() / m_dBody->GetMass());
-	maxFA.x = fabs(maxFA.x);
-	maxFA.y = fabs(maxFA.y);
-	maxFA.z = fabs(maxFA.z);
+	vector3d corrthrust = maxthrust;
+	// next vector is a special "thrust" space, where the the axes are
+	// flipped so that the thrust vector is positive regardless of the
+	// direction of the required velocity
+	vector3d flip (1.0, 1.0, 1.0);
+	const double eps = 1e-5; // precision
+	if(reqdiffvel.x < 0) flip.x *= -1;
+	if(reqdiffvel.y < 0) flip.y *= -1;
+	if(reqdiffvel.z < 0) flip.z *= -1;
+	vector3d extf = m_dBody->GetExternalForce() * m_dBody->GetOrient();
+	corrthrust += extf * flip;
+	corrthrust.x = std::max(corrthrust.x, 0.0);
+	corrthrust.y = std::max(corrthrust.y, 0.0);
+	corrthrust.z = std::max(corrthrust.z, 0.0);
+	// the actual thrust vector must be proportional to the velocity vector
+	// in "thrust" space
+	vector3d thrust = reqdiffvel * flip;
 
-	// crunch diffvel by relative thruster power to get acceleration in right direction
-	vector3d diffvel = reqdiffvel;
-	if (fabs(diffvel.x) > maxFA.x) diffvel *= maxFA.x / fabs(diffvel.x);
-	if (fabs(diffvel.y) > maxFA.y) diffvel *= maxFA.y / fabs(diffvel.y);
-	if (fabs(diffvel.z) > maxFA.z) diffvel *= maxFA.z / fabs(diffvel.z);
+	// first scale iteration
+	if(thrust.x > eps) thrust *= corrthrust.x / thrust.x;
+	else if (thrust.y > eps) thrust *= corrthrust.y / thrust.y;
+	else if (thrust.z > eps) thrust *= corrthrust.z / thrust.z;
+	else {
+		// thrust + external forces is zero
+		// do maximum thrust
+		// need to pass levels -1.0..1.0 in model space
+		SetLinThrusterState(flip);
+		return vector3d(0.0);
+	}
 
-	AIChangeVelBy(diffvel);								  // should always return true because it's already capped?
-	return m_dBody->GetOrient() * (reqdiffvel - diffvel); // should be remaining diffvel to correct
+	// scale further
+	if(thrust.x > eps && corrthrust.x < thrust.x) thrust *= corrthrust.x / thrust.x;
+	if(thrust.y > eps && corrthrust.y < thrust.y) thrust *= corrthrust.y / thrust.y;
+	if(thrust.y > eps && corrthrust.z < thrust.z) thrust *= corrthrust.z / thrust.z;
+
+	// back into normal space, get back external forces
+
+	thrust = thrust * flip - extf;
+	vector3d levels (thrust.x / maxthrust.x, thrust.y / maxthrust.y, thrust.z / maxthrust.z);
+
+	SetLinThrusterState(levels);
+	return vector3d(0.0);
 }
 
 // Input in object space
 void Propulsion::AIMatchAngVelObjSpace(const vector3d &angvel)
 {
-	double maxAccel = m_angThrust / m_dBody->GetAngularInertia();
+	double maxAccel = m_engine->GetAngThrust(0) / m_dBody->GetAngularInertia();
 	double invFrameAccel = 1.0 / (maxAccel * Pi::game->GetTimeStep());
 
 	vector3d diff = angvel - m_dBody->GetAngVelocity() * m_dBody->GetOrient(); // find diff between current & desired angvel
@@ -389,25 +296,68 @@ void Propulsion::AIMatchAngVelObjSpace(const vector3d &angvel)
 // get updir as close as possible just using roll thrusters
 double Propulsion::AIFaceUpdir(const vector3d &updir, double av)
 {
-	double maxAccel = m_angThrust / m_dBody->GetAngularInertia(); // should probably be in stats anyway
+	double maxAccel = m_engine->GetAngThrust(0) / m_dBody->GetAngularInertia(); // should probably be in stats anyway
 	double frameAccel = maxAccel * Pi::game->GetTimeStep();
 
 	vector3d uphead = updir * m_dBody->GetOrient(); // create desired object-space updir
-	if (uphead.z > 0.99999) return 0;				// bail out if facing updir
+	// it seems you can pass a vector of any length to this function
+	// make sure we can normalize
+	if(uphead.LengthSqr() < 1e-10) return 0;
+	uphead = uphead.Normalized();
+	// cosine of the angle sharper than which we think we are approaching gimbal lock
+	if(m_dBody->IsType(ObjectType::PLAYER)) {
+		Output("UpDir: uphead: %7.4f %7.4f %7.4f", uphead.x, uphead.y, uphead.z);
+	}
+	constexpr double LIMIT_COS = 0.93969;
+	// bail out if facing almost down of almost up
+	if (uphead.z > LIMIT_COS || uphead.z < -LIMIT_COS) { 
+		if(m_dBody->IsType(ObjectType::PLAYER)) {
+			Output("|bail out\n");
+		}
+		return 0; }
 	uphead.z = 0;
 	uphead = uphead.Normalized(); // only care about roll axis
 
-	double ang = 0.0, dav = 0.0;
-	if (uphead.y < 0.99999999) {
-		ang = acos(Clamp(uphead.y, -1.0, 1.0));					 // scalar angle from head to curhead
-		double iangvel = av + calc_ivel_pos(ang, 0.0, maxAccel); // ideal angvel at current time
-
-		dav = uphead.x > 0 ? -iangvel : iangvel;
+	if(m_dBody->IsType(ObjectType::PLAYER)) {
+		Output("|z0: %9.6f %9.6f %9.6f", uphead.x, uphead.y, uphead.z);
 	}
+
+	double ang = acos(uphead.y);					 // scalar angle from head to curhead
+	double iangvel = 0.0 + calc_ivel_pos(ang, 0.0, maxAccel); // ideal angvel at current time
+	double dav = uphead.x > 0 ? -iangvel : iangvel;
 	double cav = (m_dBody->GetAngVelocity() * m_dBody->GetOrient()).z; // current obj-rel angvel
 	double diff = (dav - cav) / frameAccel;							   // find diff between current & desired angvel
 
 	SetAngThrusterState(2, diff);
+	if(m_dBody->IsType(ObjectType::PLAYER)) {
+		Output("|ang:%9.6f|dav:%7.4f|cav:%7.4f", ang, dav, cav);
+		Output("|diff: %7.4f\n", diff);
+	}
+	return ang;
+}
+
+// get updir as close as possible just using roll thrusters
+double Propulsion::AIFaceUpdirPitch(const vector3d &updir, double av)
+{
+	double maxAccel = m_engine->GetAngThrust(0) / m_dBody->GetAngularInertia(); // should probably be in stats anyway
+	//double frameAccel = maxAccel * Pi::game->GetTimeStep();
+
+	vector3d uphead = updir * m_dBody->GetOrient(); // create desired object-space updir
+	if (uphead.z < -0.99999) return 0;			// bail out if facing up
+	if (uphead.z > 0.99999) return 0;				// bail out if facing down
+	if (uphead.y > 0.999999) {
+		AIModelCoordsMatchAngVel(vector3d(0.0), 1.0);
+		return 0;        // stop rotation and bail out if up is up
+	}
+	// rotation axis
+	vector3d axis = vector3d(0.0, 1.0, 0.0).Cross(uphead).Normalized();
+	auto ang = acos(uphead.Dot(vector3d(0.0, 1.0, 0.0)));
+	auto want_rot = abs(ang);
+	auto good_speed = sqrt(2 * maxAccel * want_rot) * 0.9;
+	if(m_dBody->IsType(ObjectType::PLAYER)) {
+		Output("faceup: ang: %.5f good_speed: %.5f axis(%.5f): ", ang, good_speed, axis.Length()); axis.Print();
+	}
+	AIModelCoordsMatchAngVel(axis * good_speed, 1.0);
 	return ang;
 }
 
@@ -418,22 +368,20 @@ double Propulsion::AIFaceUpdir(const vector3d &updir, double av)
 // returns angle to target
 double Propulsion::AIFaceDirection(const vector3d &dir, double av)
 {
-	double maxAccel = m_angThrust / m_dBody->GetAngularInertia(); // should probably be in stats anyway
+	double maxAccel = m_engine->GetAngThrust(0) / m_dBody->GetAngularInertia(); // should probably be in stats anyway
 
 	vector3d head = (dir * m_dBody->GetOrient()).Normalized(); // create desired object-space heading
 	vector3d dav(0.0, 0.0, 0.0);							   // desired angular velocity
 
 	double ang = 0.0;
-	if (head.z > -0.99999999) {
-		ang = acos(Clamp(-head.z, -1.0, 1.0));					 // scalar angle from head to curhead
-		double iangvel = av + calc_ivel_pos(ang, 0.0, maxAccel); // ideal angvel at current time
+	ang = acos(-head.z);					 // scalar angle from head to curhead
+	double iangvel = av + calc_ivel_pos(ang, 0.0, maxAccel); // ideal angvel at current time
 
-		// Normalize (head.x, head.y) to give desired angvel direction
-		if (head.z > 0.999999) head.x = 1.0;
-		double head2dnorm = 1.0 / sqrt(head.x * head.x + head.y * head.y); // NAN fix shouldn't be necessary if inputs are normalized
-		dav.x = head.y * head2dnorm * iangvel;
-		dav.y = -head.x * head2dnorm * iangvel;
-	}
+	// Normalize (head.x, head.y) to give desired angvel direction
+	if (head.z > 0.999999) head.x = 1.0;
+	double head2dnorm = 1.0 / sqrt(head.x * head.x + head.y * head.y); // NAN fix shouldn't be necessary if inputs are normalized
+	dav.x = head.y * head2dnorm * iangvel;
+	dav.y = -head.x * head2dnorm * iangvel;
 	const vector3d cav = m_dBody->GetAngVelocity() * m_dBody->GetOrient(); // current obj-rel angvel
 	const double frameAccel = maxAccel * Pi::game->GetTimeStep();
 	vector3d diff = is_zero_exact(frameAccel) ? vector3d(0.0) : (dav - cav) / frameAccel; // find diff between current & desired angvel
@@ -478,9 +426,20 @@ vector3d Propulsion::AIGetLeadDir(const Body *target, const vector3d &targaccel,
 	return leadpos.Normalized();
 }
 
-void Propulsion::SetMainThrusterActive(bool isActive) {
-	m_thrusterConfig = isActive ? m_thrusterConfig | TF_MAIN : m_thrusterConfig ^ TF_MAIN;
-	for(int i = 0; i < THRUSTER_MAX; ++i) {
-		m_linThrust[i] = m_linThrusterArray[i][isActive ? THRTYPE_MAIN : THRTYPE_RCS];
-	}
+vector3d Propulsion::GetLinThrusterState() const
+{
+	vector3d force(m_engine->GetForce());
+	force.x /= m_engine->GetThrust(force.x > 0 ? THRUSTER_RIGHT : THRUSTER_LEFT);
+	force.y /= m_engine->GetThrust(force.y > 0 ? THRUSTER_UP : THRUSTER_DOWN);
+	force.z /= m_engine->GetThrust(force.z > 0 ? THRUSTER_REVERSE : THRUSTER_FORWARD);
+	return force;
+}
+
+vector3d Propulsion::GetAngThrusterState() const
+{
+	vector3d ans(m_engine->GetTorque());
+	ans.x /= ans.x * m_engine->GetAngThrust(0);
+	ans.y /= ans.y * m_engine->GetAngThrust(1);
+	ans.z /= ans.z * m_engine->GetAngThrust(2);
+	return ans;
 }

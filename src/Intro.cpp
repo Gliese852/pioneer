@@ -13,6 +13,7 @@
 #include "scenegraph/ModelSkin.h"
 #include "scenegraph/SceneGraph.h"
 #include <algorithm>
+#include "ship/DemoPowerSystem.h"
 
 class PiRngWrapper {
 public:
@@ -48,8 +49,6 @@ Intro::Intro(Graphics::Renderer *r, int width, int height) :
 
 	for (auto i : ShipType::player_ships) {
 		SceneGraph::Model *model = Pi::FindModel(ShipType::types[i].modelName)->MakeInstance();
-		model->SetThrust(vector3f(0.f, 0.f, -0.6f), vector3f(0.f));
-		model->SetMainThrusterActive(191); // 10111111 show only main thrusters 
 		if (ShipType::types[i].isGlobalColorDefined) model->SetThrusterColor(ShipType::types[i].globalThrusterColor);
 		for (int j = 0; j < THRUSTER_MAX; j++) {
 			if (!ShipType::types[i].isDirectionColorDefined[j]) continue;
@@ -103,6 +102,8 @@ void Intro::RefreshBackground(Graphics::Renderer *r)
 void Intro::Reset()
 {
 	m_model = m_models[m_modelIndex++];
+	engine.reset(new DemoPowerSystem(m_model));
+	m_model->SetEngine(engine.get());
 	if (m_modelIndex == m_models.size()) m_modelIndex = 0;
 	m_skin.SetRandomColors(Pi::rng);
 	m_skin.Apply(m_model);

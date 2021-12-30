@@ -153,8 +153,7 @@ namespace SceneGraph {
 		Graphics::Renderer *GetRenderer() const { return m_renderer; }
 
 		//special for ship model use
-		void SetThrust(const vector3f &linear, const vector3f &angular);
-		void SetMainThrusterActive(uint8_t isActive) { m_renderData.mainThrusterActive = isActive; }
+		void SetEngine(PowerSystem *engine);
 
 		void SetThrusterColor(const vector3f &dir, const Color &color);
 		void SetThrusterColor(const std::string &name, const Color &color);

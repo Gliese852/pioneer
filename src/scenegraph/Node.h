@@ -19,6 +19,8 @@ namespace Serializer {
 	class Writer;
 } // namespace Serializer
 
+class PowerSystem;
+
 namespace SceneGraph {
 
 	class BaseLoader;
@@ -42,18 +44,14 @@ namespace SceneGraph {
 
 	//Small structure used internally to pass rendering data
 	struct RenderData {
-		float linthrust[3]; // 1.0 to -1.0
-		float angthrust[3]; // 1.0 to -1.0
-		uint8_t mainThrusterActive;
 		Color customColor;
+		PowerSystem *engine = nullptr;
 
 		float boundingRadius; //updated by model and passed to submodels
 		unsigned int nodemask;
 
 		RenderData() :
-			linthrust(),
-			angthrust(),
-			mainThrusterActive(),
+			engine(nullptr),
 			boundingRadius(0.f),
 			nodemask(NODE_SOLID) //draw solids
 		{
