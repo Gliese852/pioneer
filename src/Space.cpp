@@ -25,10 +25,11 @@
 #include "lua/LuaTimer.h"
 #include <algorithm>
 #include <functional>
+#include "../mydebug.cpp"
 
 //#define DEBUG_CACHE
 
-static void RelocateStarportIfNecessary(SystemBody *sbody, Planet *planet, vector3d &pos, matrix3x3d &rot, const std::vector<vector3d> &prevPositions)
+static double RelocateStarportIfNecessary(SystemBody *sbody, Planet *planet, vector3d &pos, matrix3x3d &rot, const std::vector<vector3d> &prevPositions)
 {
 	const double radius = planet->GetSystemBody()->GetRadius();
 
@@ -44,6 +45,8 @@ static void RelocateStarportIfNecessary(SystemBody *sbody, Planet *planet, vecto
 	double bestVariation = 1e10; // any high value
 	matrix3x3d rotNotUnderwaterWithLeastVariation = rot;
 	vector3d posNotUnderwaterWithLeastVariation = pos;
+	double heightWithRaise = 0;
+	double firstHeightWithRaise = 0;
 	const double heightVariationCheckThreshold = 0.008;					 // max variation to radius radius ratio to check for local slope, ganymede is around 0.01
 	const double terrainHeightVariation = planet->GetMaxFeatureRadius(); //in radii
 
@@ -53,7 +56,7 @@ static void RelocateStarportIfNecessary(SystemBody *sbody, Planet *planet, vecto
 	// points must stay within max height variation to be accepted
 	//    1. delta should be chosen such that it a distance from the starport center that encloses landing pads for the largest starport
 	//    2. maxSlope should be set so maxHeightVariation is less than the height of the landing pads
-	const double delta = 20.0 / radius;							 // in radii
+	const double delta = 200.0 / radius;							 // in radii
 	const double maxSlope = 0.2;								 // 0.0 to 1.0
 	const double maxHeightVariation = maxSlope * delta * radius; // in m
 
@@ -73,25 +76,37 @@ static void RelocateStarportIfNecessary(SystemBody *sbody, Planet *planet, vecto
 	for (int tries = 0; tries < 200; tries++) {
 		variationWithinLimits = true;
 
-		const double height = planet->GetTerrainHeight(pos_) - radius; // in m
 
+		// XXX: recomment
 		// check height at 6 points around the starport center stays within variation tolerances
 		// GetHeight gives a varying height field in 3 dimensions.
 		// Given it's smoothly varying it's fine to sample it in arbitary directions to get an idea of how sharply it varies
-		double v[6];
-		v[0] = fabs(planet->GetTerrainHeight(vector3d(pos_.x + delta, pos_.y, pos_.z)) - radius - height);
-		v[1] = fabs(planet->GetTerrainHeight(vector3d(pos_.x - delta, pos_.y, pos_.z)) - radius - height);
-		v[2] = fabs(planet->GetTerrainHeight(vector3d(pos_.x, pos_.y, pos_.z + delta)) - radius - height);
-		v[3] = fabs(planet->GetTerrainHeight(vector3d(pos_.x, pos_.y, pos_.z - delta)) - radius - height);
-		v[4] = fabs(planet->GetTerrainHeight(vector3d(pos_.x, pos_.y + delta, pos_.z)) - radius - height);
-		v[5] = fabs(planet->GetTerrainHeight(vector3d(pos_.x, pos_.y - delta, pos_.z)) - radius - height);
+		double h[5];
+		h[0] = planet->GetTerrainHeight(pos_);
+		h[1] = planet->GetTerrainHeight((pos_ + (rot_ * vector3d(delta, 0.0, delta))).Normalized());
+		h[2] = planet->GetTerrainHeight((pos_ + (rot_ * vector3d(-delta, 0.0, delta))).Normalized());
+		h[3] = planet->GetTerrainHeight((pos_ + (rot_ * vector3d(-delta, 0.0, -delta))).Normalized());
+		h[4] = planet->GetTerrainHeight((pos_ + (rot_ * vector3d(delta, 0.0, -delta))).Normalized());
+
+		Output("----------------\nh[0]: %s\n", vec2str_len(pos_ * radius));
+		Output("h[1]: %s\n", vec2str_len((pos_ + (rot_ * vector3d(delta, 0.0, delta))).Normalized() * radius));
+		Output("h[2]: %s\n", vec2str_len((pos_ + (rot_ * vector3d(-delta, 0.0, delta))).Normalized() * radius));
+		Output("h[3]: %s\n", vec2str_len((pos_ + (rot_ * vector3d(-delta, 0.0, -delta))).Normalized() * radius));
+		Output("h[4]: %s\n", vec2str_len((pos_ + (rot_ * vector3d(delta, 0.0, -delta))).Normalized() * radius));
+
+		const double height = h[0] - radius; // in m
 
 		// break if variation for all points is within limits
 		double variationMax = 0.0;
-		for (int i = 0; i < 6; i++) {
-			variationWithinLimits = variationWithinLimits && (v[i] < maxHeightVariation);
-			variationMax = (v[i] > variationMax) ? v[i] : variationMax;
+		double hMin = h[0];
+		double hMax = h[0];
+		for (int i = 1; i < 5; i++) {
+			hMin = std::min(hMin, h[i]);
+			hMax = std::max(hMax, h[i]);
 		}
+
+		variationMax = (hMax - hMin) / 2;
+		variationWithinLimits = variationMax < maxHeightVariation;
 
 		// check if underwater
 		const bool starportUnderwater = (height <= 0.0);
@@ -111,14 +126,17 @@ static void RelocateStarportIfNecessary(SystemBody *sbody, Planet *planet, vecto
 		if (tries == 0) {
 			isInitiallyUnderwater = starportUnderwater;
 			initialVariationTooHigh = !variationWithinLimits;
+			heightWithRaise = hMax;
+			firstHeightWithRaise = hMax;
 		}
 
 		if (!starportUnderwater && variationMax < bestVariation) {
-			bestVariation = variationMax;
 			posNotUnderwaterWithLeastVariation = pos_;
 			rotNotUnderwaterWithLeastVariation = rot_;
+			heightWithRaise = hMax;
 		}
 
+		// successful exit here
 		if (variationWithinLimits && !starportUnderwater && !tooCloseToOther)
 			break;
 
@@ -133,6 +151,8 @@ static void RelocateStarportIfNecessary(SystemBody *sbody, Planet *planet, vecto
 	if (isInitiallyUnderwater || (isRelocatableIfBuried && initialVariationTooHigh)) {
 		pos = posNotUnderwaterWithLeastVariation;
 		rot = rotNotUnderwaterWithLeastVariation;
+	} else {
+		heightWithRaise = firstHeightWithRaise;
 	}
 
 	if (sbody->IsCustomBody()) {
@@ -151,6 +171,8 @@ static void RelocateStarportIfNecessary(SystemBody *sbody, Planet *planet, vecto
 				sbody->GetName().c_str(), sbody->GetParent()->GetName().c_str(), p.sectorX, p.sectorY, p.sectorZ);
 		}
 	}
+	Output ("h at pos: %.2f maxh: %.2f\n", planet->GetTerrainHeight(pos), heightWithRaise);
+	return heightWithRaise;
 }
 
 void Space::BodyNearFinder::Prepare()
@@ -795,9 +817,9 @@ static FrameId MakeFramesFor(const double at_time, SystemBody *sbody, Body *b, F
 		matrix3x3d rot;
 		vector3d pos;
 		Planet *planet = static_cast<Planet *>(rotFrame->GetBody());
-		RelocateStarportIfNecessary(sbody, planet, pos, rot, prevPositions);
+		double h = RelocateStarportIfNecessary(sbody, planet, pos, rot, prevPositions);
 		sbody->SetOrbitPlane(rot);
-		b->SetPosition(pos * planet->GetTerrainHeight(pos));
+		b->SetPosition(pos * h);
 		b->SetOrient(rot);
 		// accumulate for testing against
 		prevPositions.push_back(pos);
