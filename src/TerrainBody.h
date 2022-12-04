@@ -29,6 +29,7 @@ public:
 	virtual double GetMass() const override { return m_mass; }
 	double GetTerrainHeight(const vector3d &pos) const;
 	virtual const SystemBody *GetSystemBody() const override { return m_sbody; }
+	void RegisterCityGrid(uint8_t *bitset, uint32_t pitch, uint32_t citySize, vector3d center, double radius, matrix3x3d orient);
 
 	// returns value in metres
 	double GetMaxFeatureRadius() const { return m_maxFeatureHeight; }

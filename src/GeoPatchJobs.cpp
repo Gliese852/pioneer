@@ -229,8 +229,26 @@ void SQuadSplitRequest::GenerateSubPatchData(
 	vector3f *nrm = normals[quadrantIndex];
 	double *hts = heights[quadrantIndex];
 
+	// check if the patch hit the city by simple iteration
+	// I don’t think it’s worth using spatial indexing, because we have only a few cities on the planet
+	double psize = (v0 - v2).Length();
+	const Terrain::cityGrid *grid = nullptr;
+	for(auto &test_grid :  pTerrain->GetCityGrids()) {
+		double gsize = test_grid.radius * 1.415;
+		if (gsize * edgeLen < psize) continue;
+		double max_size = test_grid.radius * 1.415 + psize;
+		if ( fabs(centroid.x - test_grid.center.x) < max_size &&
+		     fabs(centroid.y - test_grid.center.y) < max_size &&
+		     fabs(centroid.z - test_grid.center.z) < max_size )
+		{
+			grid = &test_grid;
+			break;
+		}
+	}
+
 	// step over the small square
 	for (int y = 0; y < edgeLen; y++) {
+
 		const int by = (y + BORDER_SIZE) + yoff;
 		for (int x = 0; x < edgeLen; x++) {
 			const int bx = (x + BORDER_SIZE) + xoff;
@@ -249,9 +267,41 @@ void SQuadSplitRequest::GenerateSubPatchData(
 			assert(nrm != &normals[quadrantIndex][edgeLen * edgeLen]);
 			*(nrm++) = vector3f(n);
 
+
 			// color
 			const vector3d p = GetSpherePoint(v0, v1, v2, v3, x * fracStep, y * fracStep);
-			setColour(*col, pTerrain->GetColor(p, height, n));
+			vector3d terrain_color = pTerrain->GetColor(p, height, n);
+
+			// geopatch dimensions intersect with city dimensions
+			if (grid) {
+				// determine the sampled coordinate in the city grid
+				double cellsize = grid->radius * 2 / grid->citySize;
+				vector3d loc = (p - grid->center) * grid->orient;
+				// bring to the grid corner
+				int xcity = loc.x / cellsize + 0.5 + grid->citySize / 2;
+				int zcity = loc.z / cellsize + 0.5 + grid->citySize / 2;
+
+				// testing hitting the square of the city
+				if (xcity >=0 && xcity < (int)grid->citySize && zcity >= 0 && zcity < (int)grid->citySize ) {
+					uint8_t bitmask = 1 << (xcity & 7);
+					int shift = grid->pitch * zcity + (xcity >> 3);
+					uint8_t cell = *(grid->bitset + shift);
+
+					// sampled point hit the active bit
+					if ((cell & bitmask) != 0) {
+
+						// coefficient of distance from the center
+						double k = loc.Length() / grid->radius;
+
+						// by the middle of the city we come to 75% natural color and stay that way
+						k = std::min(k * 1.5, 0.75);
+						vector3d city_color{ 0.1, 0.1, 0.1 };
+						terrain_color = city_color.Lerp(terrain_color, k);
+					}
+				}
+			}
+			setColour(*col, terrain_color);
+
 			assert(col != &colors[quadrantIndex][edgeLen * edgeLen]);
 			++col;
 		}

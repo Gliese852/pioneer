@@ -23,6 +23,7 @@
 #include "scenegraph/Animation.h"
 #include "scenegraph/ModelSkin.h"
 #include "scenegraph/SceneGraph.h"
+#include "CitySpotGenerator.h"
 
 #include "utils.h"
 
@@ -300,6 +301,8 @@ CityOnPlanet::~CityOnPlanet()
 		f->RemoveStaticGeom(m_buildings[i].geom);
 		delete m_buildings[i].geom;
 	}
+	// Release the memory
+	m_gridBitset.reset();
 }
 
 CityOnPlanet::CityOnPlanet(Planet *planet, SpaceStation *station, const Uint32 seed)
@@ -359,9 +362,14 @@ void CityOnPlanet::Generate(SpaceStation *station)
 	m_gridPitch = (m_gridPitch + 7) & ~uint32_t(7);
 
 	m_gridLen = m_gridPitch * m_citySize;
-
 	m_gridBitset.reset(new uint8_t[m_gridLen]);
 	std::memset(m_gridBitset.get(), 0, m_gridLen);
+
+	uint32_t cityCeed = m_rand.Int32();
+	generate_blob(m_gridBitset.get(), cityCeed, m_citySize, m_gridPitch, 15);
+	for (uint32_t i = 0; i < m_gridLen; ++i) {
+		m_gridBitset[i] = ~m_gridBitset[i];
+	}
 
 	// Setup the station model position relative to the city grid
 	// ==========================================
@@ -561,10 +569,10 @@ void CityOnPlanet::Generate(SpaceStation *station)
 
 	Log::Verbose("\tCityOnPlanet: generated AABB for city in {}ms", _genTimer.milliseconds());
 
-	// Release the memory once we're done generating and reset
-	m_gridBitset.reset();
-	m_gridPitch = 0;
-	m_gridLen = 0;
+	generate_blob(m_gridBitset.get(), cityCeed, m_citySize, m_gridPitch, 15);
+
+	GetPlanet()->RegisterCityGrid(m_gridBitset.get(), m_gridPitch, m_citySize, station->GetPosition(), m_citySize * double(CELLSIZE) * 0.5, station->GetOrient());
+
 }
 
 // Calculate the radius for this city based on the SystemBody's parameters

@@ -176,7 +176,7 @@ void ExternalCameraController::ZoomEvent(float amount)
 {
 	m_distTo += 5 * amount * m_distTo;
 	// make sure the camera can't go inside the ship or more than 1.5km away
-	m_distTo = std::max(GetShip()->GetClipRadius(), std::min(GetShip()->GetClipRadius() + 1500.0, m_distTo));
+	m_distTo = std::max(GetShip()->GetClipRadius(), std::min(GetShip()->GetClipRadius() + 150000.0, m_distTo));
 }
 
 void ExternalCameraController::ZoomEventUpdate(float frameTime)

@@ -12,6 +12,7 @@
 
 #include <memory>
 #include <string>
+#include <matrix3x3.h>
 
 #ifdef _MSC_VER
 #pragma warning(disable : 4250) // workaround for MSVC 2008 multiple inheritance bug
@@ -56,6 +57,21 @@ public:
 	double BiCubicInterpolation(const vector3d &p) const;
 
 	void DebugDump() const;
+
+	struct cityGrid {
+		// bitmask occupancy grid for quick population of the city
+		uint8_t *bitset;
+		// width of a single grid row in bytes
+		uint32_t pitch;
+		uint32_t citySize;
+		vector3d center;
+		// half the width of the square, actually
+		double radius;
+		matrix3x3d orient;
+	};
+
+	void AddCityGrid(cityGrid &&grid) { m_cityGrids.push_back(std::move(grid)); }
+	const auto &GetCityGrids() { return m_cityGrids; }
 
 private:
 	template <typename HeightFractal, typename ColorFractal>
@@ -118,6 +134,7 @@ protected:
 		std::string m_name;
 	};
 	MinBodyData m_minBody;
+	std::vector<cityGrid> m_cityGrids;
 };
 
 template <typename HeightFractal>

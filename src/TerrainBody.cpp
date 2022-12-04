@@ -150,6 +150,12 @@ double TerrainBody::GetTerrainHeight(const vector3d &pos_) const
 	}
 }
 
+void TerrainBody::RegisterCityGrid(uint8_t *bitset, uint32_t pitch, uint32_t citySize, vector3d center, double radius, matrix3x3d orient)
+{
+	auto len = center.Length();
+	m_baseSphere->GetTerrain()->AddCityGrid({ bitset, pitch, citySize, center / len, radius / len, orient });
+}
+
 //static
 void TerrainBody::OnChangeDetailLevel()
 {

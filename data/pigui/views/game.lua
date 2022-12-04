@@ -222,6 +222,8 @@ local function displayScreenshotInfo()
 			local frame = Game.player.frameBody
 			if frame then
 				local info = frame.label .. ", " .. ui.Format.SystemPath(current_system.path)
+				local station = Game.player:GetDockedWith()
+				if station then info = info .. ' ' .. station.label end
 				ui.addStyledText(Vector2(20, 20), ui.anchor.left, ui.anchor.top, info , colors.white, pionillium.large)
 			end
 		end
