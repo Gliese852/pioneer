@@ -269,7 +269,7 @@ namespace Graphics {
 			// next available is layout (location = 10)
 
 			// TODO: setup fragment output locations from shaderdef attributes
-			glBindFragDataLocation(program, 0, "frag_color");
+			//glBindFragDataLocation(program, 0, "frag_color");
 
 			glLinkProgram(program);
 			success = check_glsl_errors(def.name.c_str(), program);

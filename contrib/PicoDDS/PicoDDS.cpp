@@ -53,6 +53,7 @@ Send any general questions, bug reports etc to me (Rob Jones):
 #include <cstring>
 #include <cassert>
 #include <algorithm>
+#include "decompress.h"
 
 namespace PicoDDS
 {
@@ -109,6 +110,71 @@ size_t DDSImage::Read(const char* pData, const size_t dataSize)
 	memcpy(imgdata_.imgData, pData + headerSize, dataSize-headerSize);
 
 	return dataSize - headerSize;
+}
+
+
+size_t DDSImage::Decode(const char* pData, const size_t dataSize)
+{
+	// Read in header and decode
+	if (!ReadHeader(pData, surfacedata_))
+		return 0;
+
+	if (surfacedata_.mipmapcount==0)
+		surfacedata_.mipmapcount=1;
+
+	imgdata_.numMipMaps = surfacedata_.mipmapcount;
+	imgdata_.height = surfacedata_.height;
+	imgdata_.width = surfacedata_.width;
+
+	if(surfacedata_.flags & DDS::DDSD_DEPTH)
+		imgdata_.depth = surfacedata_.depth;
+	else
+		imgdata_.depth = 0;	// no depth to these images
+
+	imgdata_.colourdepth = surfacedata_.pixelformat.RGBBitCount; // 0?
+	imgdata_.format = FORMAT_RGBA;
+	imgdata_.numImages = GetNumImages();
+	imgdata_.size = CalculateStorageSize();
+	imgdata_.imgData = new uint8_t[imgdata_.size];
+
+	size_t headerSize = 128;
+
+	size_t offset = 0;
+	uint32_t width = imgdata_.width;
+	uint32_t height = imgdata_.height;
+	auto frm = GetTextureFormat();
+
+	ILimage image;
+
+	for (int mip = 0; mip < imgdata_.numMipMaps; ++mip) {
+
+		image.Width = width;
+		image.Height = height * imgdata_.numImages;
+		image.Depth = imgdata_.depth + 1;
+		image.Bpp = 4; // channels, colourdepth? XXX
+		image.Bps = width * image.Bpp;
+		image.SizeOfData = width * height * image.Bpp;
+		image.SizeOfPlane = image.SizeOfData;
+		image.Data = imgdata_.imgData + offset;
+		switch (frm) {
+			case FORMAT_DXT1: DecompressDXT1(&image, (uint8_t*)pData + headerSize + (offset / 8)); break;
+			case FORMAT_DXT5: DecompressDXT5(&image, (uint8_t*)pData + headerSize + (offset / 4)); break;
+			default: assert(false && "Only DXT1 and DXT5 are supported");
+		}
+		offset += image.SizeOfData;
+		width = std::max<uint32_t>(width / 2, 1);
+		height = std::max<uint32_t>(height / 2, 1);
+	}
+
+	// it's not DXT anymore
+	//surfacedata_.pixelformat.flags ^= DDS::DDPF_ALPHAPIXELS; // XXX maybe it is necessary for some textures?
+	surfacedata_.pixelformat.flags = DDS::DDPF_RGB;
+	surfacedata_.pixelformat.rBitMask = 0xff;
+	surfacedata_.pixelformat.gBitMask = 0xff00;
+	surfacedata_.pixelformat.bBitMask = 0xff0000;
+	surfacedata_.pixelformat.alpahbitmask = 0xff000000;
+
+	return imgdata_.size;
 }
 
 int DDSImage::GetMinDXTSize() const

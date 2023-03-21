@@ -1,6 +1,6 @@
 project(imgui LANGUAGES CXX)
 set(BUILD_SHARED_LIBS OFF)
-add_definitions(-DIMGUI_IMPL_OPENGL_LOADER_GLEW=1)
+add_definitions(-DIMGUI_IMPL_OPENGL_ES3)
 add_library(${PROJECT_NAME}
 	imgui.cpp
 	imgui_draw.cpp
@@ -11,7 +11,7 @@ add_library(${PROJECT_NAME}
 	examples/imgui_impl_sdl.cpp
 )
 target_link_libraries(${PROJECT_NAME} LINK_PRIVATE
-	${OPENGL_LIBRARIES}
-	${GLEW_LIBRARIES}
+	${GLES_LIBRARIES}
+	#	${GLEW_LIBRARIES}
 	${SDL2_LIBRARIES}
 )

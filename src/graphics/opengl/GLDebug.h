@@ -21,7 +21,7 @@
 #endif
 
 // some people build with an old version of GLEW that doesn't include KHR_debug
-#if 1 //(GL_ARB_debug_output && GL_KHR_debug)
+#if 0 //(GL_ARB_debug_output && GL_KHR_debug)
 
 namespace Graphics {
 

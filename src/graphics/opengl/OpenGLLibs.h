@@ -6,6 +6,7 @@
 #ifndef _OGL_OPENGLIBS_H
 #define _OGL_OPENGLIBS_H
 
-#include <GL/glew.h>
+#include <GLES3/gl31.h>
+#include <GLES3/gl3ext.h>
 
 #endif

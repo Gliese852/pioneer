@@ -205,6 +205,7 @@ namespace Graphics {
 				switch (m_dds.GetTextureFormat()) {
 				case PicoDDS::FORMAT_DXT1: targetTextureFormat = TEXTURE_DXT1; break;
 				case PicoDDS::FORMAT_DXT5: targetTextureFormat = TEXTURE_DXT5; break;
+				case PicoDDS::FORMAT_RGBA: targetTextureFormat = TEXTURE_RGBA_8888; break;
 				default:
 					Output("ERROR: DDS texture with invalid format '%s' (only DXT1 and DXT5 are supported)\n", m_filenames.front().c_str());
 					assert(false);
@@ -225,6 +226,7 @@ namespace Graphics {
 				switch (m_ddsarray[0].GetTextureFormat()) {
 				case PicoDDS::FORMAT_DXT1: targetTextureFormat = TEXTURE_DXT1; break;
 				case PicoDDS::FORMAT_DXT5: targetTextureFormat = TEXTURE_DXT5; break;
+				case PicoDDS::FORMAT_RGBA: targetTextureFormat = TEXTURE_RGBA_8888; break;
 				default:
 					Output("ERROR: DDS texture with invalid format '%s' (only DXT1 and DXT5 are supported)\n", m_filenames.front().c_str());
 					assert(false);
@@ -243,6 +245,7 @@ namespace Graphics {
 				abort();
 			}
 		}
+		m_generateMipmaps = false;
 
 		m_descriptor = TextureDescriptor(
 			targetTextureFormat,
@@ -259,10 +262,13 @@ namespace Graphics {
 		if (!filedata) {
 			Output("LoadDDSFromFile: %s: could not read file\n", filename.c_str());
 			return 0;
+		} else {
+			Output("LoadDDSFromFile: %s\n", filename.c_str());
 		}
 
 		// read the dds file
-		const size_t sizeRead = dds.Read(filedata->GetData(), filedata->GetSize());
+		//const size_t sizeRead = dds.Read(filedata->GetData(), filedata->GetSize());
+		const size_t sizeRead = dds.Decode(filedata->GetData(), filedata->GetSize());
 		return sizeRead;
 	}
 
@@ -333,7 +339,7 @@ namespace Graphics {
 			}
 		} else if (m_dds.headerdone_) {
 			assert(m_dds.headerdone_);
-			assert(m_descriptor.format == TEXTURE_DXT1 || m_descriptor.format == TEXTURE_DXT5);
+			assert(m_descriptor.format == TEXTURE_DXT1 || m_descriptor.format == TEXTURE_DXT5 || m_descriptor.format == TEXTURE_RGBA_8888);
 			if (texture->GetDescriptor().type == TEXTURE_2D && m_textureType == TEXTURE_2D) {
 				texture->Update(m_dds.imgdata_.imgData, vector3f(m_dds.imgdata_.width, m_dds.imgdata_.height, 0.0f), m_descriptor.format, m_dds.imgdata_.numMipMaps);
 			} else if (texture->GetDescriptor().type == TEXTURE_CUBE_MAP && m_textureType == TEXTURE_CUBE_MAP) {

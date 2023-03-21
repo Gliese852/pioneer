@@ -105,7 +105,7 @@ endif (MINGW)
 
 option(WITH_OBJECTVIEWER "Include the object viewer in the build" ON)
 option(WITH_DEVKEYS "Include various extra keybindings for dev functions" ON)
-option(USE_SYSTEM_LIBGLEW "Use the system's libglew" OFF)
+#option(USE_SYSTEM_LIBGLEW "Use the system's libglew" OFF)
 option(USE_SYSTEM_LIBLUA "Use the system's liblua" OFF)
 option(PROFILER_ENABLED "Build pioneer with profiling support built-in." OFF)
 option(REMOTE_LUA_REPL "Enable remote LUA console" OFF)
@@ -177,10 +177,10 @@ if (USE_PIONEER_THIRDPARTY)
 	find_package(Threads)
 endif()
 
-if (USE_SYSTEM_LIBGLEW)
-	add_library(GLEW::GLEW INTERFACE IMPORTED)
-	find_package(GLEW REQUIRED)
-endif (USE_SYSTEM_LIBGLEW)
+#if (USE_SYSTEM_LIBGLEW)
+#	add_library(GLEW::GLEW INTERFACE IMPORTED)
+#	find_package(GLEW REQUIRED)
+#endif (USE_SYSTEM_LIBGLEW)
 
 if (USE_SYSTEM_LIBLUA)
 	find_package(Lua 5.2 EXACT REQUIRED)
@@ -222,11 +222,12 @@ else (MSVC)
 	pkg_check_modules(ASSIMP REQUIRED assimp>=5.0)
 	pkg_check_modules(SIGCPP REQUIRED sigc++-2.0)
 	pkg_check_modules(VORBISFILE REQUIRED vorbisfile)
+	pkg_check_modules(GLES REQUIRED glesv2)
 endif (MSVC)
 
 find_package(Threads REQUIRED)
 find_package(Freetype REQUIRED)
-find_package(OpenGL REQUIRED)
+#find_package(OpenGL REQUIRED)
 
 add_subdirectory(contrib/lz4)
 add_subdirectory(contrib/fmt)
@@ -244,26 +245,26 @@ include_directories(
 	${PIONEER_CONTRIB}/fmt/include
 	${ASSIMP_INCLUDE_DIRS}
 	${FREETYPE_INCLUDE_DIRS}
-	${OPENGL_INCLUDE_DIRS}
+	${GLES_INCLUDE_DIRS}
 	${SDL2_INCLUDE_DIRS}
 	${SDL2_IMAGE_INCLUDE_DIRS}
 	${SIGCPP_INCLUDE_DIRS}
 	${VORBISFILE_INCLUDE_DIRS}
-	${GLEW_INCLUDE_DIRS}
+	#	${GLEW_INCLUDE_DIRS}
 )
 
 # We don't want/need the GLU dependency
 add_definitions(-DGLEW_NO_GLU)
 
-if (NOT USE_SYSTEM_LIBGLEW)
-	add_subdirectory(contrib/glew)
-	add_library(GLEW::GLEW ALIAS glew)
-	include_directories(contrib/glew)
-
-	# Specify that we compile against a static build of Glew
-	# (required on Windows)
-	add_definitions(-DGLEW_STATIC)
-endif (NOT USE_SYSTEM_LIBGLEW)
+#if (NOT USE_SYSTEM_LIBGLEW)
+#	add_subdirectory(contrib/glew)
+#	add_library(GLEW::GLEW ALIAS glew)
+#	include_directories(contrib/glew)
+#
+#	# Specify that we compile against a static build of Glew
+#	# (required on Windows)
+#	add_definitions(-DGLEW_STATIC)
+#endif (NOT USE_SYSTEM_LIBGLEW)
 add_subdirectory(contrib/imgui)
 add_subdirectory(contrib/jenkins)
 add_subdirectory(contrib/PicoDDS)
@@ -336,13 +337,13 @@ list(APPEND pioneerLibs
 	pioneer-lua
 	${ASSIMP_LIBRARIES}
 	${FREETYPE_LIBRARIES}
-	${OPENGL_LIBRARIES}
+	${GLES_LIBRARIES}
 	${SDL2_LIBRARIES}
 	${SDL2_IMAGE_LIBRARIES}
 	${SIGCPP_LIBRARIES}
 	${VORBISFILE_LIBRARIES}
 	${LUA_LIBRARIES}
-	GLEW::GLEW
+	#GLEW::GLEW
 	imgui
 	jenkins
 	picodds

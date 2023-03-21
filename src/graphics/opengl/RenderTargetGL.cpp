@@ -67,7 +67,7 @@ namespace Graphics {
 			//texture format should match the intended fbo format (aka. the one attached first)
 			GLuint texId = t ? static_cast<TextureGL *>(t)->GetTextureID() : 0;
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-				GetDesc().numSamples ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D, texId, 0);
+				GL_TEXTURE_2D, texId, 0);
 			m_colorTexture.Reset(t);
 		}
 
@@ -79,7 +79,7 @@ namespace Graphics {
 
 			GLuint texId = t ? static_cast<TextureGL *>(t)->GetTextureID() : 0;
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-				GetDesc().numSamples ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D, texId, 0);
+				GL_TEXTURE_2D, texId, 0);
 			m_depthTexture.Reset(t);
 		}
 

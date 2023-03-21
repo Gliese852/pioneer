@@ -14,7 +14,7 @@
 #include <curl/curlver.h>
 #endif
 
-#include <GL/glew.h>
+#include "fake_glew.h"
 
 void OutputVersioningInfo()
 {

@@ -29,6 +29,8 @@
 
 #include "core/Log.h"
 
+#include "fake_glew.h"
+
 #include <cstddef> //for offsetof
 #include <iterator>
 #include <ostream>
@@ -201,11 +203,7 @@ namespace Graphics {
 		// use floating-point reverse-Z depth buffer to remove the need for depth buffer hacks
 		m_useNVDepthRanged = false;
 		if (glewIsSupported("GL_ARB_clip_control")) {
-			glDepthRange(0.0, 1.0);
-			glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
-		} else if (glewIsSupported("GL_NV_depth_buffer_float")) {
-			m_useNVDepthRanged = true;
-			glDepthRangedNV(-1, 1);
+			glDepthRangef(0.0f, 1.0f);
 		} else {
 			Error(
 				"Pioneer requires the GL_ARB_clip_control or GL_NV_depth_buffer_float OpenGL extensions.\n"
@@ -234,13 +232,9 @@ namespace Graphics {
 		// use floating-point reverse-Z depth buffer to remove the need for depth buffer hacks
 		glDepthFunc(GL_GEQUAL);
 		// clear to 0.0 for use with reverse-Z
-		glClearDepth(0.0);
+		glClearDepthf(0.0f);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-		glEnable(GL_PROGRAM_POINT_SIZE);
 
-		glHint(GL_TEXTURE_COMPRESSION_HINT, GL_NICEST);
 		glHint(GL_FRAGMENT_SHADER_DERIVATIVE_HINT, GL_NICEST);
 
 		CHECKERRORS();
@@ -330,10 +324,6 @@ namespace Graphics {
 			return "INCOMPLETE_ATTACHMENT";
 		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
 			return "INCOMPLETE_MISSING_ATTACHMENT";
-		case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
-			return "INCOMPLETE_DRAW_BUFFER";
-		case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
-			return "INCOMPLETE_READ_BUFFER";
 		case GL_FRAMEBUFFER_UNSUPPORTED:
 			return "FRAMEBUFFER_UNSUPPORTED";
 		default:
@@ -359,8 +349,8 @@ namespace Graphics {
 		assert(num_elems > 0 && num_elems <= 4);
 		assert(name);
 
-		GLdouble e[4];
-		glGetDoublev(id, e);
+		GLfloat e[4];
+		glGetFloatv(id, e);
 
 		GLenum err = glGetError();
 		if (err == GL_NO_ERROR) {
@@ -429,8 +419,6 @@ namespace Graphics {
 		DUMP_GL_VALUE(GL_SAMPLES);
 		DUMP_GL_VALUE2(GL_ALIASED_LINE_WIDTH_RANGE);
 		DUMP_GL_VALUE2(GL_MAX_VIEWPORT_DIMS);
-		DUMP_GL_VALUE2(GL_SMOOTH_LINE_WIDTH_RANGE);
-		DUMP_GL_VALUE2(GL_SMOOTH_POINT_SIZE_RANGE);
 
 #undef DUMP_GL_VALUE
 #undef DUMP_GL_VALUE2
@@ -673,7 +661,6 @@ namespace Graphics {
 	bool RendererOGL::SetWireFrameMode(bool enabled)
 	{
 		FlushCommandBuffers();
-		glPolygonMode(GL_FRONT_AND_BACK, enabled ? GL_LINE : GL_FILL);
 		return true;
 	}
 

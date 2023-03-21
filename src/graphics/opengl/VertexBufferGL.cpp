@@ -111,12 +111,13 @@ namespace Graphics {
 			assert(mode != BUFFER_MAP_NONE);	  //makes no sense
 			assert(m_mapMode == BUFFER_MAP_NONE); //must not be currently mapped
 			m_mapMode = mode;
+			const GLuint gl_size = sizeof(Uint32) * m_size;
 			if (GetDesc().usage == BUFFER_USAGE_STATIC) {
 				glBindBuffer(GL_ARRAY_BUFFER, m_buffer);
 				if (mode == BUFFER_MAP_READ)
-					return reinterpret_cast<Uint8 *>(glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY));
+					return reinterpret_cast<Uint8 *>(glMapBufferRange(GL_ARRAY_BUFFER, 0, gl_size, GL_MAP_READ_BIT));
 				else if (mode == BUFFER_MAP_WRITE)
-					return reinterpret_cast<Uint8 *>(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY));
+					return reinterpret_cast<Uint8 *>(glMapBufferRange(GL_ARRAY_BUFFER, 0, gl_size, GL_MAP_WRITE_BIT));
 			}
 
 			return m_data;
@@ -442,12 +443,13 @@ namespace Graphics {
 			assert(mode != BUFFER_MAP_NONE);	  //makes no sense
 			assert(m_mapMode == BUFFER_MAP_NONE); //must not be currently mapped
 			m_mapMode = mode;
+			const GLuint gl_size = sizeof(Uint32) * m_size;
 			if (GetUsage() == BUFFER_USAGE_STATIC) {
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffer);
 				if (mode == BUFFER_MAP_READ)
-					return reinterpret_cast<Uint32 *>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_READ_ONLY));
+					return reinterpret_cast<Uint32 *>(glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, gl_size, GL_MAP_READ_BIT));
 				else if (mode == BUFFER_MAP_WRITE)
-					return reinterpret_cast<Uint32 *>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY));
+					return reinterpret_cast<Uint32 *>(glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, gl_size, GL_MAP_WRITE_BIT));
 			}
 
 			return m_data;
@@ -458,12 +460,13 @@ namespace Graphics {
 			assert(mode != BUFFER_MAP_NONE);	  //makes no sense
 			assert(m_mapMode == BUFFER_MAP_NONE); //must not be currently mapped
 			m_mapMode = mode;
+			const GLuint gl_size = sizeof(Uint16) * m_size;
 			if (GetUsage() == BUFFER_USAGE_STATIC) {
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffer);
 				if (mode == BUFFER_MAP_READ)
-					return reinterpret_cast<Uint16 *>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_READ_ONLY));
+					return reinterpret_cast<Uint16 *>(glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, gl_size, GL_MAP_READ_BIT));
 				else if (mode == BUFFER_MAP_WRITE)
-					return reinterpret_cast<Uint16 *>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY));
+					return reinterpret_cast<Uint16 *>(glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, gl_size, GL_MAP_WRITE_BIT));
 			}
 
 			return m_data16;
@@ -543,12 +546,13 @@ namespace Graphics {
 			assert(mode != BUFFER_MAP_NONE);	  //makes no sense
 			assert(m_mapMode == BUFFER_MAP_NONE); //must not be currently mapped
 			m_mapMode = mode;
+			const GLuint gl_size = sizeof(matrix4x4f) * m_size;
 			if (GetUsage() == BUFFER_USAGE_STATIC) {
 				glBindBuffer(GL_ARRAY_BUFFER, m_buffer);
 				if (mode == BUFFER_MAP_READ)
-					return reinterpret_cast<matrix4x4f *>(glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY));
+					return reinterpret_cast<matrix4x4f *>(glMapBufferRange(GL_ARRAY_BUFFER, 0, gl_size, GL_MAP_READ_BIT));
 				else if (mode == BUFFER_MAP_WRITE)
-					return reinterpret_cast<matrix4x4f *>(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY));
+					return reinterpret_cast<matrix4x4f *>(glMapBufferRange(GL_ARRAY_BUFFER, 0, gl_size, GL_MAP_WRITE_BIT));
 			}
 
 			return m_data.get();

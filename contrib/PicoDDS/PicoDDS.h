@@ -211,6 +211,7 @@ namespace PicoDDS
 		~DDSImage();
 
 		size_t Read(const char* pData, const size_t dataSize);
+		size_t Decode(const char* pData, const size_t dataSize);
 
 		int GetMinDXTSize() const;
 

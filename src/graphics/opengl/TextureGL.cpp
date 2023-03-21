@@ -17,8 +17,6 @@ namespace Graphics {
 			case TEXTURE_RGBA_8888: return GL_RGBA;
 			case TEXTURE_LUMINANCE_ALPHA_88: return GL_RG;
 			case TEXTURE_INTENSITY_8: return GL_RED;
-			case TEXTURE_DXT5: return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			case TEXTURE_DXT1: return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
 			case TEXTURE_DEPTH: return GL_DEPTH_COMPONENT;
 			default: assert(0); return 0;
 			}
@@ -29,12 +27,10 @@ namespace Graphics {
 		inline GLint GLCompressedInternalFormat(TextureFormat format)
 		{
 			switch (format) {
-			case TEXTURE_RGBA_8888: return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			case TEXTURE_RGB_888: return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
+			case TEXTURE_RGBA_8888: return GL_COMPRESSED_RGBA8_ETC2_EAC;
+			case TEXTURE_RGB_888: return GL_COMPRESSED_RGB8_ETC2;
 			case TEXTURE_LUMINANCE_ALPHA_88: return GL_RG;
 			case TEXTURE_INTENSITY_8: return GL_RED;
-			case TEXTURE_DXT5: return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			case TEXTURE_DXT1: return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
 			default: assert(0); return 0;
 			}
 		}
@@ -46,8 +42,6 @@ namespace Graphics {
 			case TEXTURE_RGB_888: return GL_RGB;
 			case TEXTURE_LUMINANCE_ALPHA_88: return GL_RG;
 			case TEXTURE_INTENSITY_8: return GL_RED;
-			case TEXTURE_DXT5: return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			case TEXTURE_DXT1: return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
 			case TEXTURE_DEPTH: return GL_DEPTH_COMPONENT;
 			default: assert(0); return 0;
 			}
@@ -89,7 +83,7 @@ namespace Graphics {
 		{
 			PROFILE_SCOPED()
 			// this is kind of a hack, but it limits the amount of things that need to care about multisample textures.
-			m_target = numSamples ? GL_TEXTURE_2D_MULTISAMPLE : GLTextureType(descriptor.type);
+			m_target = GLTextureType(descriptor.type);
 
 			glGenTextures(1, &m_texture);
 			glBindTexture(m_target, m_texture);
@@ -100,14 +94,6 @@ namespace Graphics {
 			const bool compressTexture = useCompressed && descriptor.allowCompression;
 
 			switch (m_target) {
-			// XXX(sturnclaw): multisample assumes an uncompressed, un-mipmapped 2d texture descriptor.
-			case GL_TEXTURE_2D_MULTISAMPLE: {
-				glTexParameteri(m_target, GL_TEXTURE_MAX_LEVEL, 0);
-				glTexImage2DMultisample(
-					m_target, numSamples, GLInternalFormat(descriptor.format),
-					descriptor.dataSize.x, descriptor.dataSize.y, true); // must use fixedsamplelocations when mixed with renderbuffer
-				CHECKERRORS();
-			} break;
 			case GL_TEXTURE_2D:
 				if (!IsCompressed(descriptor.format)) {
 					if (!descriptor.generateMipmaps)
@@ -289,8 +275,8 @@ namespace Graphics {
 			// Anisotropic texture filtering
 			if (m_useAnisoFiltering) {
 				GLfloat maxAniso = 0.0f;
-				glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
-				glTexParameterf(m_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAniso);
+//				glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
+//				glTexParameterf(m_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAniso);
 			}
 
 			CHECKERRORS();
@@ -509,8 +495,8 @@ namespace Graphics {
 			// Anisotropic texture filtering
 			if (m_useAnisoFiltering) {
 				GLfloat maxAniso = 0.0f;
-				glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
-				glTexParameterf(m_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAniso);
+//				glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
+//				glTexParameterf(m_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAniso);
 			}
 
 			glBindTexture(m_target, 0);

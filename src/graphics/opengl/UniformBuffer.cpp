@@ -57,7 +57,7 @@ void *UniformBuffer::MapInternal(BufferMapMode mode)
 {
 	assert(m_mapMode == BUFFER_MAP_NONE);
 	glBindBuffer(GL_UNIFORM_BUFFER, m_buffer);
-	void *data = glMapBuffer(GL_UNIFORM_BUFFER, (mode == BUFFER_MAP_READ) ? GL_READ_ONLY : GL_WRITE_ONLY);
+	void *data = glMapBufferRange(GL_UNIFORM_BUFFER, 0, m_size, (mode == BUFFER_MAP_READ) ? GL_MAP_READ_BIT : GL_MAP_WRITE_BIT);
 	m_mapMode = mode;
 	return data;
 }
