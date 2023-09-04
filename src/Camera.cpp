@@ -213,6 +213,7 @@ void Camera::Update()
 		}
 
 		Body *parentBody = f->GetBody();
+		attrs.calcAtmosphereLighting = false;
 		if (parentBody && parentBody->GetType() == ObjectType::PLANET) {
 			auto *planet = static_cast<Planet *>(parentBody);
 
@@ -318,17 +319,21 @@ void Camera::Draw(const Body *excludeBody)
 			continue;
 		}
 
+		double ambient, direct;
 		if (attrs->calcAtmosphereLighting) {
-			double ambient, direct;
 			CalcLighting(attrs->body, ambient, direct);
-
-			for (size_t i = 0; i < m_lightSources.size(); i++)
-				lightIntensities[i] = direct * ShadowedIntensity(i, attrs->body);
-
-			// Setup dynamic lighting parameters
-			m_renderer->SetAmbientColor(Color(ambient * 255, ambient * 255, ambient * 255));
-			m_renderer->SetLightIntensity(m_lightSources.size(), lightIntensities.data());
+		} else {
+			// we are in outer space
+			ambient = 0.05;
+			direct = 1.0;
 		}
+
+		for (size_t i = 0; i < m_lightSources.size(); i++)
+			lightIntensities[i] = direct * ShadowedIntensity(i, attrs->body);
+
+		// Setup dynamic lighting parameters
+		m_renderer->SetAmbientColor(Color(ambient * 255, ambient * 255, ambient * 255));
+		m_renderer->SetLightIntensity(m_lightSources.size(), lightIntensities.data());
 
 		attrs->body->Render(m_renderer, this, attrs->viewCoords, attrs->viewTransform);
 	}

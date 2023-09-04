@@ -77,6 +77,12 @@ void ModelSpinner::Render()
 	r->SetTransform(matrix4x4f::Identity());
 
 	r->SetLights(1, &m_light);
+
+	// seems that such lighting parameters look OK
+	r->SetAmbientColor(Color(30, 30, 30));
+	float intensity = 1.0f;
+	r->SetLightIntensity(1, &intensity);
+
 	AnimationCurves::Approach(m_zoom, m_zoomTo, Pi::GetFrameTime(), 5.0f, 0.4f);
 	m_model->Render(MakeModelViewMat());
 

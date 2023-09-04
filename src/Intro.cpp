@@ -152,6 +152,11 @@ void Intro::Draw(float deltaTime)
 	m_renderer->SetAmbientColor(m_ambientColor);
 	m_renderer->SetLights(m_lights.size(), &m_lights[0]);
 
+	std::array<float, Graphics::TOTAL_NUM_LIGHTS> intensity;
+	for (int i = 0; i < intensity.size(); ++i)
+		intensity[i] = 1.f;
+	m_renderer->SetLightIntensity(m_lights.size(), intensity.data());
+
 	// XXX all this stuff will be gone when intro uses a Camera
 	// rotate background by time, and a bit extra Z so it's not so flat
 	matrix4x4d brot = matrix4x4d::RotateXMatrix(-0.25 * Pi::GetApp()->GetTime()) * matrix4x4d::RotateZMatrix(0.6);
