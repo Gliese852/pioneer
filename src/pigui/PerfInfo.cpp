@@ -18,6 +18,8 @@
 #include "lua/LuaManager.h"
 #include "scenegraph/Model.h"
 
+#include "mydebug.hpp"
+
 #include <fmt/core.h>
 #include <imgui/imgui.h>
 #include <algorithm>
@@ -248,6 +250,14 @@ void PerfInfo::DrawPerfWindow()
 			}
 
 			PiGui::RunHandler(Pi::GetFrameTime(), "debug-tabs");
+
+			if (ImGui::BeginTabItem("Debug pause")) {
+				ImGui::SliderFloat("##game_tick_alpha", &game_tick_alpha, 0.0f, 1.0f, "interp %.3f");
+				if (ImGui::Button("Next frame")) {
+					my_debug_pause = DebugPause::WANT_STEP;
+				}
+				ImGui::EndTabItem();
+			}
 
 			ImGui::EndTabBar();
 		}

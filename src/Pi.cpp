@@ -91,6 +91,8 @@
 #define _pclose pclose
 #endif
 
+#include "mydebug.hpp"
+
 /*
 ===============================================================================
 	DEFINITIONS
@@ -769,6 +771,17 @@ void Pi::HandleKeyDown(SDL_Keysym *key)
 		break;
 
 #if WITH_DEVKEYS
+
+	case SDLK_0:
+		if (input->KeyState(SDLK_LSHIFT) || input->KeyState(SDLK_RSHIFT)) {
+            my_debug_pause = DebugPause::INACTIVE;
+        } else if (my_debug_pause == DebugPause::INACTIVE) {
+			my_debug_pause = DebugPause::PAUSED;
+		} else if (my_debug_pause == DebugPause::PAUSED) {
+			my_debug_pause = DebugPause::WANT_STEP;
+		}
+		break;
+
 #ifdef PIONEER_PROFILER
 	case SDLK_p: // alert it that we want to profile
 		if (input->KeyState(SDLK_LSHIFT) || input->KeyState(SDLK_RSHIFT))
@@ -914,7 +927,7 @@ void GameLoop::Start()
 	if (MAX_PHYSICS_TICKS <= 0)
 		MAX_PHYSICS_TICKS = 4;
 
-	Pi::SetGameTickAlpha(0);
+	Pi::SetGameTickAlpha(1.0);
 	// If we have a tombstone loop, we will SetNextLifecycle() so it runs before
 	// we jump back to the main menu
 	Pi::GetApp()->QueueLifecycle(Pi::GetApp()->m_mainMenu);
@@ -947,7 +960,17 @@ void GameLoop::Update(float deltaTime)
 	accumulator += deltaTime * Pi::game->GetTimeAccelRate();
 
 	const float step = Pi::game->GetTimeStep();
-	if (step > 0.0f) {
+
+	if (my_debug_pause == DebugPause::WANT_STEP) {
+
+		my_debug_pause = DebugPause::PAUSED;
+		if (step > 0.0f) {
+			Pi::game->TimeStep(step);
+			BaseSphere::UpdateAllBaseSphereDerivatives();
+		}
+
+
+	} else if (step > 0.0f && my_debug_pause == DebugPause::INACTIVE) {
 		PROFILE_SCOPED_RAW("Physics Update [unpaused]")
 		int phys_ticks = 0;
 		while (accumulator >= step) {
@@ -975,6 +998,10 @@ void GameLoop::Update(float deltaTime)
 		// paused
 		PROFILE_SCOPED_RAW("Physics Update [paused]")
 		BaseSphere::UpdateAllBaseSphereDerivatives();
+
+		if (my_debug_pause == DebugPause::PAUSED) {
+			Pi::SetGameTickAlpha(game_tick_alpha);
+		}
 	}
 
 	// Record physics timestep but keep information about current frame timing.
