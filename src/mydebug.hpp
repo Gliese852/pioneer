@@ -9,6 +9,16 @@ inline std::unique_ptr<Graphics::Material> my_debug_material;
 inline std::unique_ptr<Graphics::MeshObject> my_debug_mesh;
 inline matrix4x4d my_debug_base = matrix4x4d::Identity();
 
+inline float game_tick_alpha = 1.0f;
+
+enum class DebugPause {
+	INACTIVE,
+	PAUSED,
+	WANT_STEP
+};
+
+inline DebugPause my_debug_pause = DebugPause::INACTIVE;
+
 template <typename Vec, typename... Types>
 void my_debug_lines_add(const Vec &vec, const Types &...args)
 {
