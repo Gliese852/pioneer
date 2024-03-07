@@ -51,6 +51,8 @@ protected:
 
 	// Override in final for specific tree construction behavior without vfunction call overhead
 	virtual void BuildNode(Node *node, SortKey *keys, uint32_t numKeys, const AABBd *objAabbs, uint32_t height) = 0;
+	template <typename Tree>
+	static void GenericBuildNode(Tree &tree, Node *node, SortKey *keys, uint32_t numKeys, const AABBd *objAabbs, uint32_t height);
 
 	std::vector<Node> m_nodes;
 	uint32_t m_treeHeight;
@@ -76,6 +78,7 @@ public:
 protected:
 	virtual void BuildNode(Node *node, SortKey *keys, uint32_t numKeys, const AABBd *objAabbs, uint32_t height) override final;
 	uint32_t Partition(SortKey *keys, uint32_t numKeys, const AABBd &aabb, const AABBd *objAabbs);
+	friend class SingleBVHTreeBase;
 };
 
 /*
@@ -108,6 +111,7 @@ protected:
 	virtual void BuildNode(Node *node, SortKey *keys, uint32_t numKeys, const AABBd *objAabbs, uint32_t height) override final;
 	uint32_t Partition(SortKey *keys, uint32_t numKeys, const AABBd &aabb, const AABBd *objAabbs);
 	float FindPivot(SortKey *keys, uint32_t numKeys, const AABBd &aabb, const AABBd *objAabbs, uint32_t axis, float &outCost) const;
+	friend class SingleBVHTreeBase;
 };
 
 #endif /* _BVHTREE_H */

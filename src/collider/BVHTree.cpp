@@ -21,6 +21,48 @@ SingleBVHTreeBase::~SingleBVHTreeBase()
 {
 }
 
+template<typename Tree>
+void SingleBVHTreeBase::GenericBuildNode(Tree &tree, Node *node, SortKey *keys, uint32_t numKeys, const AABBd *objAabbs, uint32_t height)
+{
+	AABBd aabb = AABBd::Invalid();
+	tree.m_treeHeight = std::max(++height, tree.m_treeHeight);
+
+	// Compute the AABB for this node
+	for (size_t idx = 0; idx < numKeys; idx++) {
+		aabb.Update(objAabbs[keys[idx].index]);
+	}
+
+	node->aabb = aabb;
+	node->leafIndex = 0;
+	node->treeHeight = height;
+
+	// With only a single item, this is a leaf node. Set both child pointers to 0
+	if (numKeys == 1) {
+		node->kids[0] = node->kids[1] = 0;
+		node->leafIndex = keys[0].index;
+		return;
+	}
+
+	uint32_t startIdx = tree.Partition(keys, numKeys, aabb, objAabbs);
+
+	// If partitioning multiple nodes failed, just split the list down the middle
+	// This should never occur except in extreme degenerate cases
+	if (std::min(startIdx, numKeys - startIdx) == 0)
+		startIdx = numKeys >> 1;
+
+	// Allocate both child nodes together for cache optimization
+	node->kids[0] = tree.m_nodes.size();
+	Node *leftNode = &tree.m_nodes.emplace_back();
+
+	node->kids[1] = tree.m_nodes.size();
+	Node *rightNode = &tree.m_nodes.emplace_back();
+
+	// Descend into left/right node trees
+	// This could potentially be made into a non-recursive stack-based algorithm
+	GenericBuildNode(tree, leftNode, keys, startIdx, objAabbs, height);
+	GenericBuildNode(tree, rightNode, keys + startIdx, numKeys - startIdx, objAabbs, height);
+}
+
 void SingleBVHTreeBase::Clear()
 {
 	m_nodes.clear();
@@ -150,44 +192,7 @@ double SingleBVHTreeBase::CalculateSAH() const
 void SingleBVHTree::BuildNode(Node *node, SortKey *keys, uint32_t numKeys, const AABBd *objAabbs, uint32_t height)
 {
 	// PROFILE_SCOPED()
-
-	AABBd aabb = AABBd::Invalid();
-	m_treeHeight = std::max(++height, m_treeHeight);
-
-	// Compute the AABB for this node
-	for (size_t idx = 0; idx < numKeys; idx++) {
-		aabb.Update(objAabbs[keys[idx].index]);
-	}
-
-	node->aabb = aabb;
-	node->leafIndex = 0;
-	node->treeHeight = height;
-
-	// With only a single item, this is a leaf node. Set both child pointers to 0
-	if (numKeys == 1) {
-		node->kids[0] = node->kids[1] = 0;
-		node->leafIndex = keys[0].index;
-		return;
-	}
-
-	uint32_t startIdx = Partition(keys, numKeys, aabb, objAabbs);
-
-	// If partitioning multiple nodes failed, just split the list down the middle
-	// This should never occur except in extreme degenerate cases
-	if (std::min(startIdx, numKeys - startIdx) == 0)
-		startIdx = numKeys >> 1;
-
-	// Allocate both child nodes together for cache optimization
-	node->kids[0] = m_nodes.size();
-	Node *leftNode = &m_nodes.emplace_back();
-
-	node->kids[1] = m_nodes.size();
-	Node *rightNode = &m_nodes.emplace_back();
-
-	// Descend into left/right node trees
-	// This could potentially be made into a non-recursive stack-based algorithm
-	BuildNode(leftNode, keys, startIdx, objAabbs, height);
-	BuildNode(rightNode, keys + startIdx, numKeys - startIdx, objAabbs, height);
+	GenericBuildNode(*this, node, keys, numKeys, objAabbs, height);
 }
 
 uint32_t SingleBVHTree::Partition(SortKey *keys, uint32_t numKeys, const AABBd &aabb, const AABBd *objAabbs)
@@ -231,43 +236,7 @@ void BinnedAreaBVHTree::BuildNode(Node *node, SortKey *keys, uint32_t numKeys, c
 {
 	// PROFILE_SCOPED()
 
-	AABBd aabb = AABBd::Invalid();
-	m_treeHeight = std::max(++height, m_treeHeight);
-
-	// Compute the AABB for this node
-	for (size_t idx = 0; idx < numKeys; idx++) {
-		aabb.Update(objAabbs[keys[idx].index]);
-	}
-
-	node->aabb = aabb;
-	node->leafIndex = 0;
-	node->treeHeight = height;
-
-	// With only a single item, this is a leaf node. Set both child pointers to 0
-	if (numKeys == 1) {
-		node->kids[0] = node->kids[1] = 0;
-		node->leafIndex = keys[0].index;
-		return;
-	}
-
-	uint32_t startIdx = Partition(keys, numKeys, aabb, objAabbs);
-
-	// If partitioning multiple nodes failed, just split the list down the middle
-	// This should never occur except in extreme degenerate cases
-	if (std::min(startIdx, numKeys - startIdx) == 0)
-		startIdx = numKeys >> 1;
-
-	// Allocate both child nodes together for cache optimization
-	node->kids[0] = m_nodes.size();
-	Node *leftNode = &m_nodes.emplace_back();
-
-	node->kids[1] = m_nodes.size();
-	Node *rightNode = &m_nodes.emplace_back();
-
-	// Descend into left/right node trees
-	// This could potentially be made into a non-recursive stack-based algorithm
-	BuildNode(leftNode, keys, startIdx, objAabbs, height);
-	BuildNode(rightNode, keys + startIdx, numKeys - startIdx, objAabbs, height);
+	GenericBuildNode(*this, node, keys, numKeys, objAabbs, height);
 }
 
 uint32_t BinnedAreaBVHTree::Partition(SortKey *keys, uint32_t numKeys, const AABBd &aabb, const AABBd *objAabbs)
