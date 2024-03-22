@@ -16,6 +16,8 @@
 #include "collider/CollisionContact.h"
 #include "collider/CollisionSpace.h"
 #include "scenegraph/Tag.h"
+#include "SystemView.h"
+#include "Player.h"
 
 CameraController::CameraController(RefCountedPtr<CameraContext> camera, const Ship *ship) :
 	m_camera(camera),
@@ -340,6 +342,17 @@ void SiderealCameraController::Reset()
 
 void SiderealCameraController::Update()
 {
+	auto systemView = Pi::game->GetSystemView();
+	Projectable *selected = systemView->GetMap()->GetSelectedObject();
+	if (selected->type != Projectable::NONE &&
+		selected->base != Projectable::SYSTEMBODY &&
+		selected->ref.body->IsType(ObjectType::SHIP)) {
+
+		SetShip(static_cast<const Ship*>(selected->ref.body));
+	} else {
+		SetShip(Pi::player);
+	}
+
 	const Ship *ship = GetShip();
 
 	m_sidOrient.Renormalize(); // lots of small rotations

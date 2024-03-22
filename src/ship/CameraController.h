@@ -46,6 +46,7 @@ public:
 	virtual void OnDeactivated(){};
 
 	const Ship *GetShip() const { return m_ship; }
+	void SetShip(const Ship *ship) { m_ship = ship; }
 
 protected:
 	RefCountedPtr<CameraContext> m_camera;
