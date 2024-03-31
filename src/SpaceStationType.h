@@ -17,6 +17,7 @@
 class Ship;
 namespace SceneGraph {
 	class Model;
+	class Tag;
 }
 
 enum class DockStage { // <enum scope='DockStage' name=DockStage public>
@@ -67,6 +68,37 @@ enum class DockStage { // <enum scope='DockStage' name=DockStage public>
 
 class SpaceStationType {
 public:
+
+	struct WayPoint {
+		using Name = char[16];
+
+		matrix4x4f loc;
+		float sizeSq;
+		bool onlyPos;
+
+		Name name;
+		Name in;
+		Name out;
+
+		void parseRefs(const char *refsSection);
+		void extractSizeAndLocation(const matrix4x4f &m);
+
+		static WayPoint fromSceneTag(SceneGraph::Tag *sceneTag);
+	};
+
+	struct Bay {
+
+		WayPoint point;
+
+		int minShipSize;
+		int maxShipSize;
+
+		std::vector<WayPoint> approach;
+		std::vector<WayPoint> departure;
+
+		static Bay fromSceneTag(SceneGraph::Tag *sceneTag);
+	};
+
 	typedef std::map<DockStage, matrix4x4f> TMapBayIDMat;
 	struct BayPath {
 		TMapBayIDMat m_docking;
@@ -114,6 +146,9 @@ private:
 	BayPathMap m_bayPaths;
 	TPorts m_ports;
 	float padOffset;
+
+	std::vector<Bay> m_bays;
+	std::vector<WayPoint> m_waypoints;
 
 	static std::vector<SpaceStationType> surfaceTypes;
 	static std::vector<SpaceStationType> orbitalTypes;

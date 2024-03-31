@@ -66,6 +66,71 @@ SpaceStationType::SpaceStationType(const std::string &id_, const std::string &pa
 	OnSetupComplete();
 }
 
+// https://forum.pioneerspacesim.net/viewtopic.php?f=3&t=669
+
+void SpaceStationType::WayPoint::parseRefs(const char* refsSection)
+{
+	if (refsSection[0] == '_') {
+		strcpy(out, refsSection + 1);
+		return;
+	}
+	sscanf(refsSection,"%[^_]_%[^_]", in, out);
+	if (strlen(out) == 0 && strlen(in) == strlen(refsSection)) {
+		strcpy(out, in);
+	}
+}
+
+void  SpaceStationType::WayPoint::extractSizeAndLocation(const matrix4x4f &m)
+{
+	loc = m;
+	loc.Renormalize();
+	sizeSq = vector3f(m[0], m[4], m[8]).LengthSqr();
+}
+
+SpaceStationType::WayPoint SpaceStationType::WayPoint::fromSceneTag(SceneGraph::Tag *sceneTag)
+{
+	WayPoint tag{};
+	char sections[3][64]{};
+
+	tag.extractSizeAndLocation(sceneTag->GetTransform());
+
+	int sectionCount = sscanf(sceneTag->GetName().c_str(), "%[^:]:%[^:]:%[^:]", sections[0], sections[1], sections[2]);
+	PiVerify(sectionCount > 0);
+
+	PiVerify(sscanf(sections[0], "wp_%s", tag.name) == 1);
+	if (sectionCount == 1) return tag;
+
+	if (!strcmp(sections[1], "pos")) {
+		tag.onlyPos = true;
+		return tag;
+	} else {
+		tag.parseRefs(sections[1]);
+	}
+	if (sectionCount == 2) return tag;
+
+	// there can be nothing here except "pos"
+	PiVerify(!strcmp(sections[2], "pos"));
+	tag.onlyPos = true;
+	return tag;
+}
+
+SpaceStationType::Bay SpaceStationType::Bay::fromSceneTag(SceneGraph::Tag *sceneTag)
+{
+	Bay tag{};
+	char sections[2][64]{};
+
+	tag.point.extractSizeAndLocation(sceneTag->GetTransform());
+
+	int sectionCount = sscanf(sceneTag->GetName().c_str(), "%[^:]:%[^:]", sections[0], sections[1]);
+	PiVerify(sectionCount == 1 || sectionCount == 2);
+
+	PiVerify(sscanf(sections[0], "bay_%[^_]_s%d_%d", tag.point.name, &tag.minShipSize, &tag.maxShipSize) == 3);
+	if (sectionCount == 1) return tag;
+
+	tag.point.parseRefs(sections[1]);
+	return tag;
+}
+
 void SpaceStationType::OnSetupComplete()
 {
 	// Since the model contains (almost) all of the docking information we have to extract that
@@ -82,11 +147,63 @@ void SpaceStationType::OnSetupComplete()
 	std::vector<SceneGraph::Tag *> entrance_mts;
 	std::vector<SceneGraph::Tag *> locator_mts;
 	std::vector<SceneGraph::Tag *> exit_mts;
+	std::vector<SceneGraph::Tag *> bay_mts;
+	std::vector<SceneGraph::Tag *> waypoint_mts;
 	model->FindTagsByStartOfName("entrance_", entrance_mts);
 	model->FindTagsByStartOfName("loc_", locator_mts);
 	model->FindTagsByStartOfName("exit_", exit_mts);
+	model->FindTagsByStartOfName("bay_", bay_mts);
+	model->FindTagsByStartOfName("wp_", waypoint_mts);
 
-	Output("%s has:\n %lu entrances,\n %lu pads,\n %lu exits\n", modelName.c_str(), entrance_mts.size(), locator_mts.size(), exit_mts.size());
+	Output("%s has:\n %lu entrances,\n %lu pads,\n %lu exits %lu bays %lu waypoints\n", modelName.c_str(), entrance_mts.size(), locator_mts.size(), exit_mts.size(), bay_mts.size(), waypoint_mts.size());
+
+	std::sort(bay_mts.begin(), bay_mts.end(), [](const auto &a, const auto &b) { return a->GetName() < b->GetName(); });
+
+	// new thing XXX
+	if (bay_mts.size() > 0) {
+		m_waypoints.reserve(waypoint_mts.size());
+		for (auto sceneTag : waypoint_mts) {
+			m_waypoints.push_back(WayPoint::fromSceneTag(sceneTag));
+		}
+
+		for (auto sceneTag : bay_mts) {
+			auto bayAttrs = Bay::fromSceneTag(sceneTag);
+			m_bays.push_back({});
+			auto &bay = m_bays.back();
+
+			// approach route
+			char *prev = bayAttrs.point.in;
+			while (prev[0]) {
+				for (int i = 0; i < m_waypoints.size(); ++i) {
+					auto &wp = m_waypoints[i];
+					if (!strcmp(wp.name, prev)) {
+						bay.approach.push_back({ wp.loc, wp.sizeSq, wp.onlyPos });
+						prev = wp.in;
+						break;
+					} else {
+						assert(i != m_waypoints.size() - 1 && "No waypoint with that name exists");
+					}
+				}
+				assert(bay.approach.size() <= m_waypoints.size() && "It looks like there is a loop in the links");
+			}
+
+			// departure route
+			char *next = bayAttrs.point.out;
+			while (next[0]) {
+				for (int i = 0; i < m_waypoints.size(); ++i) {
+					auto &wp = m_waypoints[i];
+					if (!strcmp(wp.name, next)) {
+						bay.departure.push_back({ wp.loc, wp.sizeSq, wp.onlyPos });
+						next = wp.out;
+						break;
+					} else {
+						assert(i != m_waypoints.size() - 1 && "No waypoint with that name exists");
+					}
+				}
+				assert(bay.departure.size() <= m_waypoints.size() && "It looks like there is a loop in the links");
+			}
+		}
+	}
 
 	// Add the partially initialised ports
 	for (SceneGraph::Tag *tag : entrance_mts) {
