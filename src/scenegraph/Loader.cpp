@@ -348,6 +348,7 @@ namespace SceneGraph {
 		//Removing components is suggested to optimize loading. We do not care about vtx colors now.
 		importer.SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS, aiComponent_COLORS);
 		importer.SetPropertyInteger(AI_CONFIG_PP_SLM_VERTEX_LIMIT, AI_SLM_DEFAULT_MAX_VERTICES);
+		importer.SetPropertyBool(AI_CONFIG_IMPORT_COLLADA_USE_COLLADA_NAMES, true);
 
 		//There are several optimizations assimp can do, intentionally skipping them now
 		const aiScene *scene = importer.ReadFile(
@@ -894,6 +895,10 @@ namespace SceneGraph {
 			} else if (starts_with(nodename, "loc_")) {
 				m_model->AddTag(nodename, parent, new Tag(m_renderer, m));
 			} else if (starts_with(nodename, "exit_")) {
+				m_model->AddTag(nodename, parent, new Tag(m_renderer, m));
+			} else if (starts_with(nodename, "wp_")) {
+				m_model->AddTag(nodename, parent, new Tag(m_renderer, m));
+			} else if (starts_with(nodename, "pad_")) {
 				m_model->AddTag(nodename, parent, new Tag(m_renderer, m));
 			}
 			return;
