@@ -126,6 +126,9 @@ void SpaceStationType::OnSetupComplete()
 		PiVerify(5 == sscanf(locIter->GetName().c_str(), "loc_%4s_p%d_s%d_%d_b%d", &padname[0], &portId, &minSize, &maxSize, &bay));
 		PiVerify(bay > 0 && portId > 0);
 
+		m_bayPaths[bay].minShipSize = minSize;
+		m_bayPaths[bay].maxShipSize = maxSize;
+
 		// find the port and setup the rest of it's information
 #ifndef NDEBUG
 		bool bFoundPort = false;
@@ -134,8 +137,6 @@ void SpaceStationType::OnSetupComplete()
 		matrix4x4f approach2(0.0);
 		for (auto &rPort : m_ports) {
 			if (rPort.portId == portId) {
-				rPort.minShipSize = std::min(minSize, rPort.minShipSize);
-				rPort.maxShipSize = std::max(maxSize, rPort.maxShipSize);
 				rPort.bayIDs.push_back(std::make_pair(bay - 1, padname));
 #ifndef NDEBUG
 				bFoundPort = true;
@@ -150,7 +151,7 @@ void SpaceStationType::OnSetupComplete()
 		// now build the docking/leaving waypoints
 		if (SURFACE == dockMethod) {
 			// ground stations don't have leaving waypoints.
-			m_bayPaths[bay].m_docking[DockStage::DOCKED] = locTransform; // final (docked)
+			m_bayPaths[bay].stages[DockStage::DOCKED] = locTransform; // final (docked)
 			lastDockStage = DockStage::DOCK_ANIMATION_NONE;
 			lastUndockStage = DockStage::UNDOCK_ANIMATION_NONE;
 		} else {
@@ -191,19 +192,19 @@ void SpaceStationType::OnSetupComplete()
 					Output("No point found on line segment");
 				}
 			}
-			m_bayPaths[bay].m_docking[DockStage::DOCK_ANIMATION_1] = locTransform;
-			m_bayPaths[bay].m_docking[DockStage::DOCK_ANIMATION_1].SetTranslate(intersectionPos);
+			m_bayPaths[bay].stages[DockStage::DOCK_ANIMATION_1] = locTransform;
+			m_bayPaths[bay].stages[DockStage::DOCK_ANIMATION_1].SetTranslate(intersectionPos);
 			// final (docked)
-			m_bayPaths[bay].m_docking[DockStage::DOCK_ANIMATION_2] = locTransform;
+			m_bayPaths[bay].stages[DockStage::DOCK_ANIMATION_2] = locTransform;
 			lastDockStage = DockStage::DOCK_ANIMATION_2;
 
-			m_bayPaths[bay].m_docking[DockStage::DOCKED] = locTransform;
+			m_bayPaths[bay].stages[DockStage::DOCKED] = locTransform;
 
 			// create the leaving locators
 
 			// above the pad
-			m_bayPaths[bay].m_docking[DockStage::UNDOCK_ANIMATION_1] = locTransform;
-			m_bayPaths[bay].m_docking[DockStage::UNDOCK_ANIMATION_1].SetTranslate(intersectionPos);
+			m_bayPaths[bay].stages[DockStage::UNDOCK_ANIMATION_1] = locTransform;
+			m_bayPaths[bay].stages[DockStage::UNDOCK_ANIMATION_1].SetTranslate(intersectionPos);
 			lastUndockStage = DockStage::UNDOCK_ANIMATION_1;
 		}
 	}
@@ -216,19 +217,6 @@ void SpaceStationType::OnSetupComplete()
 const SpaceStationType::SPort *SpaceStationType::FindPortByBay(const int zeroBaseBayID) const
 {
 	for (TPorts::const_iterator bayIter = m_ports.begin(), grpEnd = m_ports.end(); bayIter != grpEnd; ++bayIter) {
-		for (auto idIter : (*bayIter).bayIDs) {
-			if (idIter.first == zeroBaseBayID) {
-				return &(*bayIter);
-			}
-		}
-	}
-	// is it safer to return that the bay is locked?
-	return 0;
-}
-
-SpaceStationType::SPort *SpaceStationType::GetPortByBay(const int zeroBaseBayID)
-{
-	for (TPorts::iterator bayIter = m_ports.begin(), grpEnd = m_ports.end(); bayIter != grpEnd; ++bayIter) {
 		for (auto idIter : (*bayIter).bayIDs) {
 			if (idIter.first == zeroBaseBayID) {
 				return &(*bayIter);
@@ -336,5 +324,5 @@ const char *SpaceStationType::DockStageName(DockStage s) const {
 
 matrix4x4f SpaceStationType::GetStageTransform(int bay, DockStage stage) const
 {
-	return m_bayPaths.at(bay + 1).m_docking.at(stage);
+	return m_bayPaths.at(bay + 1).stages.at(stage);
 }

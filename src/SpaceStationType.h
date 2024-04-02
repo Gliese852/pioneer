@@ -69,8 +69,10 @@ class SpaceStationType {
 public:
 	typedef std::map<DockStage, matrix4x4f> TMapBayIDMat;
 	struct BayPath {
-		TMapBayIDMat m_docking;
-		TMapBayIDMat m_leaving;
+		TMapBayIDMat stages;
+
+		int minShipSize;
+		int maxShipSize;
 	};
 	typedef std::map<Uint32, BayPath> BayPathMap;
 
@@ -78,11 +80,8 @@ public:
 		static const int BAD_PORT_ID = -1;
 		SPort() :
 			portId(BAD_PORT_ID),
-			minShipSize(5000),
-			maxShipSize(-1),
 			inUse(false) {}
 		int portId;
-		int minShipSize, maxShipSize;
 		bool inUse;
 		std::vector<std::pair<int, std::string>> bayIDs;
 		std::string name;
@@ -141,12 +140,12 @@ public:
 
 	void OnSetupComplete();
 	const SPort *FindPortByBay(const int zeroBaseBayID) const;
-	SPort *GetPortByBay(const int zeroBaseBayID);
 
 	// Call functions in the station .lua
 	bool GetShipApproachWaypoints(const unsigned int port, DockStage stage, positionOrient_t &outPosOrient) const;
 
 	matrix4x4f GetStageTransform(int bay, DockStage stage) const;
+	const BayPath &GetBay(int bayID) const { return m_bayPaths.at(bayID); }
 
 	const std::string &ModelName() const { return modelName; }
 	float AngVel() const { return angVel; }
