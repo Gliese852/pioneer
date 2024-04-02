@@ -163,10 +163,10 @@ void SpaceStation::PostLoadFixup(Space *space)
 
 		if (!sd.ship) continue;
 
-		auto pPort = m_type->FindPortByBay(i);
+		const auto &bay = m_type->GetBay(i);
 		const Aabb &bbox = sd.ship->GetAabb();
 		const float bboxRad = vector2f(float(bbox.max.x), float(bbox.max.z)).Length();
-		sd.maxOffset = calculate_max_offset_squared(pPort->maxShipSize, bboxRad);
+		sd.maxOffset = calculate_max_offset_squared(bay.maxShipSize, bboxRad);
 	}
 }
 
@@ -276,13 +276,12 @@ int SpaceStation::GetFreeDockingPort(const Ship *s) const
 	for (unsigned int i = 0; i < m_type->NumDockingPorts(); i++) {
 		if (m_shipDocking[i].ship == nullptr) {
 			// size-of-ship vs size-of-bay check
-			const SpaceStationType::SPort *const pPort = m_type->FindPortByBay(i);
-			if (!pPort) continue;
+			const auto &bay = m_type->GetBay(i);
 
 			const Aabb &bbox = s->GetAabb();
 			const double bboxRad = bbox.GetRadius();
 
-			if (pPort->minShipSize < bboxRad && bboxRad < pPort->maxShipSize) {
+			if (bay.minShipSize < bboxRad && bboxRad < bay.maxShipSize) {
 				return i;
 			}
 		}
@@ -378,10 +377,6 @@ bool SpaceStation::GetDockingClearance(Ship *s)
 		// initial unoccupied check
 		if (m_shipDocking[i].ship != 0) continue;
 
-		// size-of-ship vs size-of-bay check
-		const SpaceStationType::SPort *const pPort = m_type->FindPortByBay(i);
-		if (!pPort) continue;
-
 		// distance-to-station check
 		const double shipDist = s->GetPositionRelTo(this).Length();
 		double requestDist = 100000.0; //100km
@@ -391,11 +386,13 @@ bool SpaceStation::GetDockingClearance(Ship *s)
 			return false;
 		}
 
-		if (pPort->minShipSize < bboxRad && bboxRad < pPort->maxShipSize) {
+		// size-of-ship vs size-of-bay check
+		const auto &bay = m_type->GetBay(i);
+		if (bay.minShipSize < bboxRad && bboxRad < bay.maxShipSize) {
 			shipDocking_t &sd = m_shipDocking[i];
 			sd.ship = s;
 			sd.stagePos = 0;
-			sd.maxOffset = calculate_max_offset_squared(pPort->maxShipSize, bboxRad);
+			sd.maxOffset = calculate_max_offset_squared(bay.maxShipSize, bboxRad);
 			LuaEvent::Queue("onDockingClearanceGranted", this, s);
 			SwitchToStage(i, DockStage::CLEARANCE_GRANTED);
 			return true;
@@ -448,7 +445,7 @@ bool SpaceStation::OnCollision(Body *b, Uint32 flags, double relVel)
 		// check if you're near your pad
 		float dist = (s->GetPosition() - bayTrans.GetTranslate()).LengthSqr();
 		// docking allowed only if inside a circle 70% greater than pad itself (*1.7)
-		float maxDist = static_cast<float>(m_type->FindPortByBay(bay)->maxShipSize / 2) * 1.7;
+		float maxDist = static_cast<float>(m_type->GetBay(bay).maxShipSize / 2) * 1.7;
 		if (dist > (maxDist * maxDist))
 		{
 			return DoShipDamage(s, flags, relVel);
