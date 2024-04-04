@@ -120,6 +120,7 @@ const struct EnumItem ENUM_DockStage[] = {
 	{ "MANUAL", int(DockStage::MANUAL) },
 	{ "DOCK_STAGES_BEGIN", int(DockStage::DOCK_STAGES_BEGIN) },
 	{ "CLEARANCE_GRANTED", int(DockStage::CLEARANCE_GRANTED) },
+	{ "APPROACH", int(DockStage::APPROACH) },
 	{ "DOCK_ANIMATION_NONE", int(DockStage::DOCK_ANIMATION_NONE) },
 	{ "DOCK_ANIMATION_1", int(DockStage::DOCK_ANIMATION_1) },
 	{ "DOCK_ANIMATION_2", int(DockStage::DOCK_ANIMATION_2) },
@@ -140,9 +141,8 @@ const struct EnumItem ENUM_DockStage[] = {
 	{ "UNDOCK_ANIMATION_MAX", int(DockStage::UNDOCK_ANIMATION_MAX) },
 	{ "UNDOCK_END", int(DockStage::UNDOCK_END) },
 	{ "LEAVE", int(DockStage::LEAVE) },
+	{ "DEPARTURE", int(DockStage::DEPARTURE) },
 	{ "UNDOCK_STAGES_END", int(DockStage::UNDOCK_STAGES_END) },
-	{ "APPROACH1", int(DockStage::APPROACH1) },
-	{ "APPROACH2", int(DockStage::APPROACH2) },
 	{ 0, 0 },
 };
 

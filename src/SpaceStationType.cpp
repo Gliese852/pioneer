@@ -86,6 +86,14 @@ void SpaceStationType::OnSetupComplete()
 	model->FindTagsByStartOfName("loc_", locator_mts);
 	model->FindTagsByStartOfName("exit_", exit_mts);
 
+	// temporary structure for compatibility with legacy docking tags
+	struct SPort {
+		int portId;
+		matrix4x4f m_approach[2];
+	};
+
+	std::vector<SPort> ports;
+
 	Output("%s has:\n %lu entrances,\n %lu pads,\n %lu exits\n", modelName.c_str(), entrance_mts.size(), locator_mts.size(), exit_mts.size());
 
 	// Add the partially initialised ports
@@ -98,21 +106,20 @@ void SpaceStationType::OnSetupComplete()
 
 		SPort new_port;
 		new_port.portId = portId;
-		new_port.name = tag->GetName();
 
 		if (SURFACE == dockMethod) {
 			const vector3f offDir = trans.Up().Normalized();
-			new_port.m_approach[DockStage::APPROACH1] = trans;
-			new_port.m_approach[DockStage::APPROACH1].SetTranslate(trans.GetTranslate() + (offDir * 500.0f));
+			new_port.m_approach[0] = trans;
+			new_port.m_approach[0].SetTranslate(trans.GetTranslate() + (offDir * 500.0f));
 		} else {
 			const vector3f offDir = -trans.Back().Normalized();
-			new_port.m_approach[DockStage::APPROACH1] = trans;
-			new_port.m_approach[DockStage::APPROACH1].SetTranslate(trans.GetTranslate() + (offDir * 1500.0f));
+			new_port.m_approach[0] = trans;
+			new_port.m_approach[0].SetTranslate(trans.GetTranslate() + (offDir * 1500.0f));
 		}
-		new_port.m_approach[DockStage::APPROACH2] = trans;
-		new_port.m_approach[DockStage::APPROACH1].Renormalize();
-		new_port.m_approach[DockStage::APPROACH2].Renormalize();
-		m_ports.push_back(new_port);
+		new_port.m_approach[1] = trans;
+		new_port.m_approach[0].Renormalize();
+		new_port.m_approach[1].Renormalize();
+		ports.push_back(new_port);
 	}
 
 	for (auto locIter : locator_mts) {
@@ -126,8 +133,8 @@ void SpaceStationType::OnSetupComplete()
 		PiVerify(5 == sscanf(locIter->GetName().c_str(), "loc_%4s_p%d_s%d_%d_b%d", &padname[0], &portId, &minSize, &maxSize, &bay));
 		PiVerify(bay > 0 && portId > 0);
 
-		m_bayPaths[bay].minShipSize = minSize;
-		m_bayPaths[bay].maxShipSize = maxSize;
+		m_bays[bay].minShipSize = minSize;
+		m_bays[bay].maxShipSize = maxSize;
 
 		// find the port and setup the rest of it's information
 #ifndef NDEBUG
@@ -135,23 +142,25 @@ void SpaceStationType::OnSetupComplete()
 #endif
 		matrix4x4f approach1(0.0);
 		matrix4x4f approach2(0.0);
-		for (auto &rPort : m_ports) {
+		for (auto &rPort : ports) {
 			if (rPort.portId == portId) {
-				rPort.bayIDs.push_back(std::make_pair(bay - 1, padname));
 #ifndef NDEBUG
 				bFoundPort = true;
 #endif
-				approach1 = rPort.m_approach[DockStage::APPROACH1];
-				approach2 = rPort.m_approach[DockStage::APPROACH2];
+				approach1 = rPort.m_approach[0];
+				approach2 = rPort.m_approach[1];
 				break;
 			}
 		}
 		assert(bFoundPort);
 
+		m_bays[bay].approach.push_back({ approach1 });
+		m_bays[bay].approach.push_back({ approach2 });
+
 		// now build the docking/leaving waypoints
 		if (SURFACE == dockMethod) {
 			// ground stations don't have leaving waypoints.
-			m_bayPaths[bay].stages[DockStage::DOCKED] = locTransform; // final (docked)
+			m_bays[bay].stages[DockStage::DOCKED] = locTransform; // final (docked)
 			lastDockStage = DockStage::DOCK_ANIMATION_NONE;
 			lastUndockStage = DockStage::UNDOCK_ANIMATION_NONE;
 		} else {
@@ -192,61 +201,44 @@ void SpaceStationType::OnSetupComplete()
 					Output("No point found on line segment");
 				}
 			}
-			m_bayPaths[bay].stages[DockStage::DOCK_ANIMATION_1] = locTransform;
-			m_bayPaths[bay].stages[DockStage::DOCK_ANIMATION_1].SetTranslate(intersectionPos);
+			m_bays[bay].stages[DockStage::DOCK_ANIMATION_1] = locTransform;
+			m_bays[bay].stages[DockStage::DOCK_ANIMATION_1].SetTranslate(intersectionPos);
 			// final (docked)
-			m_bayPaths[bay].stages[DockStage::DOCK_ANIMATION_2] = locTransform;
+			m_bays[bay].stages[DockStage::DOCK_ANIMATION_2] = locTransform;
 			lastDockStage = DockStage::DOCK_ANIMATION_2;
 
-			m_bayPaths[bay].stages[DockStage::DOCKED] = locTransform;
+			m_bays[bay].stages[DockStage::DOCKED] = locTransform;
 
 			// create the leaving locators
 
 			// above the pad
-			m_bayPaths[bay].stages[DockStage::UNDOCK_ANIMATION_1] = locTransform;
-			m_bayPaths[bay].stages[DockStage::UNDOCK_ANIMATION_1].SetTranslate(intersectionPos);
+			m_bays[bay].stages[DockStage::UNDOCK_ANIMATION_1] = locTransform;
+			m_bays[bay].stages[DockStage::UNDOCK_ANIMATION_1].SetTranslate(intersectionPos);
 			lastUndockStage = DockStage::UNDOCK_ANIMATION_1;
 		}
 	}
 
-	numDockingPorts = m_bayPaths.size();
+	numDockingPorts = m_bays.size();
 
-	assert(!m_bayPaths.empty());
+	assert(!m_bays.empty());
 }
 
-const SpaceStationType::SPort *SpaceStationType::FindPortByBay(const int zeroBaseBayID) const
+bool SpaceStationType::GetShipApproachWaypoints(const unsigned int port, Uint32 stage, positionOrient_t &outPosOrient) const
 {
-	for (TPorts::const_iterator bayIter = m_ports.begin(), grpEnd = m_ports.end(); bayIter != grpEnd; ++bayIter) {
-		for (auto idIter : (*bayIter).bayIDs) {
-			if (idIter.first == zeroBaseBayID) {
-				return &(*bayIter);
-			}
-		}
-	}
-	// is it safer to return that the bay is locked?
-	return 0;
-}
+	auto bay = GetBay(port);
 
-bool SpaceStationType::GetShipApproachWaypoints(const unsigned int port, DockStage stage, positionOrient_t &outPosOrient) const
-{
-	bool gotOrient = false;
+	if (stage >= bay.approach.size()) return false;
 
-	const SPort *pPort = FindPortByBay(port);
-	if (pPort) {
-		TMapBayIDMat::const_iterator stageDataIt = pPort->m_approach.find(stage);
-		if (stageDataIt != pPort->m_approach.end()) {
-			const matrix4x4f &mt = pPort->m_approach.at(stage);
-			outPosOrient.pos = vector3d(mt.GetTranslate());
-			outPosOrient.xaxis = vector3d(mt.GetOrient().VectorX());
-			outPosOrient.yaxis = vector3d(mt.GetOrient().VectorY());
-			outPosOrient.zaxis = vector3d(mt.GetOrient().VectorZ());
-			outPosOrient.xaxis = outPosOrient.xaxis.Normalized();
-			outPosOrient.yaxis = outPosOrient.yaxis.Normalized();
-			outPosOrient.zaxis = outPosOrient.zaxis.Normalized();
-			gotOrient = true;
-		}
-	}
-	return gotOrient;
+	const matrix4x4f &mt = bay.approach[stage].loc;
+	outPosOrient.pos = vector3d(mt.GetTranslate());
+	outPosOrient.xaxis = vector3d(mt.GetOrient().VectorX());
+	outPosOrient.yaxis = vector3d(mt.GetOrient().VectorY());
+	outPosOrient.zaxis = vector3d(mt.GetOrient().VectorZ());
+	outPosOrient.xaxis = outPosOrient.xaxis.Normalized();
+	outPosOrient.yaxis = outPosOrient.yaxis.Normalized();
+	outPosOrient.zaxis = outPosOrient.zaxis.Normalized();
+
+	return true;
 }
 /*static*/
 void SpaceStationType::Init()
@@ -310,9 +302,9 @@ DockStage SpaceStationType::PivotStage(DockStage s) const {
 			return DockStage::MANUAL;
 		// at these stages, the station does not control the position of the ship
 		case DockStage::CLEARANCE_GRANTED:
+		case DockStage::APPROACH:
 		case DockStage::LEAVE:
-		case DockStage::APPROACH1:
-		case DockStage::APPROACH2:
+		case DockStage::DEPARTURE:
 			return DockStage::NONE;
 		default: return s;
 	}
@@ -324,5 +316,5 @@ const char *SpaceStationType::DockStageName(DockStage s) const {
 
 matrix4x4f SpaceStationType::GetStageTransform(int bay, DockStage stage) const
 {
-	return m_bayPaths.at(bay + 1).stages.at(stage);
+	return m_bays.at(bay + 1).stages.at(stage);
 }

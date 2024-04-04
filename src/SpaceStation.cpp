@@ -75,17 +75,6 @@ SpaceStation::SpaceStation(const Json &jsonObj, Space *space) :
 				sd.fromRot = shipDockingArrayEl["from_rot"];
 		}
 
-		// retrieve each of the port details and bay IDs
-		Json portArray = spaceStationObj["ports"].get<Json::array_t>();
-		m_ports.reserve(portArray.size());
-		for (Uint32 i = 0; i < portArray.size(); i++) {
-			m_ports.push_back(SpaceStationType::SPort());
-			SpaceStationType::SPort &port = m_ports.back();
-
-			Json portArrayEl = portArray[i];
-			if (portArrayEl["in_use"].is_boolean())
-				port.inUse = portArrayEl["in_use"];
-		}
 
 		m_sbody = space->GetSystemBodyByIndex(spaceStationObj["index_for_system_body"]);
 
@@ -125,18 +114,6 @@ void SpaceStation::SaveToJson(Json &jsonObj, Space *space)
 		shipDockingArray.push_back(shipDockingArrayEl); // Append ship docking object to array.
 	}
 	spaceStationObj["ship_docking"] = shipDockingArray; // Add ship docking array to space station object.
-
-	// store each of the port details and bay IDs
-	Json portArray = Json::array(); // Create JSON array to contain port data.
-	for (Uint32 i = 0; i < m_ports.size(); i++) {
-		Json portArrayEl({}); // Create JSON object to contain port.
-
-		if (m_ports[i].inUse)
-			portArrayEl["in_use"] = m_ports[i].inUse;
-
-		portArray.push_back(portArrayEl); // Append port object to array.
-	}
-	spaceStationObj["ports"] = portArray; // Add port array to space station object.
 
 	spaceStationObj["index_for_system_body"] = space->GetIndexForSystemBody(m_sbody);
 
@@ -196,21 +173,6 @@ void SpaceStation::InitStation()
 		m_doorAnimationStep = m_doorAnimationState = 0.0;
 	}
 	assert(m_shipDocking.size() == m_type->NumDockingPorts());
-
-	// This SpaceStation's bay ports are an instance of...
-	if (m_ports.size() != m_type->Ports().size()) {
-		m_ports = m_type->Ports();
-	} else {
-		// since we might have loaded from JSON we've got a little bit of useful info in m_ports already
-		// backup the current data
-		auto backup = m_ports;
-		// clear it all to default
-		m_ports = m_type->Ports();
-		// now restore the "inUse" variable only since it's the only bit that might have changed
-		for (size_t p = 0; p < m_ports.size(); p++) {
-			m_ports[p].inUse = backup[p].inUse;
-		}
-	}
 
 	SetStatic(ground); // orbital stations are dynamic now
 
@@ -846,29 +808,14 @@ vector3d SpaceStation::GetTargetIndicatorPosition() const
 	return Body::GetTargetIndicatorPosition();
 }
 
+// TODO: block based on occupied waypoints
 bool SpaceStation::IsPortLocked(const int bay) const
 {
-	for (auto &bayIter : m_ports) {
-		for (auto &idIter : bayIter.bayIDs) {
-			if (idIter.first == bay) {
-				return bayIter.inUse;
-			}
-		}
-	}
-	// is it safer to return that the is loacked?
-	return true;
+	return false;
 }
 
 void SpaceStation::LockPort(const int bay, const bool lockIt)
 {
-	for (auto &bayIter : m_ports) {
-		for (auto &idIter : bayIter.bayIDs) {
-			if (idIter.first == bay) {
-				bayIter.inUse = lockIt;
-				return;
-			}
-		}
-	}
 }
 
 matrix4x4d SpaceStation::GetBayTransform(Uint32 bay) const {

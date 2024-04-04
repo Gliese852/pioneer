@@ -119,8 +119,6 @@ private:
 	typedef std::vector<shipDocking_t>::iterator shipDockingIter;
 	std::vector<shipDocking_t> m_shipDocking;
 
-	SpaceStationType::TPorts m_ports;
-
 	double m_oldAngDisplacement;
 
 	void SwitchToStage(Uint32 bay, DockStage stage);

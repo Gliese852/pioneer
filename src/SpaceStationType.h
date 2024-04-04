@@ -17,6 +17,7 @@
 class Ship;
 namespace SceneGraph {
 	class Model;
+	class Tag;
 }
 
 enum class DockStage { // <enum scope='DockStage' name=DockStage public>
@@ -27,6 +28,8 @@ enum class DockStage { // <enum scope='DockStage' name=DockStage public>
 	DOCK_STAGES_BEGIN,
 
 	CLEARANCE_GRANTED,
+
+	APPROACH,
 
 	DOCK_ANIMATION_NONE,
 	DOCK_ANIMATION_1,
@@ -57,37 +60,29 @@ enum class DockStage { // <enum scope='DockStage' name=DockStage public>
 
 	LEAVE,
 
+	DEPARTURE,
+
 	UNDOCK_STAGES_END,
-
-	// used not in BayPath, but in Port
-	APPROACH1,
-	APPROACH2
-
 };
 
 class SpaceStationType {
 public:
-	typedef std::map<DockStage, matrix4x4f> TMapBayIDMat;
-	struct BayPath {
-		TMapBayIDMat stages;
+
+	struct WayPoint {
+		matrix4x4f loc;
+		// there will be more fields
+	};
+
+	struct Bay {
 
 		int minShipSize;
 		int maxShipSize;
-	};
-	typedef std::map<Uint32, BayPath> BayPathMap;
-
-	struct SPort {
-		static const int BAD_PORT_ID = -1;
-		SPort() :
-			portId(BAD_PORT_ID),
-			inUse(false) {}
-		int portId;
 		bool inUse;
-		std::vector<std::pair<int, std::string>> bayIDs;
-		std::string name;
-		TMapBayIDMat m_approach;
+
+		std::map<DockStage, matrix4x4f> stages;
+		std::vector<WayPoint> approach;
+		std::vector<WayPoint> departure;
 	};
-	typedef std::vector<SPort> TPorts;
 
 	struct positionOrient_t {
 		vector3d pos;
@@ -110,8 +105,7 @@ private:
 	DockStage lastUndockStage;
 	float parkingDistance;
 	float parkingGapSize;
-	BayPathMap m_bayPaths;
-	TPorts m_ports;
+	std::map<Uint32, Bay> m_bays;
 	float padOffset;
 
 	static std::vector<SpaceStationType> surfaceTypes;
@@ -139,13 +133,12 @@ public:
 	const char *DockStageName(DockStage s) const;
 
 	void OnSetupComplete();
-	const SPort *FindPortByBay(const int zeroBaseBayID) const;
 
 	// Call functions in the station .lua
-	bool GetShipApproachWaypoints(const unsigned int port, DockStage stage, positionOrient_t &outPosOrient) const;
+	bool GetShipApproachWaypoints(const unsigned int port, Uint32 stage, positionOrient_t &outPosOrient) const;
 
 	matrix4x4f GetStageTransform(int bay, DockStage stage) const;
-	const BayPath &GetBay(int bayID) const { return m_bayPaths.at(bayID); }
+	const Bay &GetBay(int bayID) const { return m_bays.at(bayID + 1); }
 
 	const std::string &ModelName() const { return modelName; }
 	float AngVel() const { return angVel; }
@@ -158,7 +151,6 @@ public:
 	DockStage LastUndockStage() const { return lastUndockStage; }
 	float ParkingDistance() const { return parkingDistance; }
 	float ParkingGapSize() const { return parkingGapSize; }
-	const TPorts &Ports() const { return m_ports; }
 
 	static void Init();
 

@@ -1386,7 +1386,7 @@ bool AICmdDock::TimeStepUpdate()
 	if (m_state == eDockGetDataStart || m_state == eDockGetDataEnd || m_state == eDockingComplete) {
 		const SpaceStationType *type = m_target->GetStationType();
 		SpaceStationType::positionOrient_t dockpos;
-		type->GetShipApproachWaypoints(port, (m_state == 0) ? DockStage::APPROACH1 : DockStage::APPROACH2, dockpos);
+		type->GetShipApproachWaypoints(port, (m_state == 0) ? 0 : 1, dockpos);
 		if (m_state != eDockGetDataEnd) {
 			m_dockpos = dockpos.pos;
 		}
