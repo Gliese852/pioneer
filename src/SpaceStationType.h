@@ -7,6 +7,7 @@
 #include "Random.h"
 #include "matrix4x4.h"
 #include "vector3.h"
+#include "DockOperations.h"
 
 #include <map>
 #include <vector>
@@ -58,9 +59,9 @@ enum class DockStage { // <enum scope='DockStage' name=DockStage public>
 
 	UNDOCK_END,
 
-	LEAVE,
-
 	DEPARTURE,
+
+	LEAVE,
 
 	UNDOCK_STAGES_END,
 };
@@ -68,20 +69,19 @@ enum class DockStage { // <enum scope='DockStage' name=DockStage public>
 class SpaceStationType {
 public:
 
-	struct WayPoint {
-		matrix4x4f loc;
-		// there will be more fields
-	};
-
 	struct Bay {
 
 		int minShipSize;
 		int maxShipSize;
 		bool inUse;
 
+		DockOperations::WayPoint point;
+
 		std::map<DockStage, matrix4x4f> stages;
-		std::vector<WayPoint> approach;
-		std::vector<WayPoint> departure;
+		std::vector<DockOperations::WayPoint> approach;
+		std::vector<DockOperations::WayPoint> departure;
+
+		static Bay fromSceneTag(SceneGraph::Tag *sceneTag);
 	};
 
 	struct positionOrient_t {

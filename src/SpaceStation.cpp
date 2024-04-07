@@ -372,7 +372,7 @@ bool SpaceStation::OnCollision(Body *b, Uint32 flags, double relVel)
 	if (!(flags & (SceneGraph::CollisionGeometry::DOCKING | SceneGraph::CollisionGeometry::ENTRANCE))) return true;
 
 	Ship *s = static_cast<Ship *>(b);
-	if(s->ManualDocking() && (flags & SceneGraph::CollisionGeometry::ENTRANCE)) return false;
+	if (flags & SceneGraph::CollisionGeometry::ENTRANCE) return false; // XXX remove entrance collision
 
 	bool touchOrbitalPad = (flags & SceneGraph::CollisionGeometry::DOCKING) && !IsGroundStation();
 
@@ -483,14 +483,14 @@ void SpaceStation::SwitchToStage(Uint32 bay, DockStage stage)
 		break;
 
 	case DockStage::UNDOCK_END:
-		dt.ship->SetAngVelocity(GetAngVelocity());
+		dt.ship->SetAngVelocity(GetAngVelocity()); // XXX?
 		if (m_type->IsSurfaceStation()) {
 			dt.ship->SetThrusterState(1, 1.0); // up
 		} else {
 			dt.ship->SetThrusterState(2, -1.0); // forward
 		}
 		dt.ship->SetFlightState(Ship::FLYING);
-		SwitchToStage(bay, DockStage::LEAVE);
+		SwitchToStage(bay, DockStage::DEPARTURE);
 		break;
 
 	case DockStage::LEAVE:
@@ -505,8 +505,36 @@ void SpaceStation::SwitchToStage(Uint32 bay, DockStage stage)
 
 	case DockStage::CLEARANCE_GRANTED:
 		m_doorAnimationStep = 0.3; // open door
-		dt.stage = stage;
+		SwitchToStage(bay, DockStage::APPROACH);
 		break;
+
+	case DockStage::APPROACH: {
+		// send first waypoint to ship
+		dt.stage = stage;
+		dt.pathIndex = -1;
+		break;
+	}
+
+	case DockStage::DEPARTURE: {
+
+		// XXX unite with dofixspeedtakeoff
+
+		auto pPos = dt.ship->GetPosition();
+		auto bayObj = m_type->GetBay(bay);
+
+		// sometimes the collision mesh sticks out a lot relative to the tag
+		// so the ship should be moved a little
+		vector3d awayDirection(bayObj.point.loc.Up());
+		awayDirection = GetOrient() * awayDirection;
+		dt.ship->SetPosition(pPos + awayDirection * 0.3);
+
+		auto dockedVelocity = GetVelocity() + GetAngVelocity().Cross(pPos);
+		dt.ship->SetVelocity(dockedVelocity);
+
+		dt.stage = stage;
+		dt.pathIndex = -1;
+		break;
+	}
 
 	default:
 		dt.stage = stage;
@@ -550,6 +578,11 @@ void SpaceStation::DockingUpdate(const double timeStep)
 				m_doorAnimationStep = -0.3; // close door
 				SwitchToStage(i, DockStage::NONE);
 			}
+			continue;
+
+		case DockStage::APPROACH:
+		case DockStage::DEPARTURE:
+			// sure don't go below? XXX
 			continue;
 
 		default:
@@ -847,3 +880,31 @@ double SpaceStation::GetUndockAnimStageDuration(int bay, DockStage stage) const
 	return stageLength / averageVelocity;
 }
 
+DockOperations::Command SpaceStation::NextDockOperation(Ship *s)
+{
+	using namespace DockOperations;
+
+	Command cmd{};
+
+	int bayID = GetMyDockingPort(s);
+	shipDocking_t &dt = m_shipDocking[bayID];
+	auto bay = m_type->GetBay(bayID);
+	auto &path = dt.stage == DockStage::APPROACH ? bay.approach : bay.departure;
+
+	int next = dt.pathIndex + 1;
+
+	if (next < path.size()) {
+		dt.pathIndex = next;
+		cmd.type = Command::Type::FLY_TO;
+		cmd.waypoint = &path[next];
+
+		if (next < path.size() - 1) {
+			cmd.waypointAfter = &path[next + 1];
+		}
+	} else {
+		cmd.type = Command::Type::BYE;
+		if (dt.stage == DockStage::DEPARTURE) SwitchToStage(bayID, DockStage::LEAVE);
+	}
+
+	return cmd;
+}

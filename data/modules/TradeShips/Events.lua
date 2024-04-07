@@ -18,6 +18,8 @@ local Trader = require 'modules.TradeShips.Trader'
 local onGameStart = function ()
 	if Flow.calculateSystemParams() then
 		if Core.ships == nil then -- new game
+			Core.ships = {}
+			if true then return end -- XXX
 			Flow.spawnInitialShips()
 			Flow.run()
 		else -- deserialization

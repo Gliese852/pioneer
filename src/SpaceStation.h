@@ -27,6 +27,10 @@ namespace SceneGraph {
 	class Animation;
 }
 
+namespace DockOperations {
+	struct Message;
+}
+
 class SpaceStation : public ModelBody {
 public:
 	OBJDEF(SpaceStation, ModelBody, SPACESTATION);
@@ -70,6 +74,7 @@ public:
 	int GetFreeDockingPort(const Ship *s) const; // returns -1 if none free
 	int GetMyDockingPort(const Ship *s) const;
 	int NumShipsDocked() const;
+	DockOperations::Command NextDockOperation(Ship *s);
 
 	const SpaceStationType *GetStationType() const { return m_type; }
 	bool IsGroundStation() const;
@@ -104,7 +109,8 @@ private:
 			stagePos(0),
 			fromPos(0.0),
 			fromRot(1.0, 0.0, 0.0, 0.0),
-			maxOffset(0)
+			maxOffset(0),
+			pathIndex(-1)
 		{}
 
 		Ship *ship;
@@ -114,6 +120,7 @@ private:
 		vector3d fromPos; // in station model coords
 		Quaterniond fromRot;
 		double maxOffset;
+		int pathIndex;
 	};
 	typedef std::vector<shipDocking_t>::const_iterator constShipDockingIter;
 	typedef std::vector<shipDocking_t>::iterator shipDockingIter;

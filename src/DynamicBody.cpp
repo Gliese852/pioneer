@@ -12,6 +12,8 @@
 #include "collider/CollisionContact.h"
 #include "ship/Propulsion.h"
 
+#include "mydebug.hpp"
+
 static const float KINETIC_ENERGY_MULT = 0.00001f;
 const double DynamicBody::DEFAULT_DRAG_COEFF = 0.1; // 'smooth sphere'
 
@@ -251,6 +253,8 @@ void DynamicBody::TimeStepUpdate(const float timeStep)
 		//	pos.x, pos.y, pos.z, m_vel.x, m_vel.y, m_vel.z, m_force.x, m_force.y, m_force.z,
 		//	m_externalForce.x, m_externalForce.y, m_externalForce.z);
 
+		my_debug_lines_add(m_oldPos, Color::RED);
+		my_debug_lines_add(GetPosition(), Color::RED);
 		m_lastForce = m_force;
 		m_lastTorque = m_torque;
 		m_force = vector3d(0.0);

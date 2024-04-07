@@ -14,8 +14,11 @@
 #include "perlin.h"
 #include "ship/Propulsion.h"
 
+#include "mydebug.hpp"
+
 static const double VICINITY_MIN = 15000.0;
 static const double VICINITY_MUL = 4.0;
+static const double MAX_SPEED = 5000; // m/s XXX
 
 AICommand *AICommand::LoadFromJson(const Json &jsonObj)
 {
@@ -216,12 +219,16 @@ double AICmdKill::MaintainDistance(double curdist, double curspeed, double reqdi
 }
 */
 
-static void LaunchShip(Ship *ship)
+void AICommand::LaunchShip(Ship *ship)
 {
 	if (ship->GetFlightState() == Ship::LANDED)
 		ship->Blastoff();
-	else if (ship->GetFlightState() == Ship::DOCKED)
+	else if (ship->GetFlightState() == Ship::DOCKED) {
+		SpaceStation *undockFrom = ship->GetDockedWith();
 		ship->Undock();
+		m_child.reset(new AICmdDockOperation(ship, undockFrom));
+		ProcessChild();
+	}
 }
 
 void AICmdKamikaze::OnDeleted(const Body *body)
@@ -1007,6 +1014,9 @@ bool AICmdFlyTo::TimeStepUpdate()
 	 * wheels, launch and flightstate, so
 	 * it is better to split them in a module
 	*/
+	// perform docking operations
+	if (m_child && m_child->GetType() == AICommand::CMD_DOCKOPERATION && !ProcessChild()) return false;
+
 	if (m_dBody->IsType(ObjectType::SHIP)) {
 		Ship *ship = static_cast<Ship *>(m_dBody);
 		assert(ship != nullptr);
@@ -1380,76 +1390,8 @@ bool AICmdDock::TimeStepUpdate()
 			ship->AIMessage(Ship::AIERROR_REFUSED_PERM);
 			return true;
 		}
-	}
-
-	// state 0,2: Get docking data
-	if (m_state == eDockGetDataStart || m_state == eDockGetDataEnd || m_state == eDockingComplete) {
-		const SpaceStationType *type = m_target->GetStationType();
-		SpaceStationType::positionOrient_t dockpos;
-		type->GetShipApproachWaypoints(port, (m_state == 0) ? 0 : 1, dockpos);
-		if (m_state != eDockGetDataEnd) {
-			m_dockpos = dockpos.pos;
-		}
-		// we are already near the station, what could go wrong?
-		// set the fuel reserve to 0, since the fuel could become lower than the
-		// current reserve during the flight, and the ship will not fly anywhere
-		m_prop->SetFuelReserve(0.0);
-
-		m_dockdir = dockpos.zaxis.Normalized();
-		m_dockupdir = dockpos.yaxis.Normalized(); // don't trust these enough
-		if (type->IsOrbitalStation()) {
-			m_dockupdir = -m_dockupdir;
-		} else if (m_state == eDockingComplete) {
-			m_dockpos -= m_dockupdir * (ship->GetLandingPosOffset() + 0.1);
-		}
-
-		if (m_state != eDockGetDataEnd) {
-			m_dockpos = m_target->GetOrient() * m_dockpos + m_target->GetPosition();
-		}
-		IncrementState();
-		// should have m_dockpos in target frame, dirs relative to target orient
-	}
-
-	if (m_state == eDockFlyToStart) { // fly to first docking waypoint
-		m_child.reset(new AICmdFlyTo(m_dBody, m_target->GetFrame(), m_dockpos, 0.0, false));
+		m_child.reset(new AICmdDockOperation(ship, m_target));
 		ProcessChild();
-		return false;
-	}
-
-	// second docking waypoint
-	ship->SetWheelState(true);
-	const vector3d targpos = GetPosInFrame(m_dBody->GetFrame(), m_target->GetFrame(), m_dockpos);
-	const vector3d relpos = targpos - m_dBody->GetPosition();
-	const vector3d reldir = relpos.NormalizedSafe();
-	const vector3d relvel = -m_target->GetVelocityRelTo(m_dBody);
-
-	const double maxdecel = m_prop->GetAccelUp() - GetGravityAtPos(m_target->GetFrame(), m_dockpos);
-	const double ispeed = calc_ivel(relpos.Length(), 0.0, maxdecel);
-	const vector3d vdiff = ispeed * reldir - relvel;
-	m_prop->AIChangeVelDir(vdiff * m_dBody->GetOrient());
-	if (vdiff.Dot(reldir) < 0) {
-		m_dBody->SetDecelerating(true);
-	}
-
-	// get rotation of station for next frame
-	matrix3x3d trot = m_target->GetOrientRelTo(m_dBody->GetFrame());
-	double av = m_target->GetAngVelocity().Length();
-	double ang = av * Pi::game->GetTimeStep();
-	if (ang > 1e-16) {
-		vector3d axis = m_target->GetAngVelocity().Normalized();
-		trot = trot * matrix3x3d::Rotate(ang, axis);
-	}
-	double af;
-	if (m_target->GetStationType()->IsOrbitalStation()) {
-		af = m_prop->AIFaceDirection(trot * m_dockdir);
-	} else {
-		af = m_prop->AIFaceDirection(m_dBody->GetPosition().Cross(m_dBody->GetOrient().VectorX()));
-	}
-	if (af < 0.01) {
-		af = m_prop->AIFaceUpdir(trot * m_dockupdir, av) - ang;
-	}
-	if (m_state < eInvalidDockingStage && af < 0.01 && ship->GetWheelState() >= 1.0f) {
-		IncrementState();
 	}
 
 #ifdef DEBUG_AUTOPILOT
@@ -1458,6 +1400,280 @@ bool AICmdDock::TimeStepUpdate()
 #endif
 
 	return false;
+}
+
+
+AICmdDockOperation::AICmdDockOperation(Ship *ship, SpaceStation *target) :
+	AICommand(ship, CMD_DOCKOPERATION),
+	m_target(target),
+	m_state(State::IDLE)
+{
+	m_wayPoint.flags = DockOperations::WayPoint::INVALID; // XXX
+	my_debug_lines.Clear();
+	my_debug_base = matrix4x4d(m_target->GetOrient(), m_target->GetPosition());
+	auto cmd = m_target->NextDockOperation(ship);
+	SetCommand(cmd);
+}
+
+bool AICmdDockOperation::TimeStepUpdate()
+{
+	using MsgType = DockOperations::Command::Type;
+
+	auto ship = static_cast<Ship*>(m_dBody);
+	if (!ProcessChild()) return false;
+
+	// If we're docked with the target, then we're finished!
+	// XXX maybe it should be switched off from outside?
+	if (ship->GetDockedWith() == m_target) {
+		ship->ClearThrusterState();
+		return true;
+	}
+
+	while (true) {
+
+		switch (m_state) {
+
+		case State::IDLE:
+			return false;
+
+		case State::FLY_WAYPOINTS:
+			if(!FlyWayPoint()) {
+				return false;
+			} else {
+				// arrived to the point
+				auto cmd = m_target->NextDockOperation(ship);
+				SetCommand(cmd);
+				continue;
+			}
+
+		case State::END:
+			return true;
+
+		default:
+			return false;
+		};
+	}
+
+	return false;
+}
+
+// return cosine of angle between p1-p2 and p2-p3,
+// but not less than 0.0
+static double calculate_passability(vector3d p1, vector3d p2, vector3d p3)
+{
+	vector3d d1 = p2 - p1;
+	vector3d d2 = p3 - p2;
+
+	double lenSqr1 = d1.LengthSqr();
+	double lenSqr2 = d2.LengthSqr();
+
+	const double EPS = 1e-6;
+
+	// strange edge cases - assume the right angle
+	if (lenSqr1 < EPS || lenSqr2 < EPS) return 0.0;
+
+	return std::max(d1.Dot(d2) / sqrt(lenSqr1) / sqrt(lenSqr2), 0.0);
+}
+
+void AICmdDockOperation::SetCommand(const DockOperations::Command &cmd)
+{
+	using namespace DockOperations;
+
+	auto ship = static_cast<Ship*>(m_dBody);
+
+	switch (cmd.type) {
+
+	case Command::Type::FLY_TO: {
+
+		vector3d oldPos = m_wayPoint.flags == WayPoint::INVALID
+			? ship->GetPosition()
+			: m_target->GetPosition() + m_target->GetOrient() * vector3d(m_wayPoint.loc.GetTranslate());
+
+		assert(cmd.waypoint);
+		m_wayPoint = *cmd.waypoint;
+		m_state = State::FLY_WAYPOINTS;
+
+		vector3d newPos = m_target->GetPosition() + m_target->GetOrient() * vector3d(m_wayPoint.loc.GetTranslate());
+
+		my_debug_lines_add(oldPos, Color::GREEN);
+		my_debug_lines_add(newPos, Color::GREEN);
+
+		// speed limit on this section
+		m_speedLimit = m_wayPoint.speed;
+
+		if (cmd.waypointAfter) {
+			// we can calculate how fast we can go through a point,
+			// https://forum.pioneerspacesim.net/viewtopic.php?p=7227#p7227
+
+			// points in the current frame
+			vector3d shp = ship->GetPosition();
+			vector3d wp0 = (m_target->GetPosition() + m_target->GetOrient() * vector3d(m_wayPoint.loc.GetTranslate()));
+			vector3d wp1 = (m_target->GetPosition() + m_target->GetOrient() * vector3d(cmd.waypointAfter->loc.GetTranslate()));
+
+			double a = -ship->GetPropulsion()->GetAccelMin();
+			double S = sqrt(m_wayPoint.radiusSqr);
+			double v_max = MAX_SPEED;
+
+			double k = calculate_passability(shp, wp0, wp1); // 0.0 .. 1.0
+			double k_max = v_max / sqrt(v_max*v_max - 2*a*S);
+
+			if (k >= k_max) {
+				m_endSpeedLimit = v_max;
+			} else {
+				m_endSpeedLimit = k * sqrt(2*a*S / (k*k - 1));
+			}
+
+			// also the speed may be slower on the next section
+			double nextLimit = cmd.waypointAfter->speed * k;
+			m_endSpeedLimit = std::min(m_endSpeedLimit, nextLimit);
+
+		} else if (m_wayPoint.flags & WayPoint::BAY) {
+			m_endSpeedLimit = 0.0;
+		} else {
+			m_endSpeedLimit = MAX_SPEED;
+		}
+
+		if (m_wayPoint.flags & WayPoint::APPROACH_START) {
+			vector3d entrancePos(m_wayPoint.loc.GetTranslate());
+			entrancePos = m_target->GetPosition() + m_target->GetOrient() * entrancePos;
+			m_child.reset(new AICmdFlyTo(m_dBody, m_target->GetFrame(), entrancePos, 0.0, false));
+			ProcessChild();
+			return;
+		}
+
+		if (m_wayPoint.flags & WayPoint::BAY) {
+			float offset = ship->GetLandingPosOffset();
+			// adjust the matrix for correct docking
+			// for now just move up by the offset amount
+			// offset is negative, let’s also press a little into the pad
+			vector3f corr{ 0.f, -offset - 0.2f, 0.f };
+			corr = m_wayPoint.loc.GetOrient() * corr;
+			m_wayPoint.loc.Translate(corr);
+			ship->SetWheelState(true);
+
+			// the ship must have time to deploy its landing gear
+			vector3d r = ship->GetPosition() - (m_target->GetPosition() + m_target->GetOrient() * vector3d(m_wayPoint.loc.GetTranslate()));
+			double dist = r.Length();
+			// a little with reserve
+			double minTime = ship->GetWheelTransitionDuration() * 1.5;
+			double maxSpeed = dist / minTime;
+			m_speedLimit = std::min(maxSpeed, m_speedLimit);
+		}
+		break;
+	}
+
+	case Command::Type::BYE:
+		m_state = State::END;
+		break;
+
+	default:
+		break;
+	}
+}
+
+bool AICmdDockOperation::FlyWayPoint()
+{
+	using namespace DockOperations;
+	auto ship = static_cast<Ship*>(m_dBody);
+
+	vector3d r = ship->GetPosition() - (m_target->GetPosition() + m_target->GetOrient() * vector3d(m_wayPoint.loc.GetTranslate()));
+	double distSq0 = r.LengthSqr(); // XXX some name
+	if (distSq0 < m_wayPoint.radiusSqr) {
+		return true;
+	}
+
+	double timestep = Pi::game->GetTimeStep();
+
+	bool onlyPos = m_wayPoint.flags & WayPoint::ONLY_POS;
+
+	matrix3x3d targetOrient = m_target->GetOrient();
+	vector3d targetPos = m_target->GetPosition();
+
+	// orientation in the frame, position is still local
+	// to apply angular velocity easily
+	matrix4x4d loc = targetOrient * matrix4x4d(m_wayPoint.loc);
+
+	// velocity vector so that after timestep ship remains in the
+	// same place relative to the target
+	vector3d baseVel(m_target->GetVelocity());
+
+	vector3d insidePos = ship->GetPositionRelTo(m_target);
+
+	// predict where it will be in the next frame
+	vector3d linearShift = m_target->GetVelocity() * timestep;
+	vector3d rotShift{};
+	double rotSpeed = m_target->GetAngVelocity().Length();
+	if (rotSpeed > 0) {
+		auto rot = matrix3x3d::Rotate(rotSpeed * timestep, m_target->GetAngVelocity() / rotSpeed);
+		loc = rot * loc;
+
+		// add a rotation component
+		rotShift = rot * insidePos - insidePos;
+		baseVel += rotShift / timestep;
+	}
+	// this is now the waypoint location in the frame after timestep
+	loc = matrix4x4d::Translation(linearShift + m_target->GetPosition()) * loc;
+
+	vector3d nextPosition = ship->GetPosition() + linearShift + rotShift;
+
+	// count as if we are in the next frame
+	vector3d dir = loc.GetTranslate() - nextPosition;
+	double distSq = dir.LengthSqr();
+
+	auto prop = ship->GetPropulsion();
+
+	if (!onlyPos) {
+		vector3d back = loc.Back();
+		vector3d up = loc.Up();
+		// XXX make AIMatchOrientation(loc.GetOrient())
+		if (fabs(prop->AIFaceDirection(-back)) < 0.001) {
+			prop->AIFaceUpdir(up);
+		}
+	}
+
+	double dist = sqrt(distSq);
+	double speed = calc_ivel(dist, m_endSpeedLimit, prop->GetAccelMin());
+	speed = std::min(speed, m_speedLimit);
+	auto vel = speed / dist * dir + baseVel;
+	prop->AIMatchVel(vel);
+	if (onlyPos) {
+		prop->AIFaceDirection(dir);
+	}
+
+	return false;
+}
+
+void AICmdDockOperation::GetStatusText(char *str)
+{
+	auto ship = static_cast<Ship*>(m_dBody);
+
+	matrix3x3d targetOrient = m_target->GetOrientRelTo(ship->GetFrame());
+	vector3d targetPos = m_target->GetPositionRelTo(ship->GetFrame());
+
+	vector3d wpos = targetPos + targetOrient * vector3d(m_wayPoint.loc.GetTranslate());
+
+	auto pos = m_dBody->GetPosition();
+	int len = snprintf(str, 255, "DockOperations: pos: %.1f %.1f %.1f tgt: %.1f %.1f %.1f\n", pos.x, pos.y, pos.z, wpos.x, wpos.y, wpos.z);
+	if (len >= 0 && m_child)
+		return m_child->GetStatusText(str + len);
+}
+
+// XXX
+void AICmdDockOperation::SaveToJson(Json &jsonObj)
+{
+}
+
+AICmdDockOperation::AICmdDockOperation(const Json &jsonObj) :
+	AICommand(jsonObj, CMD_DOCKOPERATION)
+{
+}
+
+void AICmdDockOperation::PostLoadFixup(Space *space)
+{
+}
+
+void AICmdDockOperation::OnDeleted(const Body *body)
+{
 }
 
 AICmdHoldPosition::AICmdHoldPosition(DynamicBody *dBody) :

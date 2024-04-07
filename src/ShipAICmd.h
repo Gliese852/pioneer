@@ -8,6 +8,7 @@
 #include "JsonFwd.h"
 
 #include "DynamicBody.h"
+#include "DockOperations.h"
 #include "FixedGuns.h"
 #include "FrameId.h"
 #include "ship/Propulsion.h"
@@ -22,6 +23,7 @@ public:
 	enum CmdName { // <enum scope='AICommand::CmdName' name=ShipAICmdName public>
 		CMD_NONE,
 		CMD_DOCK,
+		CMD_DOCKOPERATION,
 		CMD_FLYTO,
 		CMD_FLYAROUND,
 		CMD_KILL,
@@ -61,6 +63,9 @@ public:
 	}
 
 	CmdName GetType() const { return m_cmdName; }
+	AICommand *GetChild() { return m_child.get(); }
+
+	void LaunchShip(Ship *ship);
 
 protected:
 	DynamicBody *m_dBody;
@@ -113,6 +118,41 @@ private:
 		case eInvalidDockingStage: break;
 		}
 	}
+};
+
+class AICmdDockOperation : public AICommand {
+public:
+	bool TimeStepUpdate() override;
+	AICmdDockOperation(Ship *ship, SpaceStation *target);
+
+	void GetStatusText(char *str) override;
+
+	void SaveToJson(Json &jsonObj) override;
+	AICmdDockOperation(const Json &jsonObj);
+	void PostLoadFixup(Space *space) override;
+
+	void OnDeleted(const Body *body) override;
+
+	void SetCommand(const DockOperations::Command &cmd);
+
+	bool FlyWayPoint();
+
+private:
+
+	enum class State {
+		IDLE,
+		FLY_WAYPOINTS,
+		END,
+	};
+
+	SpaceStation *m_target;
+	State m_state;
+
+	DockOperations::WayPoint m_wayPoint;
+
+	int m_targetIndex;		// used during deserialisation
+	double m_speedLimit;
+	double m_endSpeedLimit;
 };
 
 class AICmdFlyTo : public AICommand {

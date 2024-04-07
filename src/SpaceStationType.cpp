@@ -15,6 +15,9 @@
 
 #include <algorithm>
 
+static constexpr float INTERNAL_SPEED_LIMIT = 30; // m/s
+static constexpr float EXTERNAL_SPEED_LIMIT = 300; // m/s
+
 // TODO: Fix the horrible control flow that makes this exception type necessary.
 struct StationTypeLoadError {};
 
@@ -66,6 +69,82 @@ SpaceStationType::SpaceStationType(const std::string &id_, const std::string &pa
 	OnSetupComplete();
 }
 
+template <size_t S>
+static const char *next_section(char (&dest)[S], const char* tail, char sep)
+{
+	const char *next = strchr(tail, sep);
+	size_t len = next ? next - tail : strlen(tail);
+	assert(len < S);
+	len = std::min(len, S - 1);
+	strncpy(dest, tail, len);
+	dest[len] = 0;
+	return tail + len + (next ? 1 : 0);
+}
+
+// https://forum.pioneerspacesim.net/viewtopic.php?f=3&t=669
+
+static void waypoint_parse_sections(DockOperations::WayPoint &wp, const char* sections)
+{
+	char section[64];
+
+	while (sections[0]) {
+		sections = next_section(section, sections, ':');
+
+		if (!strcmp(section, "pos")) {
+			wp.flags |= DockOperations::WayPoint::Flag::ONLY_POS;
+		} else if (!strcmp(section, "gate")) {
+			wp.flags |= DockOperations::WayPoint::Flag::GATE;
+		} else {
+			// refs
+			if (section[0] == '_') {
+				strcpy(wp.out, section + 1);
+				return;
+			}
+			sscanf(section,"%[^_]_%[^_]", wp.in, wp.out);
+			if (strlen(wp.out) == 0 && strlen(wp.in) == strlen(section)) {
+				strcpy(wp.out, wp.in);
+			}
+		}
+	}
+}
+
+static void waypoint_extract_size_and_location(DockOperations::WayPoint &wp, const matrix4x4f &m)
+{
+	wp.loc = m;
+	wp.loc.Renormalize();
+	wp.radiusSqr = vector3f(m[0], m[4], m[8]).LengthSqr();
+}
+
+DockOperations::WayPoint waypoint_from_scenetag(SceneGraph::Tag *sceneTag)
+{
+	DockOperations::WayPoint wp{};
+
+	char nameSection[64];
+	const char *otherSections = next_section(nameSection, sceneTag->GetName().c_str(), ':');
+	PiVerify(sscanf(nameSection, "wp_%s", wp.name) == 1);
+
+	waypoint_extract_size_and_location(wp, sceneTag->GetGlobalTransform());
+	waypoint_parse_sections(wp, otherSections);
+
+	return wp;
+}
+
+SpaceStationType::Bay SpaceStationType::Bay::fromSceneTag(SceneGraph::Tag *sceneTag)
+{
+	Bay bay{};
+
+	char baySection[64];
+	const char *otherSections = next_section(baySection, sceneTag->GetName().c_str(), ':');
+	PiVerify(sscanf(baySection, "pad_%[^_]_s%d_%d", bay.point.name, &bay.minShipSize, &bay.maxShipSize) == 3);
+
+	waypoint_extract_size_and_location(bay.point, sceneTag->GetGlobalTransform());
+	waypoint_parse_sections(bay.point, otherSections);
+
+	bay.point.flags |= DockOperations::WayPoint::BAY;
+
+	return bay;
+}
+
 void SpaceStationType::OnSetupComplete()
 {
 	// Since the model contains (almost) all of the docking information we have to extract that
@@ -78,13 +157,19 @@ void SpaceStationType::OnSetupComplete()
 	// on autopilot - this is the only option for docking with SPACE stations currently.
 	// This mostly means offsetting from one locator to create the next in the sequence.
 
+	using namespace DockOperations;
+
 	// gather the tags
 	std::vector<SceneGraph::Tag *> entrance_mts;
 	std::vector<SceneGraph::Tag *> locator_mts;
 	std::vector<SceneGraph::Tag *> exit_mts;
+	std::vector<SceneGraph::Tag *> pad_mts;
+	std::vector<SceneGraph::Tag *> waypoint_mts;
 	model->FindTagsByStartOfName("entrance_", entrance_mts);
 	model->FindTagsByStartOfName("loc_", locator_mts);
 	model->FindTagsByStartOfName("exit_", exit_mts);
+	model->FindTagsByStartOfName("pad_", pad_mts);
+	model->FindTagsByStartOfName("wp_", waypoint_mts);
 
 	// temporary structure for compatibility with legacy docking tags
 	struct SPort {
@@ -95,6 +180,94 @@ void SpaceStationType::OnSetupComplete()
 	std::vector<SPort> ports;
 
 	Output("%s has:\n %lu entrances,\n %lu pads,\n %lu exits\n", modelName.c_str(), entrance_mts.size(), locator_mts.size(), exit_mts.size());
+
+	std::sort(pad_mts.begin(), pad_mts.end(), [](const auto &a, const auto &b) { return a->GetName() < b->GetName(); });
+
+	std::vector<WayPoint> waypoints;
+
+	// new thing XXX
+	if (pad_mts.size() > 0) {
+		waypoints.reserve(waypoint_mts.size());
+		for (auto sceneTag : waypoint_mts) {
+			waypoints.push_back(waypoint_from_scenetag(sceneTag));
+		}
+
+		int bayID = 1;
+		for (auto sceneTag : pad_mts) {
+			auto bay = Bay::fromSceneTag(sceneTag);
+
+			// approach route
+			bay.approach.push_back(bay.point);
+			char *prev = bay.point.in;
+			while (prev[0]) {
+				for (int i = 0; i < waypoints.size(); ++i) {
+					auto &wp = waypoints[i];
+					if (!strcmp(wp.name, prev)) {
+						bay.approach.push_back(wp);
+						prev = wp.in;
+						break;
+					} else {
+						assert(i != waypoints.size() - 1 && "No waypoint with that name exists");
+					}
+				}
+				assert(bay.approach.size() <= waypoints.size() && "It looks like there is a loop in the links");
+			}
+
+
+			if (bay.approach.size() == 1) {
+				// add one by default, "above" the bay
+				WayPoint wp{};
+				wp.loc = bay.point.loc;
+				wp.loc.Translate(0.f, 500.f, 0.f);
+				wp.radiusSqr = 1.f;
+				snprintf(wp.name, sizeof(wp.name), "%s-up", bay.point.name);
+				bay.approach.push_back(wp);
+			}
+
+			bay.approach.back().flags |= WayPoint::APPROACH_START;
+
+			// everything up to the gate is considered inside
+			int speedLimit = INTERNAL_SPEED_LIMIT;
+			for (auto &wp : bay.approach) {
+				if (wp.flags & WayPoint::GATE) speedLimit = EXTERNAL_SPEED_LIMIT;
+				wp.speed = speedLimit;
+			}
+
+			std::reverse(bay.approach.begin(), bay.approach.end());
+
+			// departure route
+			char *next = bay.point.out;
+			while (next[0]) {
+				for (int i = 0; i < waypoints.size(); ++i) {
+					auto &wp = waypoints[i];
+					if (!strcmp(wp.name, next)) {
+						bay.departure.push_back(wp);
+						next = wp.out;
+						break;
+					} else {
+						assert(i != waypoints.size() - 1 && "No waypoint with that name exists");
+					}
+				}
+				assert(bay.departure.size() <= waypoints.size() && "It looks like there is a loop in the links");
+			}
+
+			// everything up to the gate (inclusive) is considered inside
+			// bay itself is not included in the departure route
+			speedLimit = (bay.point.flags & WayPoint::GATE) ? EXTERNAL_SPEED_LIMIT : INTERNAL_SPEED_LIMIT;
+			for (auto &wp : bay.departure) {
+				wp.speed = speedLimit;
+				if (wp.flags & WayPoint::GATE) speedLimit = EXTERNAL_SPEED_LIMIT;
+			}
+
+			bay.departure.back().flags |= WayPoint::ONLY_POS; // XXX ?
+
+			bay.stages[DockStage::DOCKED] = bay.point.loc; // final (docked)
+			lastDockStage = DockStage::DOCK_ANIMATION_NONE;
+			lastUndockStage = DockStage::UNDOCK_ANIMATION_NONE;
+
+			m_bays[bayID++] = bay; // XXX maybe not map?
+		}
+	}
 
 	// Add the partially initialised ports
 	for (SceneGraph::Tag *tag : entrance_mts) {
@@ -112,7 +285,7 @@ void SpaceStationType::OnSetupComplete()
 			new_port.m_approach[0] = trans;
 			new_port.m_approach[0].SetTranslate(trans.GetTranslate() + (offDir * 500.0f));
 		} else {
-			const vector3f offDir = -trans.Back().Normalized();
+			const vector3f offDir = trans.Back().Normalized();
 			new_port.m_approach[0] = trans;
 			new_port.m_approach[0].SetTranslate(trans.GetTranslate() + (offDir * 1500.0f));
 		}
@@ -154,13 +327,14 @@ void SpaceStationType::OnSetupComplete()
 		}
 		assert(bFoundPort);
 
-		m_bays[bay].approach.push_back({ approach1 });
-		m_bays[bay].approach.push_back({ approach2 });
+		m_bays[bay].approach.push_back({ approach1, EXTERNAL_SPEED_LIMIT, 3.f, WayPoint::ONLY_POS | WayPoint::APPROACH_START });
+		m_bays[bay].approach.push_back({ approach2, EXTERNAL_SPEED_LIMIT, 3.f, WayPoint::GATE });
 
 		// now build the docking/leaving waypoints
 		if (SURFACE == dockMethod) {
 			// ground stations don't have leaving waypoints.
 			m_bays[bay].stages[DockStage::DOCKED] = locTransform; // final (docked)
+			m_bays[bay].approach.back().flags = WayPoint::BAY;
 			lastDockStage = DockStage::DOCK_ANIMATION_NONE;
 			lastUndockStage = DockStage::UNDOCK_ANIMATION_NONE;
 		} else {
@@ -201,20 +375,53 @@ void SpaceStationType::OnSetupComplete()
 					Output("No point found on line segment");
 				}
 			}
-			m_bays[bay].stages[DockStage::DOCK_ANIMATION_1] = locTransform;
-			m_bays[bay].stages[DockStage::DOCK_ANIMATION_1].SetTranslate(intersectionPos);
+			matrix4x4f trans;
+			trans = locTransform;
+			trans.SetTranslate(intersectionPos);
+			m_bays[bay].approach.push_back({ trans, INTERNAL_SPEED_LIMIT, 0.1f, WayPoint::BEFORE_BAY });
 			// final (docked)
-			m_bays[bay].stages[DockStage::DOCK_ANIMATION_2] = locTransform;
-			lastDockStage = DockStage::DOCK_ANIMATION_2;
+			m_bays[bay].approach.push_back({ locTransform, INTERNAL_SPEED_LIMIT, 0.1f, WayPoint::BAY });
+
+			// all animation was replaced with real flight
+			lastDockStage = DockStage::DOCK_ANIMATION_NONE;
+			lastUndockStage = DockStage::UNDOCK_ANIMATION_NONE;
 
 			m_bays[bay].stages[DockStage::DOCKED] = locTransform;
 
 			// create the leaving locators
 
+			matrix4x4f orient = locTransform.GetOrient();
+			matrix4x4f EndOrient;
+
+			if (exit_mts.empty()) {
+				// leaving locators need to face in the opposite direction
+				orient.RotateX(M_PI);
+				orient.SetTranslate(locTransform.GetTranslate());
+				EndOrient = approach2;
+				EndOrient.SetRotationOnly(orient);
+			} else {
+				// leaving locators, use whatever orientation they have
+				orient.SetTranslate(locTransform.GetTranslate());
+				int exitport = 0;
+				for (auto &exitIt : exit_mts) {
+					PiVerify(1 == sscanf(exitIt->GetName().c_str(), "exit_port%d", &exitport));
+					if (exitport == portId) {
+						EndOrient = exitIt->GetGlobalTransform();
+						break;
+					}
+				}
+				if (exitport == 0) {
+					EndOrient = approach2;
+				}
+			}
+
 			// above the pad
-			m_bays[bay].stages[DockStage::UNDOCK_ANIMATION_1] = locTransform;
-			m_bays[bay].stages[DockStage::UNDOCK_ANIMATION_1].SetTranslate(intersectionPos);
-			lastUndockStage = DockStage::UNDOCK_ANIMATION_1;
+			trans = locTransform;
+			trans.SetTranslate(intersectionPos);
+			m_bays[bay].departure.push_back({ trans, INTERNAL_SPEED_LIMIT, 0.1f });
+
+			// exit
+			m_bays[bay].departure.push_back({ EndOrient, INTERNAL_SPEED_LIMIT, 0.1f, WayPoint::ONLY_POS });
 		}
 	}
 
