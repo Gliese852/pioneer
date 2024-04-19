@@ -144,6 +144,8 @@ namespace SceneGraph {
 		if (m_debugFlags & DEBUG_WIREFRAME)
 			m_renderer->SetWireFrameMode(true);
 
+		if (!(m_debugFlags & DEBUG_COLLMESH)) {
+
 		if (params.nodemask & MASK_IGNORE) {
 			m_root->Render(trans, &params);
 		} else {
@@ -151,6 +153,7 @@ namespace SceneGraph {
 			m_root->Render(trans, &params);
 			params.nodemask = NODE_TRANSPARENT;
 			m_root->Render(trans, &params);
+		}
 		}
 
 		if (!m_debugFlags)
@@ -163,8 +166,7 @@ namespace SceneGraph {
 			if (!m_debugLineMat) {
 				Graphics::MaterialDescriptor desc;
 				Graphics::RenderStateDesc rsd;
-				rsd.depthWrite = false;
-				rsd.primitiveType = Graphics::LINE_SINGLE;
+				rsd.primitiveType = Graphics::TRIANGLES;
 
 				m_debugLineMat.reset(m_renderer->CreateMaterial("vtxColor", desc, rsd));
 			}
@@ -204,6 +206,7 @@ namespace SceneGraph {
 		if (m_debugFlags & DEBUG_WIREFRAME)
 			m_renderer->SetWireFrameMode(true);
 
+		if (!(m_debugFlags & DEBUG_COLLMESH)) {
 		if (params.nodemask & MASK_IGNORE) {
 			m_root->Render(trans, &params);
 		} else {
@@ -211,6 +214,7 @@ namespace SceneGraph {
 			m_root->Render(trans, &params);
 			params.nodemask = NODE_TRANSPARENT;
 			m_root->Render(trans, &params);
+		}
 		}
 
 		if (m_debugFlags & DEBUG_WIREFRAME)
@@ -564,12 +568,16 @@ namespace SceneGraph {
 			// this may be wasteful with shared triangle edges but avoids the need for a separate drawcall
 			lines.Add(vertices[indices[idx]], color);
 			lines.Add(vertices[indices[idx + 1]], color);
-
-			lines.Add(vertices[indices[idx + 1]], color);
 			lines.Add(vertices[indices[idx + 2]], color);
 
-			lines.Add(vertices[indices[idx + 2]], color);
 			lines.Add(vertices[indices[idx]], color);
+			lines.Add(vertices[indices[idx + 2]], color);
+			lines.Add(vertices[indices[idx + 1]], color);
+
+//			lines.Add(vertices[indices[idx + 1]], color);
+
+//			lines.Add(vertices[indices[idx + 2]], color);
+//			lines.Add(vertices[indices[idx]], color);
 		}
 	}
 
@@ -636,7 +644,10 @@ namespace SceneGraph {
 
 		if (m_debugFlags & Model::DEBUG_TAGS) {
 			std::vector<Tag *> tags;
-			FindTagsByStartOfName("tag_", tags);
+			//FindTagsByStartOfName("tag_", tags);
+			FindTagsByStartOfName("pad_", tags);
+			FindTagsByStartOfName("wp_", tags);
+			FindTagsByStartOfName("loc_", tags);
 			AddAxisIndicators(tags, debugLines);
 		}
 

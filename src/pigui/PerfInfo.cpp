@@ -399,6 +399,12 @@ void PerfInfo::DrawWorldViewStats()
 			| (showBBox ? Flags::DEBUG_BBOX : 0)
 			| (showTags ? Flags::DEBUG_TAGS : 0);
 		Pi::player->GetModel()->SetDebugFlags(m_state->playerModelDebugFlags);
+		auto bodies = Pi::game->GetSpace()->GetBodies();
+		for (auto &body : bodies) {
+			if (body->IsType(ObjectType::MODELBODY)) {
+				static_cast<ModelBody*>(body)->GetModel()->SetDebugFlags(m_state->playerModelDebugFlags);
+			}
+		}
 	}
 	/* clang-format on */
 
