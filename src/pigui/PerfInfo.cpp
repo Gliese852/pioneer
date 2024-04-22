@@ -375,7 +375,9 @@ void PerfInfo::DrawWorldViewStats()
 
 	ImGui::TextUnformatted(fmt::format("Lat / Lon: {:.8} / {:.8}", lat, lon).c_str());
 
-	char aibuf[256];
+	// Each command is limited to 256 characters,
+	// it seems 16 subcommands should be enough for now.
+	char aibuf[4096];
 	Pi::player->AIGetStatusText(aibuf);
 
 	ImGui::TextUnformatted(aibuf);

@@ -894,14 +894,15 @@ void AICmdFlyTo::OnDeleted(const Body *body)
 
 void AICmdFlyTo::GetStatusText(char *str)
 {
-	if (m_child)
-		m_child->GetStatusText(str);
-	else if (m_target)
-		snprintf(str, 255, "Intercept: %s, dist %.1fkm, state %i",
+	int len;
+	if (m_target)
+		len = snprintf(str, 255, "Intercept: %s, dist %.1fkm, state %i\n",
 			m_target->GetLabel().c_str(), m_dist, m_state);
 	else
-		snprintf(str, 255, "FlyTo: %s, dist %.1fkm, endvel %.1fkm/s, state %i",
+		len = snprintf(str, 255, "FlyTo: %s, dist %.1fkm, endvel %.1fkm/s, state %i\n",
 			Frame::GetFrame(m_targframeId)->GetLabel().c_str(), m_posoff.Length() / 1000.0, m_endvel / 1000.0, m_state);
+	if (len >= 0 && m_child)
+		return m_child->GetStatusText(str + len);
 }
 
 void AICmdFlyTo::PostLoadFixup(Space *space)
@@ -1248,10 +1249,9 @@ void AICmdDock::OnDeleted(const Body *body)
 
 void AICmdDock::GetStatusText(char *str)
 {
-	if (m_child)
-		m_child->GetStatusText(str);
-	else
-		snprintf(str, 255, "Dock: target %s, state %i", m_target->GetLabel().c_str(), m_state);
+	int len = snprintf(str, 255, "Dock: target %s, state %i\n", m_target->GetLabel().c_str(), m_state);
+	if (len >= 0 && m_child)
+		return m_child->GetStatusText(str + len);
 }
 
 void AICmdDock::PostLoadFixup(Space *space)
@@ -1484,11 +1484,10 @@ bool AICmdHoldPosition::TimeStepUpdate()
 
 void AICmdFlyAround::GetStatusText(char *str)
 {
-	if (m_child)
-		m_child->GetStatusText(str);
-	else
-		snprintf(str, 255, "FlyAround: alt %.1fkm, vel %.1fkm/s, mode %i",
-			m_alt / 1000.0, m_vel / 1000.0, m_targmode);
+	int len = snprintf(str, 255, "FlyAround: alt %.1fkm, vel %.1fkm/s, mode %i\n",
+			 m_alt / 1000.0, m_vel / 1000.0, m_targmode);
+	if (len >= 0 && m_child)
+		m_child->GetStatusText(str + len);
 }
 
 void AICmdFlyAround::PostLoadFixup(Space *space)
@@ -1680,11 +1679,10 @@ void AICmdFormation::OnDeleted(const Body *body)
 
 void AICmdFormation::GetStatusText(char *str)
 {
-	if (m_child)
-		m_child->GetStatusText(str);
-	else
-		snprintf(str, 255, "Formation: %s, dist %.1fkm",
-			m_target->GetLabel().c_str(), m_posoff.Length() / 1000.0);
+	int len = snprintf(str, 255, "Formation: %s, dist %.1fkm\n",
+			 m_target->GetLabel().c_str(), m_posoff.Length() / 1000.0);
+	if (len >= 0 && m_child)
+		m_child->GetStatusText(str + len);
 }
 
 AICmdFormation::AICmdFormation(DynamicBody *dBody, DynamicBody *target, const vector3d &posoff) :
