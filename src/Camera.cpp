@@ -16,6 +16,8 @@
 #include "graphics/Types.h"
 #include "graphics/RenderState.h"
 
+#include "mydebug.hpp"
+
 using namespace Graphics;
 
 // if a body would render smaller than this many pixels, just ignore it
@@ -331,6 +333,25 @@ void Camera::Draw(const Body *excludeBody)
 		m_renderer->SetLightIntensity(m_lightSources.size(), lightIntensities.data());
 
 		attrs->body->Render(m_renderer, this, attrs->viewCoords, attrs->viewTransform);
+	}
+
+	if (!my_debug_lines.IsEmpty()) {
+
+		matrix4x4d debugTrans = camParent->GetInterpOrientRelTo(camFrameId);
+		debugTrans.SetTranslate(camParent->GetInterpPositionRelTo(camFrameId));
+		debugTrans = debugTrans * my_debug_base;
+
+		Graphics::Renderer::MatrixTicket mt(m_renderer, matrix4x4f(debugTrans));
+		my_debug_mesh.reset(m_renderer->CreateMeshObjectFromArray(&my_debug_lines));
+		if (!my_debug_material) {
+			Graphics::MaterialDescriptor desc;
+			Graphics::RenderStateDesc rsd;
+			rsd.depthTest = false;
+			rsd.depthWrite = false;
+			rsd.primitiveType = Graphics::LINE_SINGLE;
+			my_debug_material.reset(m_renderer->CreateMaterial("vtxColor", desc, rsd));
+		}
+		m_renderer->DrawMesh(my_debug_mesh.get(), my_debug_material.get());
 	}
 
 	// Restore default ambient color and direct light intensities
