@@ -20,6 +20,7 @@
 #include "graphics/VertexBuffer.h"
 
 #include "profiler/Profiler.h"
+#include "mydebug.hpp"
 
 using namespace Graphics;
 
@@ -346,6 +347,25 @@ void Camera::Draw(const Body *excludeBody)
 	}
 
 	RestoreLighting();
+	if (!my_debug_lines.IsEmpty()) {
+
+		matrix4x4d debugTrans = camParent->GetInterpOrientRelTo(camFrameId);
+		debugTrans.SetTranslate(camParent->GetInterpPositionRelTo(camFrameId));
+		debugTrans = debugTrans * my_debug_base;
+
+		Graphics::Renderer::MatrixTicket mt(m_renderer, matrix4x4f(debugTrans));
+		my_debug_mesh.reset(m_renderer->CreateMeshObjectFromArray(&my_debug_lines));
+		if (!my_debug_material) {
+			Graphics::MaterialDescriptor desc;
+			Graphics::RenderStateDesc rsd;
+			rsd.depthTest = false;
+			rsd.depthWrite = false;
+			rsd.primitiveType = Graphics::LINE_SINGLE;
+			Graphics::VertexFormatDesc vfmt = Graphics::VertexFormatDesc::FromAttribSet(Graphics::ATTRIB_POSITION | Graphics::ATTRIB_NORMAL);
+			my_debug_material.reset(m_renderer->CreateMaterial("vtxColor", desc, rsd, vfmt));
+		}
+		m_renderer->DrawMesh(my_debug_mesh.get(), my_debug_material.get());
+	}
 
 	if (!billboards.IsEmpty()) {
 		Graphics::Renderer::MatrixTicket mt(m_renderer, matrix4x4f::Identity());
