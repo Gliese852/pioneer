@@ -34,6 +34,7 @@
 #include "ship/PlayerShipController.h"
 
 static const float TONS_HULL_PER_SHIELD = 10.f;
+static const float WHEEL_TRANSITION_ANIMATION_SPEED = 0.3f;
 const float Ship::DEFAULT_SHIELD_COOLDOWN_TIME = 1.0f;
 const double Ship::DEFAULT_LIFT_TO_DRAG_RATIO = 0.001;
 
@@ -1294,7 +1295,7 @@ void Ship::StaticUpdate(const float timeStep)
 	}
 
 	if (m_wheelTransition) {
-		m_wheelState += m_wheelTransition * 0.3f * timeStep;
+		m_wheelState += m_wheelTransition * WHEEL_TRANSITION_ANIMATION_SPEED * timeStep;
 		m_wheelState = Clamp(m_wheelState, 0.0f, 1.0f);
 		if (is_equal_exact(m_wheelState, 0.0f) || is_equal_exact(m_wheelState, 1.0f)) {
 			m_wheelTransition = 0;
@@ -1623,4 +1624,10 @@ void Ship::SetRelations(Body *other, Uint8 percent)
 {
 	m_relationsMap[other] = percent;
 	if (m_sensors.get()) m_sensors->UpdateIFF(other);
+}
+
+float Ship::GetWheelTransitionDuration() const
+{
+	float animationLength = 1.f;
+	return animationLength / WHEEL_TRANSITION_ANIMATION_SPEED;
 }
