@@ -240,6 +240,7 @@ public:
 	void SetRelations(Body *other, Uint8 percent);
 
 	double GetLandingPosOffset() const { return m_landingMinOffset; }
+	float GetWheelTransitionDuration() const; // sec
 
 	Propulsion *GetPropulsion() { return m_propulsion; }
 
