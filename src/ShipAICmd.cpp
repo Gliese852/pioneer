@@ -1625,7 +1625,7 @@ bool AICmdDockOperation::FlyWayPoint()
 	if (!onlyPos) {
 		vector3d back = loc.Back();
 		vector3d up = loc.Up();
-		// XXX make AIMatchOrientation(loc.GetOrient())
+
 		if (fabs(prop->AIFaceDirection(-back)) < 0.001) {
 			prop->AIFaceUpdir(up);
 		}
@@ -1635,7 +1635,37 @@ bool AICmdDockOperation::FlyWayPoint()
 	double speed = calc_ivel(dist, m_endSpeedLimit, prop->GetAccelMin());
 	speed = std::min(speed, m_speedLimit);
 	auto vel = speed / dist * dir + baseVel;
-	prop->AIMatchVel(vel);
+
+	// We limit the thrust of some thrusters in order to fly along the
+	// trajectory more accurately. For example, the main thrusters may pull too
+	// hard and throw the ship off track if the bow is not pointed at the
+	// target.
+	vector3d extf = ship->GetExternalForce() * (timestep / ship->GetMass());
+	vector3d diffvel = vel - ship->GetVelocity();
+	vector3d diffvel2 = (diffvel - extf) * ship->GetOrient();
+	vector3d maxThrust = prop->GetThrust(diffvel2);
+
+	diffvel2.x = fabs(diffvel2.x);
+	diffvel2.y = fabs(diffvel2.y);
+	diffvel2.z = fabs(diffvel2.z);
+
+	// it seems the thrust capability can never be equal to 0
+	assert(maxThrust.x && maxThrust.y && maxThrust.z);
+	vector3d ratio3d = diffvel2 * (1.0 / maxThrust);
+	double ratio = std::max(std::max(ratio3d.x, ratio3d.y), ratio3d.z);
+
+	vector3d powerLimit{ 1.0, 1.0, 1.0 };
+
+	if (ratio != 0.0) {
+		vector3d cropThrust = diffvel2 / ratio;
+		cropThrust.x = std::max(cropThrust.x, prop->GetThrustMin());
+		cropThrust.y = std::max(cropThrust.y, prop->GetThrustMin());
+		cropThrust.z = std::max(cropThrust.z, prop->GetThrustMin());
+		powerLimit = cropThrust * (1.0 / maxThrust);
+	}
+
+	prop->AIMatchVel(vel, powerLimit);
+
 	if (onlyPos) {
 		prop->AIFaceDirection(dir);
 	}

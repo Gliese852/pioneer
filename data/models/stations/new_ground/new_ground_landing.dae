@@ -5,8 +5,8 @@
       <author>Blender User</author>
       <authoring_tool>Blender 3.6.10 commit date:2024-03-18, commit time:13:35, hash:e871de5bc190</authoring_tool>
     </contributor>
-    <created>2024-05-10T00:00:01</created>
-    <modified>2024-05-10T00:00:01</modified>
+    <created>2024-05-11T23:16:19</created>
+    <modified>2024-05-11T23:16:19</modified>
     <unit name="meter" meter="1"/>
     <up_axis>Z_UP</up_axis>
   </asset>
@@ -96,22 +96,22 @@
       <node id="wp_A3_pos" name="wp_A3:pos" type="NODE">
         <matrix sid="transform">-4.37114e-8 -0.4471348 0.8944666 450.1 1 4.745e-7 2.86067e-7 300 -5.52335e-7 0.8944666 0.4471348 192.5825 0 0 0 1</matrix>
       </node>
-      <node id="wp_F2_F3_F4_gate_pos" name="wp_F2:F3_F4:gate:pos" type="NODE">
+      <node id="wp_F2_F3_F4_gate" name="wp_F2:F3_F4:gate" type="NODE">
         <matrix sid="transform">-4.37114e-7 7.54979e-7 -10 -249.8997 -10 5.52335e-6 4.37114e-7 -299.9033 5.52335e-6 10 7.54979e-7 92.58247 0 0 0 1</matrix>
       </node>
-      <node id="wp_E2_E3_E4_gate_pos" name="wp_E2:E3_E4:gate:pos" type="NODE">
+      <node id="wp_E2_E3_E4_gate" name="wp_E2:E3_E4:gate" type="NODE">
         <matrix sid="transform">-4.37114e-7 -5.52335e-6 10 250.1 10 -2.45874e-13 4.37114e-7 -299.867 4.4409e-15 10 5.52335e-6 92.58251 0 0 0 1</matrix>
       </node>
-      <node id="wp_D2_D3_D4_gate_pos" name="wp_D2:D3_D4:gate:pos" type="NODE">
+      <node id="wp_D2_D3_D4_gate" name="wp_D2:D3_D4:gate" type="NODE">
         <matrix sid="transform">-4.37114e-7 7.54979e-7 -10 -249.9 -10 5.52335e-6 4.37114e-7 0.1334052 5.52335e-6 10 7.54979e-7 92.58247 0 0 0 1</matrix>
       </node>
-      <node id="wp_C2_C3_C4_gate_pos" name="wp_C2:C3_C4:gate:pos" type="NODE">
+      <node id="wp_C2_C3_C4_gate" name="wp_C2:C3_C4:gate" type="NODE">
         <matrix sid="transform">-4.37114e-7 -5.52335e-6 10 250.1 10 -2.45874e-13 4.37114e-7 0.1334273 4.4409e-15 10 5.52335e-6 92.58251 0 0 0 1</matrix>
       </node>
-      <node id="wp_B2_B3_B4_gate_pos" name="wp_B2:B3_B4:gate:pos" type="NODE">
+      <node id="wp_B2_B3_B4_gate" name="wp_B2:B3_B4:gate" type="NODE">
         <matrix sid="transform">-4.37114e-7 7.54979e-7 -10 -249.9 -10 5.52335e-6 4.37114e-7 300.133 5.52335e-6 10 7.54979e-7 92.58247 0 0 0 1</matrix>
       </node>
-      <node id="wp_A2_A3_A4_gate_pos" name="wp_A2:A3_A4:gate:pos" type="NODE">
+      <node id="wp_A2_A3_A4_gate" name="wp_A2:A3_A4:gate" type="NODE">
         <matrix sid="transform">-4.37114e-7 -7.54979e-7 10 250.1 10 5.52335e-6 4.37114e-7 300 -5.52335e-6 10 7.54979e-7 92.58247 0 0 0 1</matrix>
       </node>
       <node id="wp_F1_F2" name="wp_F1:F2" type="NODE">
