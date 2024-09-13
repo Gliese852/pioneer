@@ -195,8 +195,16 @@ local function startGame(gameParams)
 		-- print("Installing equipment {} (proto: {}) into slot {}" % { item, proto, slot })
 		if type(slot) == "string" then
 			local slotHandle = equipSet:GetSlotHandle(slot)
-			if not equipSet:Install(proto(), slotHandle) then
-				print("Couldn't install equipment item {} into slot {}" % { proto:GetName(), slot })
+			assert(slotHandle)
+
+			local inst = proto:Instance()
+
+			if slotHandle.count then
+				inst:SetCount(slotHandle.count)
+			end
+
+			if not equipSet:Install(inst, slotHandle) then
+				print("Couldn't install equipment item {} into slot {}" % { inst:GetName(), slot })
 			end
 		end
 	end
