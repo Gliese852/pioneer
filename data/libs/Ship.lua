@@ -116,7 +116,7 @@ function Ship:AddEquip(item, count, slot)
 	assert(not slot)
 
 	local equipSet = self:GetComponent("EquipSet")
-	if not item:isProto() then
+	if item:isProto() then
 		item = item:Instance()
 	end
 
