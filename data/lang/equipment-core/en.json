@@ -522,6 +522,9 @@
   "SLOT_THRUSTER": {
 	"description": "",
 	"message": "Thrusters"
+  },
+  "MISC_EQUIPMENT": {
+	"description": "Category header for miscellaneous equipment",
+	"message": "Miscellaneous"
   }
-
 }
