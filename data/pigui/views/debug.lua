@@ -16,7 +16,7 @@ local function drawTab(tab, i, delta)
 
 	ui.tabItem(icon_str, label, function()
 		ui.child(label, Vector2(0, 0), childWindowFlags, function()
-			tab.draw(delta)
+			tab.draw(tab, delta)
 		end)
 	end)
 end
