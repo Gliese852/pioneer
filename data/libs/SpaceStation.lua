@@ -24,7 +24,7 @@ local Faction     = require 'Faction'
 local Lang        = require 'Lang'
 
 local ShipBuilder = require 'modules.MissionUtils.ShipBuilder'
-local Rules       = require 'modules.MissionUtils.OutfitRules'
+local Rules       = ShipBuilder.OutfitRules
 
 local l = Lang.GetResource("ui-core")
 
