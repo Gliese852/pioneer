@@ -129,13 +129,15 @@ debugView.registerTab("ShipBuilder", {
 				end)
 
 				for _, def in ipairs(hulls) do
-					if ui.selectable(def.id) then
-						self.selectedHull = def.id
-					end
+					if def.tag == "SHIP" then
+						if ui.selectable(def.id) then
+							self.selectedHull = def.id
+						end
 
-					local threat = ShipBuilder.GetHullThreat(def.id)
-					ui.sameLine()
-					ui.text("threat: " .. tostring(threat.total))
+						local threat = ShipBuilder.GetHullThreat(def.id)
+						ui.sameLine()
+						ui.text("threat: " .. tostring(threat.total))
+					end
 				end
 			end
 		end)

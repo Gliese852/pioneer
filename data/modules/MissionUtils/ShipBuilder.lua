@@ -45,19 +45,20 @@ ShipBuilder.kBaseHullThreatFactor = 1.0
 ShipBuilder.kArmorToThreatFactor = 0.15
 
 -- How much the ship's maximum forward acceleration contributes to threat factor
-ShipBuilder.kAccelToThreat = 0.000015
+ShipBuilder.kAccelToThreat = 0.00002
 -- Tbreat from acceleration is added to this number to determine the final modifier for ship hull HP
 ShipBuilder.kAccelThreatBase = 0.5
 
 -- Controls how a ship's atmospheric performance contributes to its threat factor
-ShipBuilder.kAeroStabilityToThreat = 0.3
+ShipBuilder.kAeroStabilityToThreat = 0.20
 ShipBuilder.kAeroStabilityThreatBase = 0.80
 
-ShipBuilder.kCrossSectionToThreat = 2.5
-ShipBuilder.kCrossSectionThreatBase = 0.8
+ShipBuilder.kCrossSectionToThreat = 1.0
+ShipBuilder.kCrossSectionThreatBase = 0.75
 
 -- Only accept ships where the hull is at most this fraction of the desired total threat factor
-ShipBuilder.kMaxHullThreatFactor = 0.7
+ShipBuilder.kMaxHullThreatFactor = 0.75
+ShipBuilder.kMinHullThreatFactor = 0.15
 
 -- || Weapon Threat Factor ||
 
@@ -235,14 +236,14 @@ function ShipBuilder.ComputeHullThreatFactor(shipDef)
 	local threat = { id = shipDef.id }
 
 	local armor = shipDef.hullMass
-	local totalMass = shipDef.hullMass + shipDef.fuelTankMass
+	local totalMass = shipDef.hullMass + shipDef.fuelTankMass + shipDef.capacity * 0.5
 	local forwardAccel = shipDef.linearThrust["FORWARD"] / totalMass
-	local crossSectionAvg = (shipDef.topCrossSec * shipDef.sideCrossSec + shipDef.sideCrossSec * shipDef.frontCrossSec + shipDef.frontCrossSec * shipDef.topCrossSec) / 3.0
+	local crossSectionAvg = (shipDef.topCrossSec + shipDef.sideCrossSec + shipDef.frontCrossSec) / 3.0
 
 	threat.armor = ShipBuilder.kBaseHullThreatFactor + ShipBuilder.kArmorToThreatFactor * armor
 	threat.thrust = ShipBuilder.kAccelThreatBase + ShipBuilder.kAccelToThreat * forwardAccel
 	threat.aero = ShipBuilder.kAeroStabilityThreatBase + ShipBuilder.kAeroStabilityToThreat * (shipDef.raw.aero_stability or 0.0)
-	threat.crosssection = ShipBuilder.kCrossSectionThreatBase + ShipBuilder.kCrossSectionToThreat * (armor^1.5 / crossSectionAvg)
+	threat.crosssection = ShipBuilder.kCrossSectionThreatBase + ShipBuilder.kCrossSectionToThreat * (armor^(1/3) / crossSectionAvg^(1/2))
 
 	threat.total = threat.armor * threat.thrust * threat.aero * threat.crosssection
 	threat.total = utils.round(threat.total, 0.01)
@@ -443,7 +444,7 @@ function ShipBuilder.SelectHull(template, threat)
 
 		for id, shipDef in pairs(ShipDef) do
 
-			if not template.role or shipDef.roles[template.role] then
+			if shipDef.tag == "SHIP" and (not template.role or shipDef.roles[template.role]) then
 
 				local hullThreat = ShipBuilder.GetHullThreat(id).total
 
@@ -451,6 +452,7 @@ function ShipBuilder.SelectHull(template, threat)
 
 				-- Use threat metric as a way to balance the random selection of ship hulls
 				local withinRange = hullThreat <= ShipBuilder.kMaxHullThreatFactor * threat
+					and hullThreat >= ShipBuilder.kMinHullThreatFactor * threat
 
 				if withinRange then
 					table.insert(hullList, id)
