@@ -462,9 +462,11 @@ function EquipSet:Unserialize()
 	self.slotCache = {}
 	self.idCache = {}
 
+	setmetatable(self, EquipSet.meta)
+
 	self:BuildSlotCache()
 
-	return setmetatable(self, EquipSet.meta)
+	return self
 end
 
 Serializer:RegisterClass("EquipSet", EquipSet)
