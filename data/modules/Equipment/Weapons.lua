@@ -2,6 +2,7 @@
 -- Licensed under the terms of the GPL v3. See licenses/GPL-3.txt
 
 local Equipment = require 'Equipment'
+local Slot      = require 'HullConfig'.Slot
 
 local EquipType = Equipment.EquipType
 local LaserType = Equipment.LaserType
@@ -228,4 +229,19 @@ Equipment.Register("missile.naval_s4", EquipType.New {
 	volume=0, mass=1,
 	slot = { type="missile", size=4, hardpoint=true },
 	icon_name="equip_missile_naval"
+})
+
+Equipment.Register("missile_rack.opli_internal_s2", EquipType.New {
+	l10n_key="OPLI_INTERNAL_MISSILE_RACK_S2",
+	price=150, purchasable=true, tech_level=1,
+	volume=5.0, mass=0.5,
+	slot = { type = "missile_rack.opli_internal", size=2, hardpoint=true },
+	provides_slots = {
+		Slot:clone { id = "1", type = "missile", size = 2, size_min = 1, i18n_key = "HARDPOINT_MISSILE" },
+		Slot:clone { id = "2", type = "missile", size = 2, size_min = 1, i18n_key = "HARDPOINT_MISSILE" },
+		Slot:clone { id = "3", type = "missile", size = 2, size_min = 1, i18n_key = "HARDPOINT_MISSILE" },
+		Slot:clone { id = "4", type = "missile", size = 2, size_min = 1, i18n_key = "HARDPOINT_MISSILE" },
+		Slot:clone { id = "5", type = "missile", size = 2, size_min = 1, i18n_key = "HARDPOINT_MISSILE" },
+	},
+	icon_name="equip_missile_unguided"
 })
