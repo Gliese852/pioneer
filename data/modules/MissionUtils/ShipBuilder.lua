@@ -92,14 +92,10 @@ ShipBuilder.kShieldSharedHullThreat = 0.005
 ---@field clone fun(self, mixin: { rules: MissionUtils.OutfitRule[] }): self
 local Template = utils.proto("MissionUtils.ShipTemplate")
 
-Template.role = nil
-Template.shipId = nil
-Template.label = nil
+Template.role = nil ---@type string?
+Template.shipId = nil ---@type string?
+Template.label = nil ---@type string?
 Template.rules = {} ---@type MissionUtils.OutfitRule[]
-
-function Template:__clone()
-	self.rules = table.copy(self.rules)
-end
 
 ShipBuilder.Template = Template
 
