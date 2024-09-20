@@ -63,7 +63,7 @@ debugView.registerTab("ShipBuilder", {
 	selectedHull = nil,
 	spawnThreat = 20.0,
 
-	show = function() return not require 'Game':InHyperspace() end,
+	show = function() return require 'Game'.player end,
 
 	draw = function(self)
 		self.spawnThreat = ui.sliderFloat("Threat", self.spawnThreat, 1.0, 200.0)
