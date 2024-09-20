@@ -57,8 +57,8 @@ ShipBuilder.kCrossSectionToThreat = 1.0
 ShipBuilder.kCrossSectionThreatBase = 0.75
 
 -- Only accept ships where the hull is at most this fraction of the desired total threat factor
-ShipBuilder.kMaxHullThreatFactor = 0.75
-ShipBuilder.kMinHullThreatFactor = 0.15
+ShipBuilder.kMaxHullThreatFactor = 0.8
+ShipBuilder.kMinHullThreatFactor = 0.12
 
 -- || Weapon Threat Factor ||
 
@@ -448,11 +448,11 @@ function ShipBuilder.SelectHull(template, threat)
 
 				local hullThreat = ShipBuilder.GetHullThreat(id).total
 
-				print(id, hullThreat, threat)
-
 				-- Use threat metric as a way to balance the random selection of ship hulls
 				local withinRange = hullThreat <= ShipBuilder.kMaxHullThreatFactor * threat
 					and hullThreat >= ShipBuilder.kMinHullThreatFactor * threat
+
+				-- print(id, hullThreat, threat, withinRange)
 
 				if withinRange then
 					table.insert(hullList, id)
@@ -468,7 +468,10 @@ function ShipBuilder.SelectHull(template, threat)
 		return nil
 	end
 
-	local shipId = hullList[Engine.rand:Integer(1, #hullList)]
+	local hullIdx = Engine.rand:Integer(1, #hullList)
+	local shipId = hullList[hullIdx]
+
+	print("  threat {} => {} ({} / {})" % { threat, shipId, hullIdx, #hullList })
 
 	return HullConfig.GetHullConfigs()[shipId]
 end
