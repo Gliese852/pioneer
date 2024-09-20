@@ -545,18 +545,19 @@ end
 
 ---@param body Body
 ---@param template MissionUtils.ShipTemplate
----@param risk number?
+---@param threat number?
 ---@param nearDist number?
 ---@param farDist number?
-function ShipBuilder.MakeShipNear(body, template, risk, nearDist, farDist)
-	if not risk then
-		risk = Engine.rand:Number(ShipBuilder.kDefaultRandomThreatMin, ShipBuilder.kDefaultRandomThreatMax)
+---@return Ship?
+function ShipBuilder.MakeShipNear(body, template, threat, nearDist, farDist)
+	if not threat then
+		threat = Engine.rand:Number(ShipBuilder.kDefaultRandomThreatMin, ShipBuilder.kDefaultRandomThreatMax)
 	end
 
-	local hullConfig = ShipBuilder.SelectHull(template, risk)
+	local hullConfig = ShipBuilder.SelectHull(template, threat)
 	assert(hullConfig)
 
-	local plan = ShipBuilder.MakePlan(template, hullConfig, risk)
+	local plan = ShipBuilder.MakePlan(template, hullConfig, threat)
 	assert(plan)
 
 	local ship = Space.SpawnShipNear(plan.shipId, body, nearDist or 50, farDist or 100)
@@ -569,16 +570,17 @@ end
 
 ---@param body Body
 ---@param template MissionUtils.ShipTemplate
----@param risk number?
-function ShipBuilder.MakeShipDocked(body, template, risk)
-	if not risk then
-		risk = Engine.rand:Number(ShipBuilder.kDefaultRandomThreatMin, ShipBuilder.kDefaultRandomThreatMax)
+---@param threat number?
+---@return Ship?
+function ShipBuilder.MakeShipDocked(body, template, threat)
+	if not threat then
+		threat = Engine.rand:Number(ShipBuilder.kDefaultRandomThreatMin, ShipBuilder.kDefaultRandomThreatMax)
 	end
 
-	local hullConfig = ShipBuilder.SelectHull(template, risk)
+	local hullConfig = ShipBuilder.SelectHull(template, threat)
 	assert(hullConfig)
 
-	local plan = ShipBuilder.MakePlan(template, hullConfig, risk)
+	local plan = ShipBuilder.MakePlan(template, hullConfig, threat)
 	assert(plan)
 
 	local ship = Space.SpawnShipDocked(plan.shipId, body)
