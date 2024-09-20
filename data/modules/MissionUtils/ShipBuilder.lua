@@ -596,48 +596,6 @@ end
 
 -- =============================================================================
 
-local randomPulsecannonEasyRule = {
-	slot = "weapon",
-	filter = "weapon.energy.pulsecannon",
-	pick = "random",
-	maxSize = 3,
-	limit = 1
-}
-
-local pirateProduction = Template:clone {
-	role = "pirate",
-	rules = {
-		Rules.DefaultHyperdrive,
-		randomPulsecannonEasyRule,
-		Rules.DefaultAtmoShield,
-		Rules.DefaultShieldGen,
-		Rules.DefaultAutopilot
-	}
-}
-
----@param player Ship
----@param nearDist number?
----@param farDist number?
-function ShipBuilder.MakeGenericPirateNear(player, risk, nearDist, farDist)
-
-	local ship = ShipBuilder.MakeShipNear(player, pirateProduction, risk, nearDist, farDist)
-
-	-- TODO: handle risk/difficulty-based installation of equipment as part of
-	-- the loadout rules
-	local equipSet = ship:GetComponent('EquipSet')
-
-	if Engine.rand:Number(2) <= risk then
-		equipSet:Install(Equipment.Get("misc.laser_cooling_booster"))
-	end
-
-	if Engine.rand:Number(3) <= risk then
-		equipSet:Install(Equipment.Get("misc.shield_energy_booster"))
-	end
-
-	return ship
-
-end
-
 -- Generate a cache of combined hull threat factor for each ship in the game
 function ShipBuilder.BuildHullThreatCache()
 	for id, shipDef in pairs(ShipDef) do
