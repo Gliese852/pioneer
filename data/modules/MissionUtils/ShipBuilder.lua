@@ -552,7 +552,7 @@ end
 ---@param threat number?
 ---@param nearDist number?
 ---@param farDist number?
----@return Ship?
+---@return Ship
 function ShipBuilder.MakeShipNear(body, template, threat, nearDist, farDist)
 	if not threat then
 		threat = Engine.rand:Number(ShipBuilder.kDefaultRandomThreatMin, ShipBuilder.kDefaultRandomThreatMax)
@@ -577,7 +577,7 @@ end
 ---@param threat number
 ---@param nearDist number
 ---@param farDist number
----@return Ship?
+---@return Ship
 function ShipBuilder.MakeShipOrbit(body, template, threat, nearDist, farDist)
 	if not threat then
 		threat = Engine.rand:Number(ShipBuilder.kDefaultRandomThreatMin, ShipBuilder.kDefaultRandomThreatMax)
@@ -602,7 +602,7 @@ end
 ---@param threat number
 ---@param lat number
 ---@param lon number
----@return Ship?
+---@return Ship
 function ShipBuilder.MakeShipLanded(body, template, threat, lat, lon)
 	if not threat then
 		threat = Engine.rand:Number(ShipBuilder.kDefaultRandomThreatMin, ShipBuilder.kDefaultRandomThreatMax)
@@ -625,7 +625,7 @@ end
 ---@param body Body
 ---@param template MissionUtils.ShipTemplate
 ---@param threat number?
----@return Ship?
+---@return Ship
 function ShipBuilder.MakeShipDocked(body, template, threat)
 	if not threat then
 		threat = Engine.rand:Number(ShipBuilder.kDefaultRandomThreatMin, ShipBuilder.kDefaultRandomThreatMax)
