@@ -569,6 +569,56 @@ end
 
 ---@param body Body
 ---@param template MissionUtils.ShipTemplate
+---@param threat number
+---@param nearDist number
+---@param farDist number
+---@return Ship?
+function ShipBuilder.MakeShipOrbit(body, template, threat, nearDist, farDist)
+	if not threat then
+		threat = Engine.rand:Number(ShipBuilder.kDefaultRandomThreatMin, ShipBuilder.kDefaultRandomThreatMax)
+	end
+
+	local hullConfig = ShipBuilder.SelectHull(template, threat)
+	assert(hullConfig)
+
+	local plan = ShipBuilder.MakePlan(template, hullConfig, threat)
+	assert(plan)
+
+	local ship = Space.SpawnShipOrbit(plan.shipId, body, nearDist, farDist)
+	assert(ship)
+
+	ShipBuilder.ApplyPlan(ship, plan)
+
+	return ship
+end
+
+---@param body Body
+---@param template MissionUtils.ShipTemplate
+---@param threat number
+---@param lat number
+---@param lon number
+---@return Ship?
+function ShipBuilder.MakeShipLanded(body, template, threat, lat, lon)
+	if not threat then
+		threat = Engine.rand:Number(ShipBuilder.kDefaultRandomThreatMin, ShipBuilder.kDefaultRandomThreatMax)
+	end
+
+	local hullConfig = ShipBuilder.SelectHull(template, threat)
+	assert(hullConfig)
+
+	local plan = ShipBuilder.MakePlan(template, hullConfig, threat)
+	assert(plan)
+
+	local ship = Space.SpawnShipLanded(plan.shipId, body, lat, lon)
+	assert(ship)
+
+	ShipBuilder.ApplyPlan(ship, plan)
+
+	return ship
+end
+
+---@param body Body
+---@param template MissionUtils.ShipTemplate
 ---@param threat number?
 ---@return Ship?
 function ShipBuilder.MakeShipDocked(body, template, threat)
