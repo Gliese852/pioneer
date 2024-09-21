@@ -45,7 +45,7 @@ ShipBuilder.kBaseHullThreatFactor = 1.0
 ShipBuilder.kArmorToThreatFactor = 0.15
 
 -- How much the ship's maximum forward acceleration contributes to threat factor
-ShipBuilder.kAccelToThreat = 0.00002
+ShipBuilder.kAccelToThreat = 0.02
 -- Tbreat from acceleration is added to this number to determine the final modifier for ship hull HP
 ShipBuilder.kAccelThreatBase = 0.5
 
@@ -234,7 +234,7 @@ function ShipBuilder.ComputeHullThreatFactor(shipDef)
 
 	local armor = shipDef.hullMass
 	local totalMass = shipDef.hullMass + shipDef.fuelTankMass + shipDef.capacity * 0.5
-	local forwardAccel = shipDef.linearThrust["FORWARD"] / totalMass
+	local forwardAccel = shipDef.linearThrust["FORWARD"] / (1000.0 * totalMass)
 	local crossSectionAvg = (shipDef.topCrossSec + shipDef.sideCrossSec + shipDef.frontCrossSec) / 3.0
 
 	threat.armor = ShipBuilder.kBaseHullThreatFactor + ShipBuilder.kArmorToThreatFactor * armor
