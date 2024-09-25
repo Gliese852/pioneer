@@ -137,7 +137,7 @@ local makeAdvert = function (station)
 
 	-- make an instance of the equipment
 	-- TODO: set equipment integrity/wear, etc.
-	local equipment = equipType()
+	local equipment = equipType:Instance()
 
 	-- buy back price in equipment market is 0.8, so make sure the value is higher
 	local reduction = Engine.rand:Number(0.8,0.9)
