@@ -108,17 +108,17 @@ local missions = {}
 local passengers = 0
 
 local add_passengers = function (group)
-	for i = 1, group do
+	for i = 1, #group do
 		Passengers.EmbarkPassenger(Game.player, group[i])
 	end
-	passengers = passengers + group
+	passengers = passengers + #group
 end
 
 local remove_passengers = function (group)
-	for i = 1, group do
+	for i = 1, #group do
 		Passengers.DisembarkPassenger(Game.player, group[i])
 	end
-	passengers = passengers - group
+	passengers = passengers - #group
 end
 
 local isQualifiedFor = function(reputation, ad)
