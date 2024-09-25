@@ -10,7 +10,7 @@
 	"price": 46614,
 	"hull_mass": 18,
 	"atmospheric_pressure_limit": 3.2,
-	"capacity": 24,
+	"capacity": 32,
 	"cargo": 16,
 	"slots": {
 		"engine": 1,
@@ -63,10 +63,15 @@
 			"size": 2,
 			"size_min": 1
 		},
-		"shield": {
+		"shield_1": {
 			"type": "shield",
-			"size": 2,
-			"size_min": 1
+			"size": 1,
+			"tag": "tag_shield_1"
+		},
+		"shield_2": {
+			"type": "shield",
+			"size": 1,
+			"tag": "tag_shield_2"
 		},
 		"engine": {
 			"type": "engine",

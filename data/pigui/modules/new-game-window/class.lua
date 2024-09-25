@@ -30,7 +30,8 @@ local profileCombo = { items = {}, selected = 0 }
 local equipment2 = {
 	computer_1    = "misc.autopilot",
 	laser_front   = "laser.pulsecannon_1mw",
-	shield        = "shield.basic_s1",
+	shield_1      = "shield.basic_s1",
+	shield_2      = "shield.basic_s1",
 	sensor        = "sensor.radar",
 	hull_mod      = "hull.atmospheric_shielding",
 	hyperdrive    = "hyperspace.hyperdrive_2",
