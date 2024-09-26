@@ -14,9 +14,6 @@ local ModelSkin = require 'SceneGraph.ModelSkin'
 local ShipDef = require "ShipDef"
 local SystemPath = require 'SystemPath'
 
-local misc = Equipment.misc
-local laser = Equipment.laser
-
 local Defs = require 'pigui.modules.new-game-window.defs'
 local Layout = require 'pigui.modules.new-game-window.layout'
 local Recovery = require 'pigui.modules.new-game-window.recovery'
@@ -49,10 +46,10 @@ StartVariants.register({
 	money      = 600,
 	hyperdrive = true,
 	equipment  = {
-		{ laser.pulsecannon_1mw,      1 },
-		{ misc.atmospheric_shielding, 1 },
-		{ misc.autopilot,             1 },
-		{ misc.radar,                 1 }
+		-- { laser.pulsecannon_1mw,      1 },
+		-- { misc.atmospheric_shielding, 1 },
+		-- { misc.autopilot,             1 },
+		-- { misc.radar,                 1 }
 	},
 	cargo      = {
 		{ Commodities.hydrogen, 2 }
@@ -70,10 +67,10 @@ StartVariants.register({
 	money      = 400,
 	hyperdrive = true,
 	equipment  = {
-		{ laser.pulsecannon_1mw,      1 },
-		{ misc.atmospheric_shielding, 1 },
-		{ misc.autopilot,             1 },
-		{ misc.radar,                 1 }
+		-- { laser.pulsecannon_1mw,      1 },
+		-- { misc.atmospheric_shielding, 1 },
+		-- { misc.autopilot,             1 },
+		-- { misc.radar,                 1 }
 	},
 	cargo      = {
 		{ Commodities.hydrogen, 2 }
@@ -91,9 +88,9 @@ StartVariants.register({
 	money          = 100,
 	hyperdrive     = false,
 	equipment      = {
-		{misc.atmospheric_shielding,1},
-		{misc.autopilot,1},
-		{misc.radar,1}
+		-- {misc.atmospheric_shielding,1},
+		-- {misc.autopilot,1},
+		-- {misc.radar,1}
 	},
 	cargo          = {
 		{ Commodities.hydrogen, 2 }
