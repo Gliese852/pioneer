@@ -169,17 +169,7 @@ local function startGame(gameParams)
 
 	if not equipment2 then
 
-	for _, slot in pairs({ 'engine', 'laser_rear', 'laser_front' }) do
-		local eqSection = eqSections[slot]
-		local eqEntry = gameParams.ship.equipment[slot]
-		if eqEntry then
-			player:AddEquip(Equipment[eqSection][eqEntry], 1, slot)
-		end
-	end
-
-	for _,equip in pairs(gameParams.ship.equipment.misc) do
-		player:AddEquip(Equipment.misc[equip.id], equip.amount)
-	end
+		-- TODO: old equipment API no longer supported
 
 	else
 
