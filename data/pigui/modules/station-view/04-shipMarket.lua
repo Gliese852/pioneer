@@ -97,7 +97,7 @@ local tradeInValue = function(ship)
 	local value = shipDef.basePrice * shipSellPriceReduction * ship.hullPercent/100
 
 	if shipDef.hyperdriveClass > 0 then
-		value = value - Equipment.hyperspace["hyperdrive_" .. shipDef.hyperdriveClass].price * equipSellPriceReduction
+		value = value - Equipment.new["hyperspace.hyperdrive_" .. shipDef.hyperdriveClass].price * equipSellPriceReduction
 	end
 
 	local equipment = ship:GetComponent("EquipSet"):GetInstalledEquipment()
