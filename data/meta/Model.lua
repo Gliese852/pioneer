@@ -16,8 +16,8 @@ local Model = {}
 
 -- Set the pattern currently applied to the model
 ---@param idx integer
-function Model.SetPattern(idx) end
+function Model:SetPattern(idx) end
 
 -- Set debug flags used when rendering this model
 ---@param flags ModelDebugFlags[]
-function Model.SetDebugFlags(flags) end
+function Model:SetDebugFlags(flags) end
