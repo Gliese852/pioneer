@@ -1,11 +1,12 @@
 -- Copyright © 2008-2024 Pioneer Developers. See AUTHORS.txt for details
 -- Licensed under the terms of the GPL v3. See licenses/GPL-3.txt
 
-local Equipment = require 'Equipment'
-local Slot      = require 'HullConfig'.Slot
+local EquipTypes = require 'EquipType'
+local Equipment  = require 'Equipment'
+local Slot       = require 'HullConfig'.Slot
 
-local EquipType = Equipment.EquipType
-local LaserType = Equipment.LaserType
+local EquipType = EquipTypes.EquipType
+local LaserType = EquipTypes.LaserType
 
 --===============================================
 -- Pulse Cannons

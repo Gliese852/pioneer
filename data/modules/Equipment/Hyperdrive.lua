@@ -4,7 +4,7 @@
 local Equipment = require 'Equipment'
 local Commodities = require 'Commodities'
 
-local HyperdriveType = Equipment.HyperdriveType
+local HyperdriveType = require 'EquipType'.HyperdriveType
 
 Equipment.Register("hyperspace.hyperdrive_1", HyperdriveType.New {
 	l10n_key="DRIVE_CLASS1", fuel=Commodities.hydrogen,

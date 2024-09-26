@@ -1,12 +1,13 @@
 -- Copyright © 2008-2024 Pioneer Developers. See AUTHORS.txt for details
 -- Licensed under the terms of the GPL v3. See licenses/GPL-3.txt
 
+local EquipTypes = require 'EquipType'
 local Equipment = require 'Equipment'
 
-local EquipType = Equipment.EquipType
-local SensorType = Equipment.SensorType
-local CabinType = Equipment.CabinType
-local ThrusterType = Equipment.ThrusterType
+local EquipType = EquipTypes.EquipType
+local SensorType = EquipTypes.SensorType
+local CabinType = EquipTypes.CabinType
+local ThrusterType = EquipTypes.ThrusterType
 
 --===============================================
 -- Computer Modules
