@@ -27,7 +27,6 @@ Slot.hardpoint = false
 Slot.i18n_key = nil ---@type string?
 Slot.i18n_res = "equipment-core"
 Slot.count = nil ---@type integer?
-Slot.instances = nil ---@type integer?
 
 -- Class: HullConfig
 --
@@ -93,7 +92,9 @@ end
 local Configs = {}
 
 for id, def in pairs(ShipDef) do
-	Configs[id] = CreateShipConfig(def)
+	if def.tag == "SHIP" or def.tag == "STATIC_SHIP" then
+		Configs[id] = CreateShipConfig(def)
+	end
 end
 
 local function GetHullConfigs()
