@@ -13,6 +13,7 @@ local ModalWindow = require 'pigui.libs.modal-win'
 local ModelSkin = require 'SceneGraph.ModelSkin'
 local ShipDef = require "ShipDef"
 local SystemPath = require 'SystemPath'
+local utils = require 'utils'
 
 local Defs = require 'pigui.modules.new-game-window.defs'
 local Layout = require 'pigui.modules.new-game-window.layout'
@@ -37,6 +38,27 @@ local equipment2 = {
 	missile_bay_2  = "missile_bay.opli_internal_s2",
 }
 
+local equipment2_new_example = {
+	computer_1     = "misc.autopilot",
+	laser_front_s2 = "laser.pulsecannon_1mw",
+	shield_s1_1    = "shield.basic_s1",
+	shield_s1_2    = "shield.basic_s1",
+	sensor         = "sensor.radar",
+	hull_mod       = "hull.atmospheric_shielding",
+	hyperdrive     = "hyperspace.hyperdrive_2",
+	thruster       = "misc.thrusters_default",
+	missile_bay_1  = {
+		id = "missile_bay.opli_internal_s2",
+		slots = {
+			[ 1 ] = "missile.guided_s2"
+		}
+	},
+	missile_bay_2  = "missile_bay.opli_internal_s2",
+	-- non-slot
+	"misc.cargo_life_support"
+}
+
+
 StartVariants.register({
 	name       = lui.START_AT_MARS,
 	desc       = lui.START_AT_MARS_DESC,
@@ -44,12 +66,29 @@ StartVariants.register({
 	logmsg     = lui.START_LOG_ENTRY_1,
 	shipType   = 'coronatrix',
 	money      = 600,
-	hyperdrive = true,
-	equipment  = {
-		-- { laser.pulsecannon_1mw,      1 },
-		-- { misc.atmospheric_shielding, 1 },
-		-- { misc.autopilot,             1 },
-		-- { misc.radar,                 1 }
+	equipment_old = {},
+	equipment = {
+		computer_1     = "misc.autopilot",
+		laser_front_s2 = "laser.pulsecannon_1mw",
+		sensor         = "sensor.radar",
+		hull_mod       = "hull.atmospheric_shielding",
+		hyperdrive     = "hyperspace.hyperdrive_2",
+		thruster       = "misc.thrusters_default",
+		missile_bay_1  = {
+			id = "missile_bay.opli_internal_s2",
+			slots = {
+				[ 1 ] = "missile.guided_s2",
+			}
+		},
+		missile_bay_2  = {
+			id = "missile_bay.opli_internal_s2",
+			slots = {
+				[ 1 ] = "missile.guided_s2",
+				[ 2 ] = "missile.guided_s2",
+				[ 3 ] = "missile.guided_s2"
+			}
+		},
+		"misc.cargo_life_support"
 	},
 	cargo      = {
 		{ Commodities.hydrogen, 2 }
@@ -66,12 +105,20 @@ StartVariants.register({
 	shipType   = 'pumpkinseed',
 	money      = 400,
 	hyperdrive = true,
-	equipment  = {
-		-- { laser.pulsecannon_1mw,      1 },
-		-- { misc.atmospheric_shielding, 1 },
-		-- { misc.autopilot,             1 },
-		-- { misc.radar,                 1 }
+	equipment = {
+		computer_1     = "misc.autopilot",
+		laser_front_s1 = "laser.pulsecannon_1mw",
+		sensor         = "sensor.radar",
+		hull_mod       = "hull.atmospheric_shielding",
+		hyperdrive     = "hyperspace.hyperdrive_2",
+		thruster       = "misc.thrusters_default",
 	},
+	--equipment  = {
+	--	-- { laser.pulsecannon_1mw,      1 },
+	--	-- { misc.atmospheric_shielding, 1 },
+	--	-- { misc.autopilot,             1 },
+	--	-- { misc.radar,                 1 }
+	--},
 	cargo      = {
 		{ Commodities.hydrogen, 2 }
 	},

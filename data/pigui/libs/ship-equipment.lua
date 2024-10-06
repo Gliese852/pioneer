@@ -65,6 +65,11 @@ function EquipmentWidget:onBuyItem(equip)
 	player:AddMoney(-self.market:getBuyPrice(equip))
 	self.station:AddEquipmentStock(equip:GetPrototype(), -1)
 
+	print("GONA INSTALL SOME EQ!")
+	utils.print_r(equip)
+	print("INTO THE SLOT:")
+	utils.print_r(self.selectedSlot)
+
 	assert(self.ship:GetComponent("EquipSet"):Install(equip, self.selectedSlot))
 
 	self.selectedEquip = self.selectedSlot and equip
