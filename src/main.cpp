@@ -20,6 +20,7 @@
 enum RunMode {
 	MODE_GAME,
 	MODE_GALAXYDUMP,
+	MODE_LUARUN,
 	MODE_START_AT,
 	MODE_VERSION,
 	MODE_USAGE,
@@ -53,6 +54,11 @@ extern "C" int main(int argc, char **argv)
 
 		if (modeopt == "galaxydump" || modeopt == "gd") {
 			mode = MODE_GALAXYDUMP;
+			goto start;
+		}
+
+		if (modeopt == "luarun" || modeopt == "lr") {
+			mode = MODE_LUARUN;
 			goto start;
 		}
 
@@ -121,6 +127,14 @@ start:
 		}
 		// fallthrough
 	}
+	case MODE_LUARUN: {
+		if (argc < 3) {
+			Output("pioneer: need a filename\n");
+			return 1;
+		}
+		filename = argv[pos++];
+		// fallthrough
+	}
 	case MODE_START_AT: {
 		// fallthrough protect
 		if (mode == MODE_START_AT) {
@@ -174,7 +188,7 @@ start:
 			}
 		}
 
-		Pi::Init(options, mode == MODE_GALAXYDUMP);
+		Pi::Init(options, mode == MODE_GALAXYDUMP || mode == MODE_LUARUN);
 
 		if (mode == MODE_GAME) {
 			if (startPath != SystemPath(0, 0, 0, 0, 0))
