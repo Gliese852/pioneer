@@ -12,6 +12,7 @@
 #include "lua/Lua.h"
 #include "lua/LuaNameGen.h"
 #include "lua/LuaObject.h"
+#include "pigui/LuaPiGui.h"
 
 #include <SDL.h>
 #include <cstdio>
@@ -214,6 +215,10 @@ start:
 				Output("pioneer: writing to \"%s\" failed: %s\n", filename.c_str(), strerror(errno));
 			}
 			// We do not need to delete `Pi::luaNameGen` or call Lua::Uninit() here because Pi::Uninit() already does that
+		} else if (mode == MODE_LUARUN) {
+			Lua::Init(Pi::GetAsyncJobQueue());
+			PiGui::Lua::Init();
+			Lua::InitModules();
 		}
 
 		Pi::Uninit();
