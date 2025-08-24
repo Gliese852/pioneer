@@ -219,6 +219,7 @@ start:
 			Lua::Init(Pi::GetAsyncJobQueue());
 			PiGui::Lua::Init();
 			Lua::InitModules();
+			PiGui::Lua::Uninit();
 		}
 
 		Pi::Uninit();
