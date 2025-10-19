@@ -244,6 +244,7 @@ start:
 			"available modes:\n"
 			"    -game        [-g]     game (default)\n"
 			"    -galaxydump  [-gd]    galaxy dumper\n"
+			"    -luarun      [-lr]    <filename> run lua file in Pioneer context\n"
 			"    -startat     [-sa]    skip main menu and start at Mars\n"
 			"    -startat=sp  [-sa=sp]  skip main menu and start at systempath x,y,z,si,bi\n"
 			"    -version     [-v]     show version\n"
