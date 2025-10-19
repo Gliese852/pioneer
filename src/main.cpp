@@ -13,6 +13,8 @@
 #include "lua/LuaNameGen.h"
 #include "lua/LuaObject.h"
 #include "pigui/LuaPiGui.h"
+#include "FileSystem.h"
+#include "lua/core/CoreFwdDecl.h"
 
 #include <SDL.h>
 #include <cstdio>
@@ -219,6 +221,12 @@ start:
 			Lua::Init(Pi::GetAsyncJobQueue());
 			PiGui::Lua::Init();
 			Lua::InitModules();
+
+			FileSystem::FileSourceFS fs{ "", true };
+			RefCountedPtr<FileSystem::FileData> code = fs.ReadFile(filename);
+			auto l = Lua::manager->GetLuaState();
+			pi_lua_dofile(l, *code);
+
 			PiGui::Lua::Uninit();
 		}
 
