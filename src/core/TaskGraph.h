@@ -174,6 +174,8 @@ public:
 
 	static uint32_t GetThreadNum();
 
+	void ShutdownThreads();
+
 private:
 	friend class TaskGraphJobQueueImpl;
 	struct ThreadData {

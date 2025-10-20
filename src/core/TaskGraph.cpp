@@ -111,16 +111,21 @@ TaskGraph::TaskGraph() :
 	SetWorkerThreads(0);
 }
 
-TaskGraph::~TaskGraph()
+void TaskGraph::ShutdownThreads()
 {
-	m_isRunning.store(false);
 	m_numAliveThreads.fetch_sub(1);
+	m_isRunning.store(false);
 
 	// Shutdown threads, wait for the number of running threads to hit zeron
 	while (m_numAliveThreads.load(std::memory_order_acquire)) {
 		WakeForNewTasks();
 		SDL_Delay(10); // force sleep on this thread
 	}
+}
+
+TaskGraph::~TaskGraph()
+{
+	if (m_numAliveThreads.load()) ShutdownThreads();
 
 	// once all threads have finished, join them and clean up their allocations
 	for (size_t idx = 0; idx < m_threads.size(); idx++) {

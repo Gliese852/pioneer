@@ -54,6 +54,7 @@ void Application::Shutdown()
 {
 	OnShutdown();
 
+	m_taskGraph->ShutdownThreads();
 	m_taskGraph.reset();
 	m_syncJobQueue.reset();
 
