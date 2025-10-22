@@ -226,8 +226,6 @@ start:
 			RefCountedPtr<FileSystem::FileData> code = fs.ReadFile(filename);
 			auto l = Lua::manager->GetLuaState();
 			pi_lua_dofile(l, *code);
-
-			PiGui::Lua::Uninit();
 		}
 
 		Pi::Uninit();
