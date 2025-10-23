@@ -12,9 +12,9 @@
 #include "lua/Lua.h"
 #include "lua/LuaNameGen.h"
 #include "lua/LuaObject.h"
+#include "lua/core/CoreFwdDecl.h"
 #include "pigui/LuaPiGui.h"
 #include "FileSystem.h"
-#include "lua/core/CoreFwdDecl.h"
 
 #include <SDL.h>
 #include <cstdio>
