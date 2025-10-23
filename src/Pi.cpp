@@ -429,7 +429,6 @@ void Pi::App::OnShutdown()
 	}
 
 	perfInfoDisplay.reset();
-	bool headfull = ! Pi::GetApp()->HeadlessMode();
 
 	// TODO: connect initializers and deinitializers in a single Module interface
 	// Will need to think about dependency injection for e.g. modules which need a
@@ -438,12 +437,9 @@ void Pi::App::OnShutdown()
 	Beam::FreeModel();
 	delete Pi::intro;
 	Pi::luaConsole.reset();
-	if (headfull) NavLights::Uninit();
-	if (headfull) Shields::Uninit();
 	SfxManager::Uninit();
 	Sound::Uninit();
 	CityOnPlanet::Uninit();
-	if (headfull) BaseSphere::Uninit();
 	FaceParts::Uninit();
 	Graphics::Uninit();
 
@@ -455,7 +451,12 @@ void Pi::App::OnShutdown()
 
 	delete Pi::modelCache;
 
-	if (headfull) GalaxyGenerator::Uninit();
+	if (!Pi::GetApp()->HeadlessMode()) {
+		BaseSphere::Uninit();
+		NavLights::Uninit();
+		Shields::Uninit();
+		GalaxyGenerator::Uninit();
+	}
 
 	BodyComponentDB::Uninit();
 
