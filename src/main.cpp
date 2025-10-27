@@ -153,31 +153,31 @@ extern "C" int main(int argc, char **argv)
 	}
 
 	case MODE_START_AT: {
-			// try to get start planet number
-			auto modeopt = std::string(argv[1]).substr(1);
-			std::vector<std::string> keyValue = SplitString(modeopt, "=").to_vector<std::string>();
+		// try to get start planet number
+		auto modeopt = std::string(argv[1]).substr(1);
+		std::vector<std::string> keyValue = SplitString(modeopt, "=").to_vector<std::string>();
 
-			// if found value
-			if (keyValue.size() == 2) {
-				if (keyValue[1].empty()) {
-					startPath = SystemPath(0, 0, 0, 0, 0);
-					Error("Please provide an actual SystemPath, like 0,0,0,0,18\n");
-					return -1;
-				} else {
-					try {
-						startPath = SystemPath::Parse(keyValue[1].c_str());
-					} catch (const SystemPath::ParseFailure &spf) {
-						startPath = SystemPath(0, 0, 0, 0, 0);
-						Error("Failed to parse system path %s\n", keyValue[1].c_str());
-						return -1;
-					}
-				}
+		// if found value
+		if (keyValue.size() == 2) {
+			if (keyValue[1].empty()) {
+				startPath = SystemPath(0, 0, 0, 0, 0);
+				Error("Please provide an actual SystemPath, like 0,0,0,0,18\n");
+				return -1;
 			} else {
-				// if value not exists - start on Sol, Mars, Cydonia
-				startPath = SystemPath(0, 0, 0, 0, 18);
+				try {
+					startPath = SystemPath::Parse(keyValue[1].c_str());
+				} catch (const SystemPath::ParseFailure &spf) {
+					startPath = SystemPath(0, 0, 0, 0, 0);
+					Error("Failed to parse system path %s\n", keyValue[1].c_str());
+					return -1;
+				}
 			}
-			// set usual mode
-			mode = MODE_GAME;
+		} else {
+			// if value not exists - start on Sol, Mars, Cydonia
+			startPath = SystemPath(0, 0, 0, 0, 18);
+		}
+		// set usual mode
+		mode = MODE_GAME;
 		// fallthrough
 	}
 
