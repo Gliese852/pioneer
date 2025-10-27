@@ -26,6 +26,42 @@ enum RunMode {
 	MODE_USAGE_ERROR
 };
 
+static RunMode parse_run_mode(int argc, char **argv)
+{
+	if (argc < 2) return MODE_GAME;
+
+	const char switchchar = argv[1][0];
+
+	if (!(switchchar == '-' || switchchar == '/')) {
+		return MODE_USAGE_ERROR;
+	}
+
+	auto modeopt = std::string(argv[1]).substr(1);
+
+	if (modeopt == "game" || modeopt == "g") {
+		return MODE_GAME;
+	}
+
+	if (modeopt == "galaxydump" || modeopt == "gd") {
+		return MODE_GALAXYDUMP;
+	}
+
+	if (modeopt.find("startat", 0, 7) != std::string::npos ||
+		modeopt.find("sa", 0, 2) != std::string::npos) {
+		return MODE_START_AT;
+	}
+
+	if (modeopt == "version" || modeopt == "v") {
+		return MODE_VERSION;
+	}
+
+	if (modeopt == "help" || modeopt == "h" || modeopt == "?") {
+		return MODE_USAGE;
+	}
+
+	return MODE_USAGE_ERROR;
+}
+
 extern "C" int main(int argc, char **argv)
 {
 #ifdef PIONEER_PROFILER
@@ -34,48 +70,7 @@ extern "C" int main(int argc, char **argv)
 
 	OS::SetDPIAware();
 
-	RunMode mode = MODE_GAME;
-	std::string modeopt;
-
-	if (argc > 1) {
-		const char switchchar = argv[1][0];
-		if (!(switchchar == '-' || switchchar == '/')) {
-			mode = MODE_USAGE_ERROR;
-			goto start;
-		}
-
-		modeopt = std::string(argv[1]).substr(1);
-
-		if (modeopt == "game" || modeopt == "g") {
-			mode = MODE_GAME;
-			goto start;
-		}
-
-		if (modeopt == "galaxydump" || modeopt == "gd") {
-			mode = MODE_GALAXYDUMP;
-			goto start;
-		}
-
-		if (modeopt.find("startat", 0, 7) != std::string::npos ||
-			modeopt.find("sa", 0, 2) != std::string::npos) {
-			mode = MODE_START_AT;
-			goto start;
-		}
-
-		if (modeopt == "version" || modeopt == "v") {
-			mode = MODE_VERSION;
-			goto start;
-		}
-
-		if (modeopt == "help" || modeopt == "h" || modeopt == "?") {
-			mode = MODE_USAGE;
-			goto start;
-		}
-
-		mode = MODE_USAGE_ERROR;
-	}
-
-start:
+	RunMode mode = parse_run_mode(argc, argv);
 
 	int pos = 2;
 	long int radius = 4;
@@ -125,6 +120,7 @@ start:
 		// fallthrough protect
 		if (mode == MODE_START_AT) {
 			// try to get start planet number
+			auto modeopt = std::string(argv[1]).substr(1);
 			std::vector<std::string> keyValue = SplitString(modeopt, "=").to_vector<std::string>();
 
 			// if found value
