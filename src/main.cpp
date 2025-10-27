@@ -7,6 +7,7 @@
 #include "core/OS.h"
 #include "galaxy/Galaxy.h"
 #include "galaxy/GalaxyGenerator.h"
+#include "EnumStrings.h"
 #include "utils.h"
 #include "versioningInfo.h"
 #include "lua/Lua.h"
@@ -62,6 +63,25 @@ static RunMode parse_run_mode(int argc, char **argv)
 	return MODE_USAGE_ERROR;
 }
 
+class GalaxyDumpApp : public Application
+{
+	void OnStartup() override
+	{
+		Lua::Init(GetTaskGraph()->GetJobQueue());
+		Pi::luaNameGen = new LuaNameGen(Lua::manager);
+
+		EnumStrings::Init();
+		GalacticEconomy::Init();
+		LuaObject<SystemBody>::RegisterClass();
+	}
+
+	void OnShutdown() override
+	{
+		delete Pi::luaNameGen;
+		Lua::Uninit();
+	}
+};
+
 extern "C" int main(int argc, char **argv)
 {
 #ifdef PIONEER_PROFILER
@@ -79,6 +99,7 @@ extern "C" int main(int argc, char **argv)
 	SystemPath startPath(0, 0, 0, 0, 0);
 
 	switch (mode) {
+
 	case MODE_GALAXYDUMP: {
 		if (argc < 3) {
 			Output("pioneer: galaxy dump requires a filename\n");
@@ -114,11 +135,24 @@ extern "C" int main(int argc, char **argv)
 			}
 			++pos;
 		}
-		// fallthrough
+
+		GalaxyDumpApp app;
+		app.Startup(); // TaskGraph, FileSystem
+		FILE *file = filename == "-" ? stdout : fopen(filename.c_str(), "w");
+		if (file == nullptr) {
+			Output("pioneer: could not open \"%s\" for writing: %s\n", filename.c_str(), strerror(errno));
+			break;
+		}
+		RefCountedPtr<Galaxy> galaxy = GalaxyGenerator::Create();
+		galaxy->Dump(file, sx, sy, sz, radius);
+		if (filename != "-" && fclose(file) != 0) {
+			Output("pioneer: writing to \"%s\" failed: %s\n", filename.c_str(), strerror(errno));
+		}
+		app.Shutdown();
+		break;
 	}
+
 	case MODE_START_AT: {
-		// fallthrough protect
-		if (mode == MODE_START_AT) {
 			// try to get start planet number
 			auto modeopt = std::string(argv[1]).substr(1);
 			std::vector<std::string> keyValue = SplitString(modeopt, "=").to_vector<std::string>();
@@ -138,15 +172,15 @@ extern "C" int main(int argc, char **argv)
 						return -1;
 					}
 				}
-			}
-			// if value not exists - start on Sol, Mars, Cydonia
-			else
+			} else {
+				// if value not exists - start on Sol, Mars, Cydonia
 				startPath = SystemPath(0, 0, 0, 0, 18);
+			}
 			// set usual mode
 			mode = MODE_GAME;
-		}
 		// fallthrough
 	}
+
 	case MODE_GAME: {
 		std::map<std::string, std::string> options;
 
@@ -170,33 +204,13 @@ extern "C" int main(int argc, char **argv)
 			}
 		}
 
-		Pi::Init(options, mode == MODE_GALAXYDUMP);
+		Pi::Init(options);
 
-		if (mode == MODE_GAME) {
-			if (startPath != SystemPath(0, 0, 0, 0, 0))
-				Pi::GetApp()->SetStartPath(startPath);
-
-			Pi::GetApp()->Run();
-		} else if (mode == MODE_GALAXYDUMP) {
-			// TODO: don't initialize Pi when dumping the galaxy
-			// Galaxy generation is (mostly) self-contained, no need to e.g.
-			// turn on the renderer or load UI for this.
-
-			Lua::Init(Pi::GetAsyncJobQueue());
-			Pi::luaNameGen = new LuaNameGen(Lua::manager);
-			LuaObject<SystemBody>::RegisterClass();
-			FILE *file = filename == "-" ? stdout : fopen(filename.c_str(), "w");
-			if (file == nullptr) {
-				Output("pioneer: could not open \"%s\" for writing: %s\n", filename.c_str(), strerror(errno));
-				break;
-			}
-			RefCountedPtr<Galaxy> galaxy = GalaxyGenerator::Create();
-			galaxy->Dump(file, sx, sy, sz, radius);
-			if (filename != "-" && fclose(file) != 0) {
-				Output("pioneer: writing to \"%s\" failed: %s\n", filename.c_str(), strerror(errno));
-			}
-			// We do not need to delete `Pi::luaNameGen` or call Lua::Uninit() here because Pi::Uninit() already does that
+		if (startPath != SystemPath(0, 0, 0, 0, 0)) {
+			Pi::GetApp()->SetStartPath(startPath);
 		}
+
+		Pi::GetApp()->Run();
 
 		Pi::Uninit();
 		break;
