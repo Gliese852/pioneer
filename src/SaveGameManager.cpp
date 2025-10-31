@@ -110,10 +110,6 @@ void SaveGameManager::SaveGame(const std::string &name, Game *game)
 	PROFILE_SCOPED()
 	assert(game);
 
-	if (game->IsHyperspace()) {
-		throw CannotSaveInHyperspace();
-	}
-
 	if (game->GetPlayer()->IsDead()) {
 		throw CannotSaveDeadPlayer();
 	}

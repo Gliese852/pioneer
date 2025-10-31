@@ -251,13 +251,17 @@ Space::Space(Game *game, RefCountedPtr<Galaxy> galaxy, const Json &jsonObj, doub
 	PROFILE_SCOPED()
 	Json spaceObj = jsonObj["space"];
 
-	m_starSystem = StarSystem::FromJson(galaxy, spaceObj);
+	if(m_game->IsNormalSpace()) {
+		m_starSystem = StarSystem::FromJson(galaxy, spaceObj);
+	}
 
 	RefreshBackground();
 
 	RebuildSystemBodyIndex();
 
-	CityOnPlanet::SetCityModelPatterns(m_starSystem->GetPath());
+	if (m_starSystem) {
+		CityOnPlanet::SetCityModelPatterns(m_starSystem->GetPath());
+	}
 
 	if (!spaceObj.count("frame")) throw SavedGameCorruptException();
 	m_rootFrameId = Frame::FromJson(spaceObj["frame"], this, FrameId::Invalid, at_time);
@@ -278,6 +282,8 @@ Space::Space(Game *game, RefCountedPtr<Galaxy> galaxy, const Json &jsonObj, doub
 	Frame::PostUnserializeFixup(m_rootFrameId, this);
 	for (Body *b : m_bodies)
 		b->PostLoadFixup(this);
+
+	if (!m_starSystem) return;
 
 	// some spaceports could be moved, now their physical bodies were loaded from
 	// json, with offsets, now we should move the system bodies also so that
@@ -358,7 +364,7 @@ void Space::ToJson(Json &jsonObj)
 		// nullptr or bad index
 		Body *b = m_bodyIndex[i + 1];
 		Json bodyArrayEl({}); // Create JSON object to contain body.
-		if (!b->IsInSpace()) {
+		if (!b->IsInSpace() && b->GetType() != ObjectType::PLAYER) {
 			bodyArrayEl["is_not_in_space"] = true;
 			// Append empty body object to array.
 			// The only working example right now is ship in hyperspace
