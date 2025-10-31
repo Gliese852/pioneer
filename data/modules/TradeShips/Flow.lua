@@ -105,7 +105,7 @@ Flow.calculateSystemParams = function()
 	local system = Game.system
 
 	-- dont spawn tradeships in unpopulated systems
-	if system.population == 0 then return nil end
+	if not system or system.population == 0 then return nil end
 
 	-- all ports in the system
 	local ports = Space.GetBodies("SpaceStation")

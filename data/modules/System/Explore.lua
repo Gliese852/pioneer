@@ -45,7 +45,7 @@ local onEnterSystem = function (player)
 end
 
 local onGameStart = function ()
-    if not Game.system.explored then
+    if not Game.InHyperspace() and not Game.system.explored then
         exploreSystem(Game.system)
     end
 end

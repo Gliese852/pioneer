@@ -420,6 +420,7 @@ local onGameStart = function ()
 	end
 
 	news = loadedData.news
+	timeInHyperspace = loadedData.timeInHyperspace
 
 	loadedData = nil
 end
@@ -432,7 +433,7 @@ local onGameEnd = function ()
 end
 
 local serialize = function ()
-	return { ads = ads, news = news }
+	return { ads = ads, news = news, timeInHyperspace = timeInHyperspace }
 end
 
 

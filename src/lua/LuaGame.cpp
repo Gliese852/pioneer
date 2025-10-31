@@ -91,7 +91,9 @@ static void onSaveGameStatsJobFinished(std::string_view filename, const Json &ro
 		// if this is a newer saved game, show the embedded info
 		if (rootNode["game_info"].is_object()) {
 			const Json &gameInfo = rootNode["game_info"];
-			t.Set("system", gameInfo["system"].get<std::string>());
+			if (gameInfo.count("system")) {
+				t.Set("system", gameInfo["system"].get<std::string>());
+			}
 			t.Set("ship", gameInfo["ship"].get<std::string>());
 			t.Set("credits", gameInfo["credits"].get<float>());
 			t.Set("flight_state", gameInfo["flight_state"].get<std::string>());
