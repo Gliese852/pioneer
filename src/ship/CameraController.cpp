@@ -161,7 +161,7 @@ void InternalCameraController::SetMode(Mode m)
 
 void InternalCameraController::ZoomEvent(float amount)
 {
-	m_zoomPctTo = Clamp(m_zoomPctTo + amount * 2.0f * m_zoomPctTo, 0.4f, 1.0f);
+	m_zoomPctTo = Clamp(m_zoomPctTo + amount * 2.0f * m_zoomPctTo, 0.001f, 1.0f);
 }
 
 void InternalCameraController::ZoomEventUpdate(float frameTime)
