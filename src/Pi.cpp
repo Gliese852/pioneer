@@ -1003,6 +1003,7 @@ void GameLoop::Update(float deltaTime)
 		// paused
 		PROFILE_SCOPED_RAW("Physics Update [paused]")
 		BaseSphere::UpdateAllBaseSphereDerivatives();
+		if (Pi::game->IsRealtimeMode()) Pi::game->SyncToPresent();
 	}
 
 	// Record physics timestep but keep information about current frame timing.
