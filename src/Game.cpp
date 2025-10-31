@@ -962,3 +962,33 @@ void Game::EmitPauseState(bool paused)
 	}
 	LuaEvent::Emit();
 }
+
+void Game::SyncToPresent()
+{
+	time_t now;
+	time(&now);
+	double gamePresent = difftime(now, 946684799);
+	double delta = gamePresent - GetTime();
+
+	double x1     = m_frameTime;
+	double x10    = x1 * 10;
+	double x100   = x10 * 10;
+	double x1000  = x100 * 10;
+	double x10000 = x1000 * 10;;
+
+	if (delta > -15 && delta < 15 && GetTimeAccel() == Game::TIMEACCEL_1X) {
+		// do nothing TODO set idle false?
+	} else if (delta < -x10 * 3) {
+		RequestTimeAccel(Game::TIMEACCEL_PAUSED, true);
+	} else if (delta < x10 * 3) {
+		RequestTimeAccel(Game::TIMEACCEL_1X, true);
+	} else if (delta < x100 * 3) {
+		RequestTimeAccel(Game::TIMEACCEL_10X, true);
+	} else if (delta < x1000 * 3) {
+		RequestTimeAccel(Game::TIMEACCEL_100X, true);
+	} else if (delta < x10000 * 3) {
+		RequestTimeAccel(Game::TIMEACCEL_1000X, true);
+	} else {
+		RequestTimeAccel(Game::TIMEACCEL_10000X, true);
+	}
+}
