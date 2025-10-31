@@ -723,6 +723,8 @@ static int l_ship_is_ecm_ready(lua_State *l)
  * Parameters:
  *
  *   distance - length, in meters
+ *   start_vel - optional, velocity at start
+ *   braking_margin - optional, thrust coefficient for braking
  *
  * Result:
  *
@@ -733,17 +735,20 @@ static int l_ship_get_duration_for_distance(lua_State *l)
 {
 	Ship *ship = LuaObject<Ship>::CheckFromLua(1);
 	double distance = LuaPull<double>(l, 2);
+	double start_vel = LuaPull<double>(l, 3, 0);
+	double braking_margin = LuaPull<double>(l, 4, 0.85);
 	const ShipType *st = ship->GetShipType();
 	const shipstats_t ss = ship->GetStats();
+	double fuel_reserve = ship->GetPropulsion()->GetFuelReserve();
 	PrecalcPath pp(
 		distance, // distance
-		0.0,	  // velocity at start
+		start_vel,	  // velocity at start
 		st->effectiveExhaustVelocity,
 		st->linThrust[THRUSTER_FORWARD],
 		st->linAccelerationCap[THRUSTER_FORWARD],
 		1000 * (ss.static_mass + ss.fuel_tank_mass_left), // 100% mass of the ship
-		1000 * ss.fuel_tank_mass_left * 0.8,			  // multipied to 0.8 have fuel reserve
-		0.85);											  // braking margin
+		std::max(1000 * (ss.fuel_tank_mass_left - st->fuelTankMass * fuel_reserve), 0.0),
+		braking_margin);
 	LuaPush<double>(l, pp.getFullTime());
 	return 1;
 }
