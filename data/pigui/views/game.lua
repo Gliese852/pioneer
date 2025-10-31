@@ -268,12 +268,9 @@ Event.Register("onGameStart", function()
 end)
 
 Event.Register("onPauseMenuOpen", function()
-	lastTimeAcceleration = Game.GetTimeAcceleration() ~= Game.GetRequestedTimeAcceleration() and Game.GetRequestedTimeAcceleration() or Game.GetTimeAcceleration()
-	Game.SetTimeAcceleration("paused")
 end)
 
 Event.Register("onPauseMenuClosed", function()
-	Game.SetTimeAcceleration((lastTimeAcceleration == "paused") and "1x" or lastTimeAcceleration)
 	Input.EnableBindings()
 end)
 
