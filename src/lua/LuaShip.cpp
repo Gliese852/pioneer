@@ -740,6 +740,10 @@ static int l_ship_get_duration_for_distance(lua_State *l)
 	const ShipType *st = ship->GetShipType();
 	const shipstats_t ss = ship->GetStats();
 	double fuel_reserve = ship->GetPropulsion()->GetFuelReserve();
+
+	// for planning a flight without the autopilot turned on
+	if (fuel_reserve == 0.0) fuel_reserve = 0.25;
+
 	PrecalcPath pp(
 		distance, // distance
 		start_vel,	  // velocity at start
