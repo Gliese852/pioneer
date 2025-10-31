@@ -45,6 +45,7 @@ Game::Game(const SystemPath &path, const double startDateTime, const char *shipT
 	m_hyperspaceEndTime(0),
 	m_timeAccel(TIMEACCEL_1X),
 	m_requestedTimeAccel(TIMEACCEL_1X),
+	m_realtime(false),
 	m_forceTimeAccel(false),
 	m_frameTime(1.0f / PHYSICS_HZ),
 	m_wantIdleMode(false)
@@ -147,6 +148,7 @@ Game::~Game()
 Game::Game(const Json &jsonObj) :
 	m_timeAccel(TIMEACCEL_PAUSED),
 	m_requestedTimeAccel(TIMEACCEL_PAUSED),
+	m_realtime(false),
 	m_forceTimeAccel(false),
 	m_frameTime(1.0f / PHYSICS_HZ),
 	m_wantIdleMode(false)
@@ -381,6 +383,8 @@ void Game::TimeStep(float step)
 
 	SfxManager::TimeStepAll(step, m_space->GetRootFrame());
 
+	if (m_realtime) SyncToPresent();
+
 	if (m_state == State::HYPERSPACE) {
 		if (Pi::game->GetTime() >= m_hyperspaceEndTime) {
 			SwitchToNormalSpace();
@@ -410,7 +414,7 @@ bool Game::UpdateTimeAccel()
 	TimeAccel newTimeAccel = m_requestedTimeAccel;
 
 	// ludicrous speed
-	if (m_player->GetFlightState() == Ship::HYPERSPACE) {
+	if (m_player->GetFlightState() == Ship::HYPERSPACE && !m_realtime) {
 		newTimeAccel = Game::TIMEACCEL_HYPERSPACE;
 		RequestTimeAccel(newTimeAccel);
 	}

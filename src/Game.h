@@ -89,6 +89,8 @@ public:
 	void SetTimeAccel(TimeAccel t);
 	void RequestTimeAccel(TimeAccel t, bool force = false);
 	void SyncToPresent();
+	void SetRealtimeMode(bool value) { m_realtime = value; }
+	bool IsRealtimeMode() { return m_realtime; }
 
 	/// Requests an increase in time acceleration
 	/// @param force if set to false the system can reject the request under certain conditions
@@ -168,6 +170,7 @@ private:
 	State m_state;
 
 	bool m_wantHyperspace;
+	bool m_realtime;
 	bool m_wantIdleMode;
 	bool m_idleModeEnabled;
 
