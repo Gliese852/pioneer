@@ -518,7 +518,7 @@ theme.icons = {
 	-- eleventh row
 	planet_grid = 160,
 	bookmark = 161,
-	-- EMPTY = 162,
+	indicator = 162,
 	-- EMPTY = 163,
 	legal = 164, -- UNUSED
 	label = 165,

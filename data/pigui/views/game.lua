@@ -89,7 +89,9 @@ function gameView:updateModules()
 	assignModules(self.rightSidebar)
 end
 
-local getBodyIcon = require 'pigui.modules.flight-ui.body-icons'
+local getBodyIcon = function(x, y)
+	return ui.theme.icons.indicator
+end
 
 local function setTarget(body)
 	if body:IsShip() or body:IsMissile() then
