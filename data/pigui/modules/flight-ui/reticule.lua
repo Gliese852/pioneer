@@ -318,6 +318,7 @@ end
 local function displayDetailData(target, radius, colorLight, colorDark, tooltip, displaySpeedLimiter)
 	local velocity = player:GetVelocityRelTo(target)
 	local position = player:GetPositionRelTo(target)
+	local ship_speed = velocity:length()
 
 	local uiPos = ui.pointOnClock(center, radius, 2.46)
 	-- label of target
@@ -341,14 +342,17 @@ local function displayDetailData(target, radius, colorLight, colorDark, tooltip,
 	}, colors.lightBlackBackground)
 
 	-- current brake distance
-	local brake_distance = player:GetDistanceToZeroV(velocity:length(),"forward")
-	local brake_distance_retro = player:GetDistanceToZeroV(velocity:length(),"reverse")
+	local brake_distance = player:GetDistanceToZeroV(ship_speed, "forward")
+	local brake_distance_retro = player:GetDistanceToZeroV(ship_speed, "reverse")
 	local altitude = player:GetAltitudeRelTo(target)
 	local ratio = brake_distance / altitude
 	local ratio_retro = brake_distance_retro / altitude
-	local ship_speed = velocity:length()
+	local estimate = player:GetDurationForDistance(altitude, -approach_speed, 0.9)
+	local arrival_time = estimate + Game.time
 
 	speed, speed_unit = ui.Format.SpeedUnit(ship_speed)
+	local estimate_txt = ui.Format.Duration(estimate)
+	local arrival_time_txt = ui.Format.Datetime(arrival_time)
 
 	uiPos = ui.pointOnClock(center, radius, 3)
 	local distance,unit = ui.Format.DistanceUnit(brake_distance)
@@ -364,7 +368,10 @@ local function displayDetailData(target, radius, colorLight, colorDark, tooltip,
 		{ text=altitude_txt,  color=colorLight, font=pionillium.medium, tooltip=lui.HUD_DISTANCE_TO_SURFACE_OF_TARGET },
 		{ text=altitude_unit, color=colorDark,  font=pionillium.small,  tooltip=lui.HUD_DISTANCE_TO_SURFACE_OF_TARGET },
 		{ text=" " .. speed,  color=colorLight, font=pionillium.medium, tooltip=lui.HUD_SPEED_RELATIVE_TO_TARGET },
-		{ text=speed_unit,    color=colorDark,  font=pionillium.small,  tooltip=lui.HUD_SPEED_RELATIVE_TO_TARGET }
+		{ text=speed_unit,    color=colorDark,  font=pionillium.small,  tooltip=lui.HUD_SPEED_RELATIVE_TO_TARGET },
+		{ text=estimate_txt,  color=colorLight, font=pionillium.medium,  tooltip="ESTIMATE" }, -- XXX json
+		{ text="@",           color=colorDark,  font=pionillium.small  },
+		{ text=arrival_time_txt, color=colorLight, font=pionillium.medium,  tooltip="ARRIVAL TIME" }, -- XXX json
 	}
 
 	-- speed limiter icon
