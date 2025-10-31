@@ -178,6 +178,14 @@ Game::Game(const Json &jsonObj) :
 		m_hyperspaceDuration = jsonObj["hyperspace_duration"];
 		m_hyperspaceEndTime = jsonObj["hyperspace_end_time"];
 
+		if (jsonObj.count("hyperspace_dest")) {
+			m_hyperspaceDest = SystemPath::FromJson(jsonObj["hyperspace_dest"]);
+		}
+
+		if (jsonObj.count("hyperspace_source")) {
+			m_hyperspaceSource = SystemPath::FromJson(jsonObj["hyperspace_source"]);
+		}
+
 		// space, all the bodies and things
 		m_space.reset(new Space(this, m_galaxy, jsonObj, m_time));
 
@@ -242,6 +250,14 @@ void Game::ToJson(Json &jsonObj)
 	jsonObj["hyperspace_duration"] = m_hyperspaceDuration;
 	jsonObj["hyperspace_end_time"] = m_hyperspaceEndTime;
 
+	auto hyperspaceDestJson = Json::object();
+	m_hyperspaceDest.ToJson(hyperspaceDestJson);
+	jsonObj["hyperspace_dest"] = hyperspaceDestJson;
+
+	auto hyperspaceSourceJson = Json::object();
+	m_hyperspaceSource.ToJson(hyperspaceSourceJson);
+	jsonObj["hyperspace_source"] = hyperspaceSourceJson;
+
 	// Delete camera frame from frame structure:
 	bool have_cam_frame = m_gameViews->m_worldView->GetCameraContext()->GetTempFrame().valid();
 	if (have_cam_frame) m_gameViews->m_worldView->EndCameraFrame();
@@ -305,7 +321,10 @@ void Game::ToJson(Json &jsonObj)
 	gameInfo["shipHull"] = Pi::player->GetShipType()->name;
 	gameInfo["shipName"] = Pi::player->GetShipName();
 
-	gameInfo["system"] = Pi::game->GetSpace()->GetStarSystem()->GetName();
+	if (IsNormalSpace()) {
+		gameInfo["system"] = Pi::game->GetSpace()->GetStarSystem()->GetName();
+	}
+
 	gameInfo["credits"] = credits;
 	gameInfo["ship"] = Pi::player->GetShipType()->id;
 	if (Pi::player->IsDocked()) {
