@@ -88,6 +88,7 @@ public:
 
 	void SetTimeAccel(TimeAccel t);
 	void RequestTimeAccel(TimeAccel t, bool force = false);
+	void SyncToPresent();
 
 	/// Requests an increase in time acceleration
 	/// @param force if set to false the system can reject the request under certain conditions
