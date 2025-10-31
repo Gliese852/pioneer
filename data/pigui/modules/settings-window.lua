@@ -705,7 +705,7 @@ ui.optionsWindow = ModalWindow.New("Options", function()
 
 	if Game.player then
 		ui.sameLine()
-		optionTextButton(lui.SAVE, nil, Game.player.flightState ~= 'HYPERSPACE', function()
+		optionTextButton(lui.SAVE, nil, true, function()
 			ui.saveLoadWindow.mode = "SAVE"
 			ui.saveLoadWindow:open()
 		end)

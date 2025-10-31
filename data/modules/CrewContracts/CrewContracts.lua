@@ -456,7 +456,7 @@ end
 Event.Register("onUpdateBB", onUpdateBB)
 
 -- Wipe temporary crew out when hyperspacing
-Event.Register("onEnterSystem", function(ship)
+Event.Register("onLeaveSystem", function(ship)
 	nonPersistentCharactersForCrew = {}
 	stationsWithAdverts = {}
 end)
