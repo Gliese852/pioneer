@@ -251,7 +251,6 @@ StationView:registerView({
 	draw = renderBulletinBoard,
 	refresh = function ()
 		refresh()
-		bulletinBoard.scrollReset = true
 	end,
 	debugReload = function()
 		package.reimport()
