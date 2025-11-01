@@ -185,23 +185,8 @@ public:
 	const char *GetName() const override { return Lang::SIDEREAL_VIEW; }
 	bool IsExternal() const override { return true; }
 
-	void PitchCamera(float amount) override
-	{
-		const vector3d rotAxis = m_sidOrient.VectorX();
-		m_sidOrient = matrix3x3d::Rotate(M_PI / 4 * amount, rotAxis) * m_sidOrient;
-	}
-
-	void YawCamera(float amount) override
-	{
-		const vector3d rotAxis = m_sidOrient.VectorY();
-		m_sidOrient = matrix3x3d::Rotate(M_PI / 4 * amount, rotAxis) * m_sidOrient;
-	}
-
-	void RollCamera(float amount) override
-	{
-		const vector3d rotAxis = m_sidOrient.VectorZ();
-		m_sidOrient = matrix3x3d::Rotate(M_PI / 4 * amount, rotAxis) * m_sidOrient;
-	}
+	void PitchCamera(float amount) override;
+	void YawCamera(float amount) override;
 
 	// Apply in YXZ order because euler angles are non-ideal.
 	void SetRotationAngles(vector3f rotation) override

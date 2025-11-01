@@ -338,12 +338,70 @@ void SiderealCameraController::Reset()
 	m_distTo = m_dist;
 }
 
+// We want the camera to rotate in a frame-oriented "turntable" mode. We also
+// want it to be oriented near the planet or star normal to the surface.
+static vector3d calculate_sidereal_yaw_axis(const Ship *ship) {
+
+   	vector3d res{ 0.0, 1.0, 0.0 };
+
+	auto f = Frame::GetFrame(ship->GetFrame());
+
+    auto b = f->GetBody();
+	if (!b || !b->IsType(ObjectType::TERRAINBODY)) return res;
+
+	auto r_sq = b->GetPhysRadius() * b->GetPhysRadius();
+	auto l_sq = ship->GetPosition().LengthSqr();
+
+	// 3^-2 is pretty ok, can see all the planet on screen, not so big to be a "ground"
+	if (l_sq > r_sq * 3) return res;
+
+	res = ship->GetInterpPosition().NormalizedSafe();
+
+	return res;
+}
+
+// Calculate a vector lying in the plane with two given, such that the dot
+// product with the first of them is equal to the given.
+// orthoDot must be precalculated as asin(cos(dot))
+static vector3d vector_with_given_dot(const vector3d from, const vector3d to, const double dot, const double orthoDot)
+{
+	vector3d res;
+
+	// construct unit vectors
+	auto a = from.NormalizedSafe();
+	auto axis = a.Cross(to).NormalizedSafe();
+	auto b = axis.Cross(a).NormalizedSafe();
+
+	res = a * dot + b * orthoDot;
+	return res;
+}
+
+static void align_matrix_to_normal(const Ship* ship, matrix3x3d &m)
+{
+	vector3d norm = calculate_sidereal_yaw_axis(ship);
+	vector3d z = m.VectorZ();
+	auto dot = z.Dot(norm);
+
+	// clamp pitch
+	if (dot > 0.98) {
+		z = vector_with_given_dot(norm, z, 0.98, 0.198997487421);
+	} else if (dot < -0.98) {
+		z = vector_with_given_dot(norm, z, -0.98, 0.198997487421);
+	}
+
+	vector3d x = norm.Cross(z);
+	vector3d y = z.Cross(x);
+
+	m = matrix3x3d::FromVectors(x, y, z);
+}
+
 void SiderealCameraController::Update()
 {
 	const Ship *ship = GetShip();
 
+	align_matrix_to_normal(ship, m_sidOrient);
 	m_sidOrient.Renormalize(); // lots of small rotations
-	matrix3x3d shipOrient = ship->GetInterpOrientRelTo(Pi::game->GetSpace()->GetRootFrame());
+	matrix3x3d shipOrient = ship->GetInterpOrient();
 
 	SetPosition(shipOrient.Transpose() * m_sidOrient.VectorZ() * m_dist);
 	SetOrient(shipOrient.Transpose() * m_sidOrient);
@@ -453,4 +511,17 @@ void FlyByCameraController::LoadFromJson(const Json &jsonObj)
 	}
 
 	m_distTo = m_dist;
+}
+
+void SiderealCameraController::PitchCamera(float amount)
+{
+	const vector3d rotAxis = m_sidOrient.VectorX();
+	m_sidOrient = matrix3x3d::Rotate(M_PI / 4 * amount, rotAxis) * m_sidOrient;
+	m_sidOrient.Renormalize();
+}
+
+void SiderealCameraController::YawCamera(float amount)
+{
+   	vector3d rotAxis = calculate_sidereal_yaw_axis(GetShip());
+	m_sidOrient = matrix3x3d::Rotate(M_PI / 4 * amount, rotAxis) * m_sidOrient;
 }
