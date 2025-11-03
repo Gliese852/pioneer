@@ -1359,6 +1359,14 @@
     "description": "",
     "message": "Hyperspace range"
   },
+  "IDLE_IN_BACKGROUND": {
+    "description": "Option in settings window",
+    "message": "Idle game in background"
+  },
+  "IDLE_IN_BACKGROUND_DESC": {
+    "description": "Description (tooltip) of option in settings window",
+    "message": "If the window loses focus, vertical sync will be turned off, FPS will be limited to 6 frames per second, as will the simulation step."
+  },
   "ILLEGAL_COMMODITIES": {
     "description": "Commodities illegal in the current system or polity",
     "message": "Illegal Commodities"

@@ -7,6 +7,7 @@
 #include <cstdint>
 
 static const double PHYSICS_HZ = 60.0;
+static const double IDLE_PHYSICS_HZ = 6.0;
 
 static const double MAX_LANDING_SPEED = 30.0; // m/sec
 static const double LIGHT_SPEED = 3e8; // m/sec
