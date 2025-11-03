@@ -45,7 +45,9 @@ Game::Game(const SystemPath &path, const double startDateTime, const char *shipT
 	m_hyperspaceEndTime(0),
 	m_timeAccel(TIMEACCEL_1X),
 	m_requestedTimeAccel(TIMEACCEL_1X),
-	m_forceTimeAccel(false)
+	m_forceTimeAccel(false),
+	m_frameTime(1.0f / PHYSICS_HZ),
+	m_wantIdleMode(false)
 {
 	PROFILE_SCOPED()
 	// Now that we have a Galaxy, check the starting location
@@ -145,7 +147,9 @@ Game::~Game()
 Game::Game(const Json &jsonObj) :
 	m_timeAccel(TIMEACCEL_PAUSED),
 	m_requestedTimeAccel(TIMEACCEL_PAUSED),
-	m_forceTimeAccel(false)
+	m_forceTimeAccel(false),
+	m_frameTime(1.0f / PHYSICS_HZ),
+	m_wantIdleMode(false)
 {
 	PROFILE_SCOPED()
 	try {
@@ -471,6 +475,10 @@ bool Game::UpdateTimeAccel()
 			}
 		}
 	}
+
+	// do not enable idle mode when fast forwarding
+	if (newTimeAccel > TIMEACCEL_1X) SetIdleMode(false);
+	if (newTimeAccel == TIMEACCEL_1X) SetIdleMode(m_wantIdleMode);
 
 	// no change
 	if (newTimeAccel == m_timeAccel)

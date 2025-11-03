@@ -99,11 +99,14 @@ public:
 	TimeAccel GetTimeAccel() const { return m_timeAccel; }
 	TimeAccel GetRequestedTimeAccel() const { return m_requestedTimeAccel; }
 	bool IsPaused() const { return m_timeAccel == TIMEACCEL_PAUSED; }
+	void SetIdleMode(bool enabled) { m_idleModeEnabled = enabled; m_frameTime = enabled ? 1.0f / IDLE_PHYSICS_HZ : 1.0f / PHYSICS_HZ; }
+	bool IsIdleMode() { return m_idleModeEnabled; };
+	void RequestIdleMode(bool enabled) { m_wantIdleMode = enabled; }
 
 	float GetTimeAccelRate() const { return s_timeAccelRates[m_timeAccel]; }
 	float GetInvTimeAccelRate() const { return s_timeInvAccelRates[m_timeAccel]; }
 
-	float GetTimeStep() const { return s_timeAccelRates[m_timeAccel] * (1.0f / PHYSICS_HZ); }
+	float GetTimeStep() const { return s_timeAccelRates[m_timeAccel] * m_frameTime; }
 
 	SectorView *GetSectorView() const { return m_gameViews->m_sectorView; }
 	SystemView *GetSystemView() const { return m_gameViews->m_systemView; }
@@ -164,6 +167,8 @@ private:
 	State m_state;
 
 	bool m_wantHyperspace;
+	bool m_wantIdleMode;
+	bool m_idleModeEnabled;
 
 	std::list<HyperspaceCloud *> m_hyperspaceClouds;
 	SystemPath m_hyperspaceSource;
@@ -171,6 +176,7 @@ private:
 	double m_hyperspaceProgress;
 	double m_hyperspaceDuration;
 	double m_hyperspaceEndTime;
+	double m_frameTime;
 
 	TimeAccel m_timeAccel;
 	TimeAccel m_requestedTimeAccel;
