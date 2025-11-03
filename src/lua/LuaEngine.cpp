@@ -389,6 +389,7 @@ static int l_engine_set_disable_screenshot_info(lua_State *l)
 	Pi::config->SetInt("DisableScreenshotInfo", (disable ? 1 : 0));
 	return 0;
 }
+
 static int l_engine_get_vsync_enabled(lua_State *l)
 {
 	lua_pushboolean(l, Pi::config->Int("VSync") != 0);

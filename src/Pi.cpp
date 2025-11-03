@@ -869,6 +869,10 @@ void Pi::App::OnWindowKeyboardFocusChanged(bool newFocus)
     if (!PiGui::GetEventQueue().IsValid()) {
         return;
 	}
+	if (Pi::game && Pi::config->Int("IdleInBackground")) {
+		Pi::game->RequestIdleMode(!newFocus);
+		GetRenderer()->SetVSyncEnabled(newFocus && Pi::config->Int("VSync"));
+	}
     LuaEvent::Queue(PiGui::GetEventQueue(), newFocus ? "onFocusGained" : "onFocusLost");
 }
 
@@ -970,9 +974,10 @@ void GameLoop::Update(float deltaTime)
 	accumulator += deltaTime * Pi::game->GetTimeAccelRate();
 
 	const float step = Pi::game->GetTimeStep();
+
+	int phys_ticks = 0;
 	if (step > 0.0f) {
 		PROFILE_SCOPED_RAW("Physics Update [unpaused]")
-		int phys_ticks = 0;
 		while (accumulator >= step) {
 			if (++phys_ticks >= MAX_PHYSICS_TICKS) {
 				accumulator = 0.0;
@@ -1004,6 +1009,15 @@ void GameLoop::Update(float deltaTime)
 	perfTimer.SoftStop();
 	// store the physics time until the end of the frame
 	phys_time = perfTimer.milliseconds();
+
+	// so as not to consume unnecessary resources in the background
+	if (Pi::game->IsIdleMode()) {
+		float phys_accel = phys_time * Pi::game->GetTimeAccelRate() / 1e3;
+		if (phys_ticks <= 1 && accumulator + phys_accel < step) {
+			Uint32 waitTimeMs = (step - accumulator - phys_accel) * 1e3 / Pi::game->GetTimeAccelRate();
+			SDL_Delay(waitTimeMs);
+		}
+	}
 
 	// did the player die?
 	if (Pi::game->GetPlayer()->IsDead()) {

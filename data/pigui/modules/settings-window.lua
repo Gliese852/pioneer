@@ -154,6 +154,7 @@ local function showVideoOptions()
 	local textCompress = Engine.GetTextureCompressionEnabled()
 	local gpuJobs = Engine.GetGpuJobsEnabled()
 	local disableScreenshotInfo = Engine.GetDisableScreenshotInfo()
+	local idleInBackground = Engine.SettingsGetBool("IdleInBackground")
 
 	-- Scattering is still an experimental feature
 	local experimental = "[" .. lui.EXPERIMENTAL .. "] "
@@ -220,6 +221,11 @@ local function showVideoOptions()
 	c,disableScreenshotInfo = checkbox(lui.DISABLE_SCREENSHOT_INFO, disableScreenshotInfo, lui.DISABLE_SCREENSHOT_INFO_DESC)
 	if c then
 		Engine.SetDisableScreenshotInfo(disableScreenshotInfo)
+	end
+	ui.nextColumn()
+	c,idleInBackground = checkbox(lui.IDLE_IN_BACKGROUND, idleInBackground, lui.IDLE_IN_BACKGROUND_DESC)
+	if c then
+		Engine.SettingsSetBool("IdleInBackground", idleInBackground)
 	end
 	ui.columns(1,"",false)
 
