@@ -46,17 +46,11 @@ local function displayTimeWindow()
 		ui.sameLine()
 	end
 
-	local function syncButton()
-		if ui.mainMenuButton(icons.reset, "SYNC TO PRESENT") then -- XXX JSON
-			Game.SetTimeAcceleration("1x", true)
-			Game.SyncToPresent()
-		end
-	end
-
 	ui.setNextWindowPos(Vector2(0, 0), "Always")
 	ui.setNextWindowSize(Vector2(ui.screenWidth, ui.screenHeight), "Always")
 
 	local delta = util.standardGameStartTime() - Game.time
+
 	if delta < -15 or delta > 15 or Game.GetTimeAcceleration() ~= "1x" then
 		ui.withStyleColors({ WindowBg = ui.theme.colors.modalBackground }, function()
 			ui.window("Hide things", {"NoTitleBar", "NoResize", "NoSavedSettings", "NoScrollbar"}, function()
@@ -77,9 +71,8 @@ local function displayTimeWindow()
 	ui.withFont(timefont.name, timefont.size, function()
 		text_size = ui.calcTextSize(date)
 	end)
-	local buttons_width = button_size.x * 7 + ui.getItemSpacing().x * 6
-	local window_width = math.max(text_size.x, buttons_width) + ui.getWindowPadding().x * 2
-	window_height = timefont.size + button_size.y + ui.getItemSpacing().y + ui.getWindowPadding().y * 2
+	local window_width = text_size.x + ui.getWindowPadding().x * 2
+	window_height = timefont.size + ui.getWindowPadding().y * 2
 	local window_size = Vector2(window_width, window_height)
 	ui.timeWindowSize = window_size
 	ui.setNextWindowSize(window_size, "Always")
@@ -89,13 +82,6 @@ local function displayTimeWindow()
 		ui.withFont(timefont.name, timefont.size, function()
 			ui.text(date)
 		end)
-		accelButton("paused", ui.keys.escape)
-		accelButton("1x", ui.keys.f1)
-		accelButton("10x", ui.keys.f2)
-		accelButton("100x", ui.keys.f3)
-		accelButton("1000x", ui.keys.f4)
-		accelButton("10000x", ui.keys.f5)
-		syncButton()
 	end)
 end
 
