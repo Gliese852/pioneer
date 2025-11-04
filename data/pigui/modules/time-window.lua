@@ -53,6 +53,26 @@ local function displayTimeWindow()
 		end
 	end
 
+	ui.setNextWindowPos(Vector2(0, 0), "Always")
+	ui.setNextWindowSize(Vector2(ui.screenWidth, ui.screenHeight), "Always")
+
+	local delta = util.standardGameStartTime() - Game.time
+	if delta < -15 or delta > 15 or Game.GetTimeAcceleration() ~= "1x" then
+		ui.withStyleColors({ WindowBg = ui.theme.colors.modalBackground }, function()
+			ui.window("Hide things", {"NoTitleBar", "NoResize", "NoSavedSettings", "NoScrollbar"}, function()
+			local uiPos = Vector2(ui.screenWidth / 2, ui.screenHeight / 3)
+			local message
+			if delta < 0 then
+				message = string.interp("We are in the future, wait for {time}", { time = ui.Format.Duration(-delta) })
+			else
+				message = string.interp("Sync to present: {time}", { time = string.format("%i min", delta / 60) })
+			end
+
+			ui.addStyledText(uiPos, ui.anchor.center, ui.anchor.bottom, message, ui.theme.colors.hyperspaceInfo, ui.fonts.pionillium.large)
+			end)
+		end)
+	end
+
 	local text_size
 	ui.withFont(timefont.name, timefont.size, function()
 		text_size = ui.calcTextSize(date)
