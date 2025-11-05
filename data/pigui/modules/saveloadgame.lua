@@ -340,6 +340,8 @@ function SaveLoadWindow:saveToFilePath()
 	else
 		self:close()
 	end
+	-- provoke sync to present
+	Game.SetTimeAcceleration("paused", true)
 end
 
 function SaveLoadWindow:deleteSelectedSave()
