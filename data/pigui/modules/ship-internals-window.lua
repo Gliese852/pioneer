@@ -51,6 +51,13 @@ local function button_lowThrustPower()
 			if new_thrust < 0 then new_thrust = 0 end
 			player:SetLowThrustPower(new_thrust)
 		end
+		if ui.isKeyReleased(ui.keys.up) then
+			local new_thrust = math.min(thrust + 0.01, 1)
+			player:SetLowThrustPower(new_thrust)
+		elseif ui.isKeyReleased(ui.keys.down) then
+			local new_thrust = math.max(0, thrust - 0.01)
+			player:SetLowThrustPower(new_thrust)
+		end
 	end
 end
 
