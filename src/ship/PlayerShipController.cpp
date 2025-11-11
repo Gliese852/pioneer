@@ -533,6 +533,7 @@ void PlayerShipController::StaticUpdate(const float timeStep)
 			// maintain the thrust set by the station when undocking while the timeout lasts
 			// but only in manual mode
 			PollControls(timeStep, mouseMotion, act);
+			act.desiredLinear.z = std::min(act.linPower.z, -(double)m_lowThrustPower);
 			Util::LimitActualSpeed(*this, timeStep, act);
 			// synchronize the rotation in 'follow orient' mode
 			if (m_followTarget && m_followMode == FOLLOW_ORI) {
@@ -551,6 +552,7 @@ void PlayerShipController::StaticUpdate(const float timeStep)
 		case CONTROL_FIXHEADING_RADIALLY_OUTWARD:
 		case CONTROL_FIXHEADING_KILLROT:
 			PollControls(timeStep, mouseMotion, act);
+			act.desiredLinear.z = std::min(act.linPower.z, -(double)m_lowThrustPower);
 			Util::LimitActualSpeed(*this, timeStep, act);
 			v = m_ship->GetVelocity().NormalizedSafe();
 			if (m_flightControlState == CONTROL_FIXHEADING_BACKWARD ||
