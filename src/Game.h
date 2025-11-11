@@ -71,7 +71,7 @@ public:
 	float GetHyperspaceProgress() const { return m_hyperspaceProgress; }
 	double GetHyperspaceDuration() const { return m_hyperspaceDuration; }
 	double GetHyperspaceEndTime() const { return m_hyperspaceEndTime; }
-	double GetHyperspaceArrivalProbability() const;
+	double GetHyperspaceTravelledPercentage() const;
 	const SystemPath &GetHyperspaceDest() const { return m_hyperspaceDest; }
 	const SystemPath &GetHyperspaceSource() const { return m_hyperspaceSource; }
 	void RemoveHyperspaceCloud(HyperspaceCloud *);
