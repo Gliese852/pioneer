@@ -592,7 +592,7 @@ static int l_game_set_world_cam_type(lua_State *l)
 
 static int l_game_get_hyperspace_travelled_percentage(lua_State *l)
 {
-	LuaPush(l, Pi::game->GetHyperspaceArrivalProbability());
+	LuaPush(l, Pi::game->GetHyperspaceTravelledPercentage());
 	return 1;
 }
 

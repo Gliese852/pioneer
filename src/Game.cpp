@@ -486,12 +486,9 @@ void Game::WantHyperspace()
 	m_wantHyperspace = true;
 }
 
-double Game::GetHyperspaceArrivalProbability() const
+double Game::GetHyperspaceTravelledPercentage() const
 {
-	double progress = m_hyperspaceProgress / m_hyperspaceDuration;
-	const double fudge = 4.0;
-	const double scale = 1.0 / (1.0 - exp(-fudge));
-	return scale * (1.0 - exp(-fudge * progress));
+	return m_hyperspaceProgress / m_hyperspaceDuration;
 }
 
 void Game::RemoveHyperspaceCloud(HyperspaceCloud *cloud)
