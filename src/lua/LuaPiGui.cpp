@@ -2592,7 +2592,7 @@ static int l_pigui_get_projected_bodies(lua_State *l)
 static int l_pigui_get_targets_nearby(lua_State *l)
 {
 	PROFILE_SCOPED()
-	int range_max = LuaPull<double>(l, 1);
+	double range_max = LuaPull<double>(l, 1);
 	Space::BodyNearList nearby = Pi::game->GetSpace()->GetBodiesMaybeNear(Pi::player, range_max);
 
 	std::vector<Body *> filtered;
