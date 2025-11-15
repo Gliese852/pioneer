@@ -970,5 +970,5 @@ Serializer:Register("SpaceStation",
 	end
 )
 
-
+SpaceStation.createStationData = createStationData
 return SpaceStation
