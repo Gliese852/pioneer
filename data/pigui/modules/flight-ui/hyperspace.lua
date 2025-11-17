@@ -17,11 +17,18 @@ local function displayHyperspace()
 	local uiPos = Vector2(ui.screenWidth / 2, ui.screenHeight / 2 - 10)
 	local path,destName = Game.player:GetHyperspaceDestination()
 	local label = string.interp(lui.HUD_IN_TRANSIT_TO_N_X_X_X, { system = destName, x = path.sectorX, y = path.sectorY, z = path.sectorZ })
-	local r = ui.addStyledText(uiPos, ui.anchor.center, ui.anchor.bottom, label, colors.hyperspaceInfo, pionillium.large, nil, colors.lightBlackBackground)
-	uiPos.y = uiPos.y + r.y + 20
+	local r = ui.addStyledText(uiPos, ui.anchor.center, ui.anchor.top, label, colors.hyperspaceInfo, pionillium.large, nil, colors.lightBlackBackground)
+	uiPos.y = uiPos.y + r.y * 2
 	local percent = Game.GetHyperspaceTravelledPercentage() * 100
+	local due = Game.GetHyperspaceEndTime()
 	label = string.interp(lui.HUD_JUMP_COMPLETE, { percent = string.format("%2.1f", percent) })
-	ui.addStyledText(uiPos, ui.anchor.center, ui.anchor.top, label, colors.hyperspaceInfo, pionillium.large, nil, colors.lightBlackBackground)
+	r = ui.addStyledText(uiPos, ui.anchor.center, ui.anchor.top, label, colors.hyperspaceInfo, pionillium.large, nil, colors.lightBlackBackground)
+	uiPos.y = uiPos.y + r.y * 2
+	label = lui.ARRIVAL_DATE .. " " .. ui.Format.Date(due)
+	r = ui.addStyledText(uiPos, ui.anchor.center, ui.anchor.top, label, colors.fontDark, pionillium.medlarge, nil, colors.lightBlackBackground)
+	uiPos.y = uiPos.y + r.y * 1.3
+	label = lui.D_DAYS_LEFT .." ".. ui.Format.Duration(due - Game.time, 3)
+	r = ui.addStyledText(uiPos, ui.anchor.center, ui.anchor.top, label, colors.fontDark, pionillium.medlarge, nil, colors.lightBlackBackground)
 end
 
 local function displayHyperspaceCountdown()
