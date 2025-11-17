@@ -596,6 +596,12 @@ static int l_game_get_hyperspace_travelled_percentage(lua_State *l)
 	return 1;
 }
 
+static int l_game_get_hyperspace_end_time(lua_State *l)
+{
+	LuaPush(l, Pi::game->GetHyperspaceEndTime());
+	return 1;
+}
+
 static int l_game_set_realtime_mode(lua_State *l)
 {
 	Pi::game->SetRealtimeMode(LuaPull<bool>(l, 1, false));
@@ -714,6 +720,7 @@ void LuaGame::Register()
 		{ "GetTimeAcceleration", l_game_get_time_acceleration },
 		{ "GetRequestedTimeAcceleration", l_game_get_requested_time_acceleration },
 		{ "GetHyperspaceTravelledPercentage", l_game_get_hyperspace_travelled_percentage },
+		{ "GetHyperspaceEndTime", l_game_get_hyperspace_end_time },
 		{ "SetRealtimeMode", l_game_set_realtime_mode },
 
 		{ "SetWorldCamType", l_game_set_world_cam_type },
