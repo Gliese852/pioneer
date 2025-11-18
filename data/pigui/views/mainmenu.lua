@@ -105,6 +105,7 @@ local function continueGame()
 	else
 		Game.LoadGame('_quicksave')
 	end
+	Game.SetRealtimeMode(true)
 end
 
 local function canContinue()

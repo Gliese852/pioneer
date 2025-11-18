@@ -316,6 +316,7 @@ function SaveLoadWindow:loadSelectedSave()
 	if not success then
 		Notification.add(Notification.Type.Error, lui.COULD_NOT_LOAD_GAME .. self.selectedFile, err)
 	else
+		Game.SetRealtimeMode(true)
 		self:close()
 	end
 end

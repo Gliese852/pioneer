@@ -112,6 +112,7 @@ local function startGame(gameParams)
 		startTime = util.standardGameStartTime()
 	end
 	Game.StartGame(gameParams.location.path, startTime, gameParams.ship.type)
+	Game.SetRealtimeMode(true)
 	local player = Game.player
 
 	PlayerState.SetMoney(gameParams.player.money)
