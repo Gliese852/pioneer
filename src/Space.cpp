@@ -407,7 +407,6 @@ Uint32 Space::GetIndexForBody(const Body *body) const
 	assert(m_bodyIndexValid);
 	for (Uint32 i = 0; i < m_bodyIndex.size(); i++)
 		if (m_bodyIndex[i] == body) return i;
-	assert(false);
 	Output("GetIndexForBody passed unknown body");
 	return SDL_MAX_UINT32;
 }
