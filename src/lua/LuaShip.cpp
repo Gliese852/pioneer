@@ -699,6 +699,14 @@ static int l_ship_initiate_hyperjump_to(lua_State *l)
 	return 1;
 }
 
+static int l_ship_set_fuel_reserve(lua_State *l)
+{
+	auto ship = LuaObject<Ship>::CheckFromLua(1);
+	auto reserve = LuaPull<double>(l, 2);
+	ship->SetFuelReserve(Clamp(reserve, 0.0, 1.0));
+	return 0;
+}
+
 /*
  * Method: AbortHyperjump
  *
@@ -1457,6 +1465,7 @@ void LuaObject<Ship>::RegisterClass()
 
 		{ "GetInvulnerable", l_ship_get_invulnerable },
 		{ "SetInvulnerable", l_ship_set_invulnerable },
+		{ "SetFuelReserve", l_ship_set_fuel_reserve },
 
 		{ "UpdateEquipStats", l_ship_update_equip_stats },
 
