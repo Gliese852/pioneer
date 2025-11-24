@@ -27,6 +27,7 @@ void Propulsion::SaveToJson(Json &jsonObj, Space *space)
 	jsonObj["thrusters"] = m_linThrusters;
 	jsonObj["thruster_fuel"] = m_thrusterFuel;
 	jsonObj["reserve_fuel"] = m_reserveFuel;
+	jsonObj["manual_fuel_reserve"] = m_manualFuelReserve;
 	// !!! These are commented to avoid savegame bumps:
 	//jsonObj["tank_mass"] = m_fuelTankMass;
 	//jsonObj["propulsion"] = PropulsionObj;
@@ -40,6 +41,7 @@ void Propulsion::LoadFromJson(const Json &jsonObj, Space *space)
 
 		m_thrusterFuel = jsonObj["thruster_fuel"];
 		m_reserveFuel = jsonObj["reserve_fuel"];
+		m_manualFuelReserve = jsonObj.value("manual_fuel_reserve", 0.0);
 
 		// !!! This is commented to avoid savegame bumps:
 		//m_fuelTankMass = jsonObj["tank_mass"].asInt();
@@ -59,6 +61,7 @@ Propulsion::Propulsion()
 	m_effectiveExhaustVelocity = 100000.0;
 	m_thrusterFuel = 0.0; //0.0-1.0, remaining fuel
 	m_reserveFuel = 0.0;
+	m_manualFuelReserve = 0.0;
 	m_fuelStateChange = false;
 	m_linThrusters = vector3d::Zero;
 	m_angThrusters = vector3d::Zero;
@@ -229,7 +232,7 @@ double Propulsion::GetSpeedReachedWithFuel() const
 	const double mass = m_dBody->GetMass();
 	// Why is the fuel mass multiplied by 1000 and the fuel use rate divided by 1000?
 	// (see Propulsion::UpdateFuel and Propulsion::GetFuelUseRate)
-	const double fuelmass = 1000 * m_fuelTankMass * (m_thrusterFuel - m_reserveFuel);
+	const double fuelmass = 1000 * m_fuelTankMass * (m_thrusterFuel - GetFuelReserve());
 	if (fuelmass < 0) return 0.0;
 	return m_effectiveExhaustVelocity * log(mass / (mass - fuelmass));
 }

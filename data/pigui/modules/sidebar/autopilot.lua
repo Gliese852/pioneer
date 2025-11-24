@@ -47,6 +47,14 @@ local function draw()
 	-- local estimate_txt = ui.Format.Duration(estimate)
 	-- ui.text("RETICULE TARGET: " .. tostring(reticuleTarget))
 	-- ui.text("AUTOPILOT TARGET: " .. tostring(autopilotTarget))
+
+	local fuelReserve = Game.player:GetManualFuelReserve()
+	local newFuelReserve = ui.dragFloat("Fuel Re", fuelReserve, 0.05, 0.0, 1.0, "%f")
+
+	if newFuelReserve ~= fuelReserve then
+		Game.player:SetManualFuelReserve(newFuelReserve)
+	end
+
 	if rTarget ~= aTarget then
 		ui.text("RETICULE TARGET:")
 		drawEstimate(rTarget)
