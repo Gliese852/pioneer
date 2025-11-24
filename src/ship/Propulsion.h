@@ -93,10 +93,12 @@ public:
 				FUEL_EMPTY;
 	}
 	// fuel left, 0.0-1.0
-	inline double GetFuel() const { return m_thrusterFuel; }
-	inline double GetFuelReserve() const { return m_reserveFuel; }
+	inline double GetFuel() const { return std::max(0.0, m_thrusterFuel - m_manualFuelReserve); }
+	inline double GetFuelReserve() const { return m_reserveFuel + m_manualFuelReserve; }
+	inline double GetManualFuelReserve() const { return m_manualFuelReserve; }
 	inline void SetFuel(const double f) { m_thrusterFuel = Clamp(f, 0.0, 1.0); }
 	inline void SetFuelReserve(const double f) { m_reserveFuel = Clamp(f, 0.0, 1.0); }
+	inline void SetManualFuelReserve(const double f) { m_manualFuelReserve = Clamp(f, 0.0, 1.0); }
 	float GetFuelUseRate();
 	// available delta-V given the ship's current fuel minus reserve according to the Tsiolkovsky equation
 	double GetSpeedReachedWithFuel() const;
@@ -135,6 +137,7 @@ private:
 	int m_fuelTankMass;
 	double m_thrusterFuel; // 0.0-1.0, remaining fuel
 	double m_reserveFuel;  // 0.0-1.0, fuel not to touch for the current AI program
+	double m_manualFuelReserve; // 0.0-1.0, fuel not to touch by anybody
 	double m_effectiveExhaustVelocity;
 	bool m_fuelStateChange;
 

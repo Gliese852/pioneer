@@ -355,6 +355,7 @@ public:
 	double GetAccel(Thruster thruster) const { return m_propulsion->GetAccel(thruster); }
 	void SetFuel(const double f) { m_propulsion->SetFuel(f); }
 	void SetFuelReserve(const double f) { m_propulsion->SetFuelReserve(f); }
+	void SetManualFuelReserve(const double f) { m_propulsion->SetManualFuelReserve(f); }
 
 	bool AIMatchVel(const vector3d &vel, const vector3d &powerLimit = vector3d(1.0)) { return m_propulsion->AIMatchVel(vel, powerLimit); }
 	double AIFaceDirection(const vector3d &dir, double av = 0) { return m_propulsion->AIFaceDirection(dir, av); }
