@@ -15,6 +15,8 @@ local pionillium = ui.fonts.pionillium
 local orbiteer = ui.fonts.orbiteer
 local l = Lang.GetResource("ui-core")
 
+local utils = require 'utils'
+
 local columnPadding = ui.rescaleUI(Vector2(18, 18), Vector2(1600, 900))
 local itemSpacing = ui.rescaleUI(Vector2(6, 12), Vector2(1600, 900))
 local detailsSpacing = ui.rescaleUI(Vector2(6, 10), Vector2(1600, 900))
@@ -175,7 +177,14 @@ local function makeMissionRows()
 			end
 		end
 
+		row.due = mission.due
+
 		table.insert(rowCache, row)
+		table.sort(rowCache, function(a, b)
+			local a_due = a.due or 0
+			local b_due = b.due or 0
+			return a_due < b_due
+		end)
 	end
 end
 
