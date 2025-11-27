@@ -866,3 +866,5 @@ gameView.registerModule("reticule", {
 		displayReticule()
 	end
 })
+
+return { target = reticuleTarget }
