@@ -3,9 +3,18 @@
 
 local ui = require 'pigui'
 local gameView = require 'pigui.views.game'
+local reticule = require 'pigui.modules.flight-ui.reticule'
 
 local function draw()
-	ui.text("HELLO, AUTOPILOT")
+	-- local velocity = player:GetVelocityRelTo(target)
+	-- local position = player:GetPositionRelTo(target)
+	-- local approach_speed = position:dot(velocity) / position:length()
+	-- local altitude = player:GetAltitudeRelTo(target)
+	-- local estimate = player:GetDurationForDistance(altitude, -approach_speed, 0.9)
+	-- local estimate_txt = ui.Format.Duration(estimate)
+	ui.text("RETICULE TARGET: " .. tostring(reticule.target))
+	ui.text("ESTIMATE")
+	ui.text("ARRIVAL TIME")
 end
 
 gameView.registerSidebarModule("autopilot", {
