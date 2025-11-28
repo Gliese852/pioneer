@@ -103,6 +103,19 @@ local function button_rotation_damping()
 	end
 end
 
+local function button_alt_hold()
+	local altHold = player:GetAltHold()
+	local frame = player.frameBody
+	local altitude = frame and player:GetAltitudeRelTo(frame)
+	if ui.mainMenuButton(icons.altitude, "ALT HOLD" .. (altHold and ": " .. tostring(altHold) or " DISABLED"), player:IsAltHoldSet() and ui.theme.buttonColors.default or ui.theme.buttonColors.transparent) then -- XXX json
+		if altHold then
+			player:UnsetAltHold()
+		elseif altitude then
+			player:SetAltHold(altitude)
+		end
+	end
+end
+
 local windowFlags = ui.WindowFlags {"NoTitleBar", "NoResize", "NoFocusOnAppearing", "NoBringToFrontOnFocus", "NoSavedSettings", "AlwaysAutoResize"}
 local function displayShipFunctionWindow()
 	if ui.optionsWindow.isOpen then return end
@@ -122,6 +135,10 @@ local function displayShipFunctionWindow()
 			ui.addCursorPos(shift)
 			button_wheelstate()
 			ui.sameLine()
+			local pos = ui.getCursorPos()
+			ui.addCursorPos(Vector2(0.0, - mainButtonSize.y - ui.getItemSpacing().y))
+			button_alt_hold()
+			ui.setCursorPos(pos)
 			button_rotation_damping()
 			ui.sameLine()
 			button_lowThrustPower()

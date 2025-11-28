@@ -132,6 +132,26 @@ struct PlayerShipController::Util {
 			outParams.desiredLinear = nextFrameVel.Normalized() * (std::max(0.0, c.m_speedLimit));
 		}
 	}
+
+	static void ApplyAltHold(PlayerShipController &c, const float timeStep, TotalDesiredAction &outParams)
+	{
+		Frame *f = Frame::GetFrame(c.m_ship->GetFrame());
+		if (!f) return;
+
+		auto *frameBody = f->GetBody();
+		if (!frameBody) return;
+
+		double currentAlt = c.m_ship->GetAltitudeRelTo(frameBody);
+		double dh = c.GetAltHold() - currentAlt;
+
+		vector3d dir = c.m_ship->GetPosition().Normalized();
+		// -dir because we predict how we will reduce this speed
+		auto accel = c.m_ship->GetPropulsion()->GetThrust(-dir).Length() / c.m_ship->GetMass();
+		double hspeed = sqrt(abs(2 * accel * dh)) * sign(dh);
+		auto vel = dir * hspeed;
+
+		outParams.desiredLinear += vel;
+	}
 };
 
 REGISTER_INPUT_BINDING(PlayerShipController)
@@ -264,6 +284,7 @@ void PlayerShipController::SaveToJson(Json &jsonObj, Space *space)
 	playerShipControllerObj["index_for_combat_target"] = space->GetIndexForBody(m_combatTarget);
 	playerShipControllerObj["index_for_nav_target"] = space->GetIndexForBody(m_navTarget);
 	playerShipControllerObj["index_for_follow_target"] = space->GetIndexForBody(m_followTarget);
+	playerShipControllerObj["alt_hold"] = m_setAltHold;
 	jsonObj["player_ship_controller"] = playerShipControllerObj; // Add player ship controller object to supplied object.
 }
 
@@ -284,6 +305,7 @@ void PlayerShipController::LoadFromJson(const Json &jsonObj)
 		m_combatTargetIndex = playerShipControllerObj["index_for_combat_target"];
 		m_navTargetIndex = playerShipControllerObj["index_for_nav_target"];
 		m_followTargetIndex = playerShipControllerObj.value("index_for_follow_target", SDL_MAX_UINT32);
+		m_setAltHold = playerShipControllerObj.value("alt_hold", MAX_ALT_HOLD);
 	} catch (Json::type_error &) {
 		throw SavedGameCorruptException();
 	}
@@ -459,6 +481,8 @@ void PlayerShipController::FlightAssist(const float timeStep, TotalDesiredAction
 			}
 		}
 	}
+
+	if (IsAltHoldSet()) Util::ApplyAltHold(*this, timeStep, outParams);
 
 	// recalculate power limits, depending on external and inertial forces
 	// because we want to use all available thrust to counter these forces
