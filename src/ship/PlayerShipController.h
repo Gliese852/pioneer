@@ -52,6 +52,13 @@ public:
 	void SetNavTarget(Body *const target);
 	void SetFollowTarget(Body *const target);
 
+	static constexpr double MAX_ALT_HOLD = 1'000'000; //m
+													  //
+	void SetAltHold(double alt) { m_setAltHold = alt; }
+	double GetAltHold() { return m_setAltHold; }
+	double IsAltHoldSet() { return m_setAltHold < MAX_ALT_HOLD; }
+	void UnsetAltHold() { m_setAltHold = MAX_ALT_HOLD; }
+
 	sigc::signal<void> onRotationDampingChanged;
 	sigc::signal<void> onChangeTarget;
 	sigc::signal<void> onChangeFlightControlState;
@@ -167,6 +174,9 @@ private:
 	int m_navTargetIndex;
 	int m_followTargetIndex;
 	vector3d m_mouseDir;
+
+	// >= maximum means off
+	double m_setAltHold = MAX_ALT_HOLD;
 
 	FollowMode m_followMode = FOLLOW_POS;
 	CruiseDirection m_cruiseDirection = CRUISE_FWD;

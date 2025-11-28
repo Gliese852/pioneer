@@ -147,6 +147,45 @@ static int l_set_combat_target(lua_State *l)
 	return 0;
 }
 
+static int l_set_alt_hold(lua_State *l)
+{
+	Player *p = LuaObject<Player>::CheckFromLua(1);
+	auto alt = LuaPull<double>(l, 2);
+	auto c = p->GetPlayerController();
+	if (c) c->SetAltHold(alt);
+	return 0;
+}
+
+static int l_get_alt_hold(lua_State *l)
+{
+	Player *p = LuaObject<Player>::CheckFromLua(1);
+	auto c = p->GetPlayerController();
+	if (c && c->IsAltHoldSet()) {
+		LuaPush(l, c->GetAltHold());
+	} else {
+		lua_pushnil(l);
+	}
+	return 1;
+}
+
+static int l_is_alt_hold_set(lua_State *l)
+{
+	Player *p = LuaObject<Player>::CheckFromLua(1);
+	auto c = p->GetPlayerController();
+	bool result = false;
+	if (c) result = c->IsAltHoldSet();
+	LuaPush(l, result);
+	return 1;
+}
+
+static int l_unset_alt_hold(lua_State *l)
+{
+	Player *p = LuaObject<Player>::CheckFromLua(1);
+	auto c = p->GetPlayerController();
+	if (c) c->UnsetAltHold();
+	return 0;
+}
+
 /*
  * Method: GetHyperspaceTarget
  *
@@ -700,6 +739,10 @@ void LuaObject<Player>::RegisterClass()
 		{ "ChangeCruiseSpeed", l_change_cruise_speed },
 		{ "GetCombatTarget", l_get_combat_target },
 		{ "SetCombatTarget", l_set_combat_target },
+		{ "SetAltHold", l_set_alt_hold },
+		{ "GetAltHold", l_get_alt_hold },
+		{ "IsAltHoldSet", l_is_alt_hold_set },
+		{ "UnsetAltHold", l_unset_alt_hold },
 		{ "GetHyperspaceTarget", l_get_hyperspace_target },
 		{ "SetHyperspaceTarget", l_set_hyperspace_target },
 		{ "GetDistanceToZeroV", l_get_distance_to_zero_v },
