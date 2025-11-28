@@ -3,7 +3,7 @@
 
 local ui = require 'pigui'
 local gameView = require 'pigui.views.game'
-local reticule = require 'pigui.modules.flight-ui.reticule'
+local reticule = gameView.modules[gameView.modules.reticule]
 
 local function draw()
 	-- local velocity = player:GetVelocityRelTo(target)
@@ -12,7 +12,7 @@ local function draw()
 	-- local altitude = player:GetAltitudeRelTo(target)
 	-- local estimate = player:GetDurationForDistance(altitude, -approach_speed, 0.9)
 	-- local estimate_txt = ui.Format.Duration(estimate)
-	ui.text("RETICULE TARGET: " .. tostring(reticule.target))
+	ui.text("RETICULE TARGET: " .. tostring(reticule.getTarget()))
 	ui.text("ESTIMATE")
 	ui.text("ARRIVAL TIME")
 end
