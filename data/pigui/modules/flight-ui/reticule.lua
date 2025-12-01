@@ -865,5 +865,5 @@ gameView.registerModule("reticule", {
 		colors = ui.theme.colors
 		displayReticule()
 	end,
-	getTarget = function() return reticuleTarget end
+	target = function() return reticuleTarget end
 })
