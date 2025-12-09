@@ -981,4 +981,6 @@ Serializer:Register("SpaceStation",
 )
 
 SpaceStation.createStationData = createStationData
+SpaceStation.updateSystem = updateSystem
+
 return SpaceStation
