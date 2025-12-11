@@ -8,6 +8,8 @@ local Economy = require 'Economy'
 local debugView = require 'pigui.views.debug'
 local Format = require 'Format'
 local Commodities = require 'Commodities'
+local arrayTable = require 'pigui.libs.array-table'
+local utils = require 'utils'
 
 local utils = require 'utils'
 
@@ -31,6 +33,7 @@ function Commodity.new (o, name, id_name, baseprice)
 	self.max = 0				-- max price for this commodity
 	self.min = 1e9				-- min price for this commodity
 	self.prices = {}			-- table of every price for this commodity
+	self.view = {}			-- table of systems
 	self.maxsys = nil			-- system path for system with max price
 	self.minsys = nil			-- system path for system with min price
 	self.baseprice = baseprice or nil  -- baseprice for this commodity
@@ -40,6 +43,7 @@ end
 
 function Commodity:add_price(price, sys)
 	table.insert(self.prices, price)
+	table.insert(self.view, { price = price, system = sys })
 	self.price_bins = nil
 
 	-- Some prices are negative, and things get wonky
@@ -247,10 +251,46 @@ local function show_system_info(min, sys, str)
 	-- Economy type: capitalist
 end
 
+local function station_economy(commodities, clicked, station)
+	if not clicked or not station then
+		return
+	end
+
+	local cargo_item = Commodities[commodities[clicked].id_name]
+	local market = Economy.GetStationMarket(station.path)
+
+	local fS, fD = Economy.GetCommodityFlowParams(station:GetSystemBody(), cargo_item.name)
+	local supply, demand = market.supply[cargo_item.name], market.demand[cargo_item.name]
+
+	local equilibrium_stock = Economy.GetCommodityStockEquilibrium(station:GetSystemBody(), cargo_item.name)
+
+	local price = station:GetCommodityPrice(cargo_item)
+	local stock = station:GetCommodityStock(cargo_item)
+
+	ui.text("At station: " .. station.label)
+	ui.text("Local price $" .. utils.round(price, 0.01))
+	ui.text("Local stock " .. stock)
+	ui.text("Local supply: " .. supply)
+	ui.text("Local demand: " .. demand)
+	ui.text("Local flow: fS +{} / fD -{}" % { fS, fD })
+	ui.text("Equilibrium_stock: " .. equilibrium_stock)
+
+	-- Just stub for experiment with changing market prices
+	local mod = 2
+	if ui.button("Double", Vector2(100, 0)) then
+		station:SetCommodityPrice(cargo_item, mod*price)
+		station:SetCommodityStock(cargo_item, mod*stock, mod*supply, mod*demand)
+	end
+end
+
+
+local all_systems_prices_size = Vector2(0, 0)
+
 local function show_details_on_commodity(commodities, selected)
 	if not selected then
 		return
 	end
+
 	ui.text(string.upper(selected))
 	local c = commodities[selected]
 
@@ -263,7 +303,22 @@ local function show_details_on_commodity(commodities, selected)
 
 	local purchasable = Commodities[c.id_name].purchasable
 
-	ui.text("Current system:\t" .. Game.system.name)
+	local station = Game.player:GetDockedWith() or false
+	if station and purchasable and ui.collapsingHeader("Station economy", {"DefaultOpen"}) then
+		station_economy(commodities, selected, station)
+	end
+
+	ui.child("all_systems_prices_child", all_systems_prices_size, function()
+		local pos = ui.getCursorPos()
+		arrayTable.draw("all_systems_prices", c.view, ipairs, {
+			{ name = "System", key = "system", fnc = function(x) return x.name end, string = true },
+			{ name = "Price",  key = "price",  },
+		}, {})
+		all_systems_prices_size = ui.getCursorPos() - pos
+	end)
+
+
+	ui.text("Current system:\t" .. Game.system and Game.system.name or "NO")
 	ui.text("Tag:\t" .. c.id_name)
 	ui.text("Purchasable:\t" .. tostring(purchasable))
 	ui.text("Baseprice:\t" .. Format.Money(c.baseprice))
@@ -303,38 +358,8 @@ local function show_details_on_commodity(commodities, selected)
 end
 
 
-local function station_economy(commodities, clicked, station)
-	if not clicked or not station then
-		return
-	end
 
-	local cargo_item = Commodities[commodities[clicked].id_name]
-	local market = Economy.GetStationMarket(station.path)
-
-	local fS, fD = Economy.GetCommodityFlowParams(station:GetSystemBody(), cargo_item.name)
-	local supply, demand = market.supply[cargo_item.name], market.demand[cargo_item.name]
-
-	local equilibrium_stock = Economy.GetCommodityStockEquilibrium(station:GetSystemBody(), cargo_item.name)
-
-	local price = station:GetCommodityPrice(cargo_item)
-	local stock = station:GetCommodityStock(cargo_item)
-
-	ui.text("At station: " .. station.label)
-	ui.text("Local price $" .. utils.round(price, 0.01))
-	ui.text("Local stock " .. stock)
-	ui.text("Local supply: " .. supply)
-	ui.text("Local demand: " .. demand)
-	ui.text("Local flow: fS +{} / fD -{}" % { fS, fD })
-	ui.text("Equilibrium_stock: " .. equilibrium_stock)
-
-	-- Just stub for experiment with changing market prices
-	local mod = 2
-	if ui.button("Double", Vector2(100, 0)) then
-		station:SetCommodityPrice(cargo_item, mod*price)
-		station:SetCommodityStock(cargo_item, mod*stock, mod*supply, mod*demand)
-	end
-end
-
+local commodity_details_size = Vector2(10, 10)
 
 
 local function main()
@@ -358,16 +383,17 @@ local function main()
 	-- COLUMN 1
 	ui.columns(2, "commodity", true)
 	ui.setColumnWidth(0, ui.getWindowSize().x/2)
+
+	local pos = ui.getCursorPos()
 	show_price_table(commodities)
+	commodity_details_size = ui.getCursorPos() - pos
 
 	-- COLUMN 2
 	ui.nextColumn()
-	local purchasable = show_details_on_commodity(commodities, clicked)
+	ui.child("commodity_details_child", commodity_details_size, function()
+		local purchasable = show_details_on_commodity(commodities, clicked)
+	end)
 
-	local station = Game.player:GetDockedWith() or false
-	if station and purchasable and ui.collapsingHeader("Station economy", {"DefaultOpen"}) then
-		station_economy(commodities, clicked, station)
-	end
 	ui.columns(1)
 end
 
