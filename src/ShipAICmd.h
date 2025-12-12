@@ -62,6 +62,8 @@ public:
 
 	CmdName GetType() const { return m_cmdName; }
 
+	virtual Body *GetTarget() const { return nullptr; }
+
 protected:
 	DynamicBody *m_dBody;
 	Propulsion *m_prop;
@@ -84,6 +86,7 @@ public:
 	virtual void PostLoadFixup(Space *space);
 
 	virtual void OnDeleted(const Body *body);
+	virtual Body *GetTarget() const;
 
 private:
 	enum EDockingStates {
@@ -128,6 +131,8 @@ public:
 
 	virtual void OnDeleted(const Body *body);
 
+	virtual Body *GetTarget() const { return m_target; }
+
 private:
 	Body *m_target;		   // target for vicinity. Either this or targframe is 0
 	double m_dist;		   // vicinity distance
@@ -164,6 +169,8 @@ public:
 		m_targmode = 0;
 	}
 
+	virtual Body *GetTarget() const { return m_obstructor; }
+
 protected:
 	void Setup(Body *obstructor, double alt, double vel, int mode);
 	double MaxVel(double targdist, double targalt);
@@ -190,7 +197,7 @@ public:
 
 	virtual void OnDeleted(const Body *body);
 
-	const Ship* GetTarget() const { return m_target; }
+	virtual Body* GetTarget() const;
 
 private:
 	struct GunStats {
@@ -218,7 +225,7 @@ public:
 
 	virtual void OnDeleted(const Body *body);
 
-	const Body* GetTarget() const { return m_target; }
+	virtual Body* GetTarget() const { return m_target; }
 private:
 	Body *m_target;
 	int m_targetIndex; // used during deserialisation
@@ -242,6 +249,8 @@ public:
 	virtual void PostLoadFixup(Space *space);
 
 	virtual void OnDeleted(const Body *body);
+
+	virtual Body* GetTarget() const { return m_target; }
 
 private:
 	DynamicBody *m_target; // target frame for waypoint

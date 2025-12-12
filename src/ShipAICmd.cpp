@@ -315,6 +315,11 @@ bool AICmdKamikaze::TimeStepUpdate()
 	return false;
 }
 
+Body *AICmdKill::GetTarget() const
+{
+	return m_target;
+}
+
 void AICmdKill::OnDeleted(const Body *body)
 {
 	if (static_cast<Body *>(m_target) == body) m_target = 0;
@@ -1250,6 +1255,11 @@ bool AICmdFlyTo::TimeStepUpdate()
 	} else if (targdist < 0.5 * m_prop->GetAccelMin() * timestep * timestep)
 		m_state = 3;
 	return false;
+}
+
+Body *AICmdDock::GetTarget() const
+{
+	return m_target;
 }
 
 void AICmdDock::OnDeleted(const Body *body)
