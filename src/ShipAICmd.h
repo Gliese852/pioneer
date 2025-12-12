@@ -62,6 +62,8 @@ public:
 
 	CmdName GetType() const { return m_cmdName; }
 
+	virtual const Body *GetTarget() const { return nullptr; }
+
 protected:
 	DynamicBody *m_dBody;
 	Propulsion *m_prop;
@@ -84,6 +86,7 @@ public:
 	virtual void PostLoadFixup(Space *space);
 
 	virtual void OnDeleted(const Body *body);
+	virtual const Body *GetTarget() const { return (Body*)m_target; }
 
 private:
 	enum EDockingStates {
@@ -190,7 +193,7 @@ public:
 
 	virtual void OnDeleted(const Body *body);
 
-	const Ship* GetTarget() const { return m_target; }
+	virtual const Body* GetTarget() const { return (Body*)m_target; }
 
 private:
 	struct GunStats {
