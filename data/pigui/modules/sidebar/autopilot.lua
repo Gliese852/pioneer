@@ -6,6 +6,11 @@ local gameView = require 'pigui.views.game'
 local reticuleID = gameView.modules.reticule
 local reticule = reticuleID and gameView.modules[reticuleID]
 
+local function reticuleTarget()
+	local name = reticule.target()
+	if not name then return nil end
+end
+
 local function draw()
 	-- local velocity = player:GetVelocityRelTo(target)
 	-- local position = player:GetPositionRelTo(target)
@@ -14,6 +19,7 @@ local function draw()
 	-- local estimate = player:GetDurationForDistance(altitude, -approach_speed, 0.9)
 	-- local estimate_txt = ui.Format.Duration(estimate)
 	ui.text("RETICULE TARGET: " .. tostring(reticule.target()))
+	-- combatTarget navTarget frame
 	ui.text("ESTIMATE")
 	ui.text("ARRIVAL TIME")
 end
@@ -22,9 +28,10 @@ gameView.registerSidebarModule("autopilot", {
 	side = "left",
 	icon = ui.theme.icons.equip_autopilot,
 	tooltip = "TOGGLE AUTPILOT", -- XXX json lui.TOGGLE_FULL_COMMS_WINDOW,
-	title = "XAUTOPILOT", -- XXX json lc.COMMS,
+	title = "AUTOPILOT", -- XXX json lc.COMMS,
 	priority = 500,
 	drawBody = draw,
+	debugReload = function() package.reimport() end,
 })
 
 return {}
