@@ -8,10 +8,15 @@ local reticule = reticuleID and gameView.modules[reticuleID]
 
 local function reticuleTarget()
 	local name = reticule.target()
-	if not name then return nil end
+	if name == 'combatTarget' then
+		return player:GetCombatTarget()
+	elseif name == 'navTarget' then
+		return player:GetNavTarget()
+	end
 end
 
 local function draw()
+	local target = reticuleTarget()
 	-- local velocity = player:GetVelocityRelTo(target)
 	-- local position = player:GetPositionRelTo(target)
 	-- local approach_speed = position:dot(velocity) / position:length()
