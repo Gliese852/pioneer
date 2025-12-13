@@ -369,9 +369,9 @@ local function displayDetailData(target, radius, colorLight, colorDark, tooltip,
 		{ text=altitude_unit, color=colorDark,  font=pionillium.small,  tooltip=lui.HUD_DISTANCE_TO_SURFACE_OF_TARGET },
 		{ text=" " .. speed,  color=colorLight, font=pionillium.medium, tooltip=lui.HUD_SPEED_RELATIVE_TO_TARGET },
 		{ text=speed_unit,    color=colorDark,  font=pionillium.small,  tooltip=lui.HUD_SPEED_RELATIVE_TO_TARGET },
-		{ text=estimate_txt,  color=colorLight, font=pionillium.medium,  tooltip="ESTIMATE" }, -- XXX json
-		{ text="@",           color=colorDark,  font=pionillium.small  },
-		{ text=arrival_time_txt, color=colorLight, font=pionillium.medium,  tooltip="ARRIVAL TIME" }, -- XXX json
+		-- { text=estimate_txt,  color=colorLight, font=pionillium.medium,  tooltip="ESTIMATE" }, -- XXX json
+		-- { text="@",           color=colorDark,  font=pionillium.small  },
+		-- { text=arrival_time_txt, color=colorLight, font=pionillium.medium,  tooltip="ARRIVAL TIME" }, -- XXX json
 	}
 
 	-- speed limiter icon
