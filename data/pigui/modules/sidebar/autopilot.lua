@@ -16,9 +16,29 @@ local function reticuleTarget()
 	end
 end
 
+local function estimate(target)
+	local player = Game.player
+	local velocity = player:GetVelocityRelTo(target)
+	local position = player:GetPositionRelTo(target)
+	local approach_speed = position:dot(velocity) / position:length()
+	local altitude = player:GetAltitudeRelTo(target)
+	local estimate = player:GetDurationForDistance(altitude, -approach_speed, 0.9)
+	return estimate
+end
+
+local function drawEstimate(target)
+	if (not target) then
+		ui.text("NO TARGET")
+		return
+	end
+	local estimate_txt = ui.Format.Duration(estimate(target))
+	ui.text("NAME: " .. tostring(target.label))
+	ui.text("EST: " .. estimate_txt)
+end
+
 local function draw()
-	local reticuleTarget = reticuleTarget()
-	local autopilotTarget = Game.player:GetAutopilotTarget()
+	local rTarget = reticuleTarget()
+	local aTarget = Game.player:GetAutopilotTarget()
 	-- local velocity = player:GetVelocityRelTo(target)
 	-- local position = player:GetPositionRelTo(target)
 	-- local approach_speed = position:dot(velocity) / position:length()
@@ -27,9 +47,15 @@ local function draw()
 	-- local estimate_txt = ui.Format.Duration(estimate)
 	-- ui.text("RETICULE TARGET: " .. tostring(reticuleTarget))
 	-- ui.text("AUTOPILOT TARGET: " .. tostring(autopilotTarget))
-	if reticuleTarget == autopilotTarget then
-		ui.text("SELECTED AUTOPILOT TARGET")
+	if rTarget ~= aTarget then
+		ui.text("RETICULE TARGET:")
+		drawEstimate(rTarget)
 	end
+
+	ui.text("AUTOPILOT TARGET:")
+	drawEstimate(aTarget)
+
+
 	-- combatTarget navTarget frame
 	ui.text("ESTIMATE")
 	ui.text("ARRIVAL TIME")
