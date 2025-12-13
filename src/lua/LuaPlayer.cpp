@@ -11,6 +11,7 @@
 #include "Pi.h"
 #include "Player.h"
 #include "SectorView.h"
+#include "ShipAICmd.h"
 #include "TerrainBody.h"
 #include "WorldView.h"
 #include "galaxy/Galaxy.h"
@@ -63,6 +64,14 @@ static int l_set_nav_target(lua_State *l)
 	Body *target = LuaObject<Body>::GetFromLua(2);
 	p->SetNavTarget(target);
 	return 0;
+}
+
+// XXX doc
+static int l_get_autopilot_target(lua_State *l)
+{
+	Player *p = LuaObject<Player>::CheckFromLua(1);
+	LuaObject<Body>::PushToLua(p->GetAICommand()->GetTarget());
+	return 1;
 }
 
 /*
@@ -735,6 +744,7 @@ void LuaObject<Player>::RegisterClass()
 
 		{ "GetNavTarget", l_get_nav_target },
 		{ "SetNavTarget", l_set_nav_target },
+		{ "GetAutopilotTarget", l_get_autopilot_target },
 		{ "SetFollowTarget", l_set_follow_target },
 		{ "ChangeCruiseSpeed", l_change_cruise_speed },
 		{ "GetCombatTarget", l_get_combat_target },
