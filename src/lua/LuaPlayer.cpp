@@ -70,7 +70,12 @@ static int l_set_nav_target(lua_State *l)
 static int l_get_autopilot_target(lua_State *l)
 {
 	Player *p = LuaObject<Player>::CheckFromLua(1);
-	LuaObject<Body>::PushToLua(p->GetAICommand()->GetTarget());
+	auto pilot = p->GetAICommand();
+	if (!pilot) {
+		lua_pushnil(l);
+	} else {
+		LuaObject<Body>::PushToLua(pilot->GetTarget());
+	}
 	return 1;
 }
 
