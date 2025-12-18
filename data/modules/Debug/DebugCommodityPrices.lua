@@ -312,13 +312,14 @@ local function show_details_on_commodity(commodities, selected)
 		local pos = ui.getCursorPos()
 		arrayTable.draw("all_systems_prices", c.view, ipairs, {
 			{ name = "System", key = "system", fnc = function(x) return x.name end, string = true },
+			{ name = "Path",  key = "system", fnc = function(x) return ui.Format.SystemPath(x.path) end, string = true },
 			{ name = "Price",  key = "price",  },
 		}, {})
 		all_systems_prices_size = ui.getCursorPos() - pos
 	end)
 
 
-	ui.text("Current system:\t" .. Game.system and Game.system.name or "NO")
+	ui.text("Current system:\t" .. (Game.system and Game.system.name or "NO"))
 	ui.text("Tag:\t" .. c.id_name)
 	ui.text("Purchasable:\t" .. tostring(purchasable))
 	ui.text("Baseprice:\t" .. Format.Money(c.baseprice))
