@@ -387,7 +387,6 @@ void Space::ToJson(Json &jsonObj)
 Body *Space::GetBodyByIndex(Uint32 idx) const
 {
 	assert(m_bodyIndexValid);
-	assert(m_bodyIndex.size() > idx);
 	if (idx == SDL_MAX_UINT32 || m_bodyIndex.size() <= idx) {
 		Output("GetBodyByIndex passed bad index %u", idx);
 		return nullptr;
