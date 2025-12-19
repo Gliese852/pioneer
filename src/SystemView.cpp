@@ -173,7 +173,14 @@ void SystemView::AddShipTracks(double time)
 		const bool isSelected = *m_map->GetSelectedObject() == p;
 		m_map->AddObjectTrack(p);
 
-		if (m_map->GetShipDrawing() == ORBITS && s->first->GetFlightState() == Ship::FlightState::FLYING) {
+		Projectable *selected = m_map->GetSelectedObject();
+		const Ship *selectedShip = nullptr;
+
+		if (selected && selected->type != Projectable::NONE && selected->base == Projectable::SHIP) {
+			selectedShip = static_cast<const Ship*>(selected->ref.body);
+		}
+
+		if (m_map->GetShipDrawing() == ORBITS && s->first->GetFlightState() == Ship::FlightState::FLYING || s->first == selectedShip) {
 			const Color orbitColor = isSelected ? m_map->svColor[Col::SELECTED_SHIP_ORBIT] : m_map->svColor[Col::SHIP_ORBIT];
 			vector3d framepos(0.0);
 			CalculateFramePositionAtTime(s->first->GetFrame(), time, framepos);
