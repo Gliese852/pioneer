@@ -993,6 +993,6 @@ void Game::SyncToPresent()
 	} else if (delta < x10000 * 3) {
 		RequestTimeAccel(Game::TIMEACCEL_1000X, true);
 	} else {
-		RequestTimeAccel(Game::TIMEACCEL_10000X, true);
+		RequestTimeAccel(Game::TIMEACCEL_10000X, false);
 	}
 }
