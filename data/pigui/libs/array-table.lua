@@ -32,6 +32,7 @@ local array_table = {}
 --     callbacks
 --       onClick - this function is called if the line is clicked
 --       isSelected - this function is called for every row and if it returns true the row is highlighed
+--     maxRows - number, if set, split into pages
 --
 -- Example:
 --
@@ -53,11 +54,13 @@ local array_table = {}
 -- > 	}})
 
 local sort_param = {} -- we need to keep sorting options between frames
+local page_numbers = {} -- also need to keep page number
 
 array_table.draw = function(id, tbl, iter, columns, extra)
+	if not extra then extra = {} end
 	local callbacks = extra and extra.callbacks
 	local data = {}
-	-- sort so that nil always goes down the table
+	-- sort so that nil always goes down the tab, split into pages
 	local function less   (a, b) return a and ( not b or a < b ) end
 	local function greater(a, b) return a and ( not b or b < a ) end
 	local sort_symbol = {
@@ -111,6 +114,18 @@ array_table.draw = function(id, tbl, iter, columns, extra)
 	end
 	ui.separator()
 	-- other lines
+	local page
+	if extra.maxRows then
+		if page_numbers[id] then
+			page = page_numbers[id]
+		else
+			page_numbers[id] = 1
+			page = 1
+		end
+	else
+		page_numbers[id] = nil
+	end
+
 	local highlight_box
 	local selected_boxes = {}
 	local top_left, down_right = 0, 0
@@ -122,7 +137,24 @@ array_table.draw = function(id, tbl, iter, columns, extra)
 		widths[i] = math.max(widths[i], ui.calcTextSize(txt .. "--").x)
 	end
 	if #data > 0 then
-		for _,item in ipairs(data) do
+		local iBegin = 0
+		local iEnd = #data
+
+		if page then
+			iEnd = page * extra.maxRows
+			iBegin = iEnd - extra.maxRows + 1
+
+			while iBegin > #data do
+				iBegin = iBegin - extra.maxRows
+				iEnd = iEnd - extra.maxRows
+				page = page - 1
+			end
+
+			if iEnd > #data then iEnd = #data end
+		end
+
+		for row = iBegin, iEnd, 1 do
+			local item = data[row]
 			top_left = ui.getCursorScreenPos()
 			for i,_ in ipairs(columns) do
 				putCell(item[i], i, columns[i].fnc)
@@ -165,6 +197,19 @@ array_table.draw = function(id, tbl, iter, columns, extra)
 		for _, selected_box in ipairs(selected_boxes) do
 			ui.addRectFilled(selected_box[1], selected_box[2], ui.theme.colors.white:opacity(0.2), 0, ui.RoundCornersNone)
 		end
+	end
+	-- pages
+	if page_numbers[id] then
+		local maxPage = math.ceil(#data / extra.maxRows)
+		if ui.button("<<") then page_numbers[id] = 1 end
+		ui.sameLine()
+		if ui.button("<") and page_numbers[id] > 1 then page_numbers[id] = page_numbers[id] - 1 end
+		ui.sameLine()
+		ui.text(tostring(page_numbers[id]) .. "/" .. tostring(maxPage))
+		ui.sameLine()
+		if ui.button(">") and page_numbers[id] < maxPage then page_numbers[id] = page_numbers[id] + 1 end
+		ui.sameLine()
+		if ui.button(">>") then page_numbers[id] = maxPage end
 	end
 end
 
