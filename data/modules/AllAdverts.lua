@@ -7,6 +7,8 @@ local SpaceStation = require 'SpaceStation'
 local arrayTable = require 'pigui.libs.array-table'
 local dbg = require 'mydebug'
 
+local search_text = ""
+
 debugView.registerTab('debug-adverts', {
 	icon = ui.theme.icons.spacestation,
 	show = function() return Game.system end,
@@ -14,13 +16,26 @@ debugView.registerTab('debug-adverts', {
 	draw = function()
 		local stations = utils.filter_array(Space.GetBodies("SpaceStation"), function (body) return true end)
 		local ads = {}
+		local filterFunction
+
+		search_text, _ = ui.inputText("Search adverts", search_text, {})
+		if #search_text > 0 then
+			filterFunction = function(v) return string.match(v.description, search_text)
+				or string.match(v.stationName, search_text)
+			end
+		end
+
 		for _, station in pairs(stations) do
 			if not SpaceStation.adverts[station] then
 				SpaceStation.createStationData(station)
 			end
 			for _, v in pairs(SpaceStation.adverts[station]) do
+
 				if not v.stationName then v.stationName = station.label end
-				table.insert(ads, v)
+
+				if not filterFunction or filterFunction(v) then
+					table.insert(ads, v)
+				end
 			end
 		end
 
@@ -35,7 +50,7 @@ debugView.registerTab('debug-adverts', {
 			{ name = "Due",         key = "due",        fnc = formatDue },
 			{ name = "Reward",      key = "reward" },
 			{ name = "Description", key = "description" },
-		},{})
+		},{ maxRows = 25 })
 	end
 })
 
