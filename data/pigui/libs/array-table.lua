@@ -137,7 +137,7 @@ array_table.draw = function(id, tbl, iter, columns, extra)
 		widths[i] = math.max(widths[i], ui.calcTextSize(txt .. "--").x)
 	end
 	if #data > 0 then
-		local iBegin = 0
+		local iBegin = 1
 		local iEnd = #data
 
 		if page then
