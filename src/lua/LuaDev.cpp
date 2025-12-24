@@ -205,9 +205,9 @@ static int l_dev_galaxy_stats(lua_State *l)
 
 	// iterating all processors on all systems in given sectors
 	RefCountedPtr<Galaxy> galaxy = Pi::game->GetGalaxy();
-	for (int sx = centerX - radius; sx <= centerX + radius; ++sx) {
-		for (int sy = centerY - radius; sy <= centerY + radius; ++sy) {
-			for (int sz = centerZ - radius; sz <= centerZ + radius; ++sz) {
+	for (int sx = centerX - radius; sx < centerX + radius; ++sx) {
+		for (int sy = centerY - radius; sy < centerY + radius; ++sy) {
+			for (int sz = centerZ - radius; sz < centerZ + radius; ++sz) {
 				SystemPath sp(sx, sy, sz);
 				auto sec = galaxy->GetSector(sp);
 				for (auto &system : sec->m_systems)
