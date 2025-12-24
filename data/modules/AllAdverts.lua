@@ -20,8 +20,13 @@ debugView.registerTab('debug-adverts', {
 
 		search_text, _ = ui.inputText("Search adverts", search_text, {})
 		if #search_text > 0 then
-			filterFunction = function(v) return string.match(v.description, search_text)
-				or string.match(v.stationName, search_text)
+			filterFunction = function(v)
+				for search_token in string.gmatch(search_text, "([^|]+)") do
+					if not (string.match(v.description, search_token) or string.match(v.stationName, search_token)) then
+						return false
+					end
+				end
+				return true
 			end
 		end
 
