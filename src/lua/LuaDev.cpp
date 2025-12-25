@@ -93,7 +93,7 @@ static int l_dev_galaxy_stats(lua_State *l)
 	class : public Processor {
 		uint32_t explored = 0;
 		uint32_t inhabited = 0;
-		double population;
+		double population = 0;
 		RefCountedPtr<Galaxy> galaxy = Pi::game->GetGalaxy();
 
 	public:
