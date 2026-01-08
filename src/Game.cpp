@@ -975,19 +975,24 @@ void Game::SyncToPresent()
 	double x1000  = x100 * 10;
 	double x10000 = x1000 * 10;;
 
-	if (delta > -15 && delta < 15 && GetTimeAccel() == Game::TIMEACCEL_1X) {
-		// do nothing TODO set idle false?
-	} else if (delta < -x10 * 3) {
-		RequestTimeAccel(Game::TIMEACCEL_PAUSED, true);
-	} else if (delta < x10 * 3) {
-		RequestTimeAccel(Game::TIMEACCEL_1X, true);
-	} else if (delta < x100 * 3) {
-		RequestTimeAccel(Game::TIMEACCEL_10X, true);
-	} else if (delta < x1000 * 3) {
-		RequestTimeAccel(Game::TIMEACCEL_100X, true);
-	} else if (delta < x10000 * 3) {
-		RequestTimeAccel(Game::TIMEACCEL_1000X, true);
-	} else {
-		RequestTimeAccel(Game::TIMEACCEL_10000X, false);
+	if (delta < -15 || delta > 15 || GetTimeAccel() != Game::TIMEACCEL_1X) {
+		double hsq = m_player->GetPosition().LengthSqr();
+		if (delta < -x10 * 3) {
+			RequestTimeAccel(Game::TIMEACCEL_PAUSED, true);
+		} else if (delta < x10 * 3) {
+			RequestTimeAccel(Game::TIMEACCEL_1X, true);
+		} else if (delta < x100 * 3) {
+			RequestTimeAccel(Game::TIMEACCEL_10X, true);
+		} else if (delta < x1000 * 3) {
+			RequestTimeAccel(Game::TIMEACCEL_100X, true);
+		} else if (delta < x10000 * 3) {
+			RequestTimeAccel(Game::TIMEACCEL_1000X, true);
+		} else {
+			if (IsHyperspace() || hsq > 10'000'000.0 * 10'000'000.0) {
+				RequestTimeAccel(Game::TIMEACCEL_10000X, true);
+			} else {
+				RequestTimeAccel(Game::TIMEACCEL_1000X, true);
+			}
+		}
 	}
 }
