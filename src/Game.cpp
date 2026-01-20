@@ -988,7 +988,7 @@ void Game::SyncToPresent()
 		} else if (delta < x10000 * 3) {
 			RequestTimeAccel(Game::TIMEACCEL_1000X, true);
 		} else {
-			if (IsHyperspace() || hsq > 10'000'000.0 * 10'000'000.0) {
+			if (IsHyperspace() || hsq > 10'000'000.0 * 10'000'000.0 || m_player->GetFlightState() != Ship::FLYING) {
 				RequestTimeAccel(Game::TIMEACCEL_10000X, true);
 			} else {
 				RequestTimeAccel(Game::TIMEACCEL_1000X, true);
