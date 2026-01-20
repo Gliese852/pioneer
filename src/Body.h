@@ -187,6 +187,9 @@ public:
 	void MarkDead() { m_dead = true; }
 	bool IsDead() const { return m_dead; }
 
+	bool IsOnSubStep() const { return m_onSubStep; }
+	void SetOnSubStep(bool on) { m_onSubStep = on; }
+
 	// all Bodies are in space... except where they're not (Ships hidden in hyperspace clouds)
 	virtual bool IsInSpace() const { return true; }
 
@@ -241,6 +244,7 @@ private:
 	bool m_dead; // Checked in destructor to make sure body has been marked dead.
 	double m_clipRadius;
 	double m_physRadius;
+	bool m_onSubStep;
 };
 
 #endif /* _BODY_H */
