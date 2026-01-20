@@ -1056,10 +1056,9 @@ static void CollideWithTerrain(Body *body, float timeStep)
 
 static Game::TimeAccel max_time_accel_for_body(Body *b)
 {
-	if (b->IsType(ObjectType::SHIP)) {
-		auto s = static_cast<Ship*>(b);
-		if (s->GetFlightState() != Ship::FLYING) return Game::TIMEACCEL_MAX;
-	}
+	if (!b->IsType(ObjectType::SHIP)) return Game::TIMEACCEL_MAX;
+	auto s = static_cast<Ship*>(b);
+	if (s->GetFlightState() != Ship::FLYING) return Game::TIMEACCEL_MAX;
 
 	auto hsq = b->GetPosition().LengthSqr();
 	if (hsq < 10'000'000.0 * 10'000'000.0) return Game::TIMEACCEL_1000X;
@@ -1086,12 +1085,15 @@ void Space::TimeStep(float step)
 		b->UpdateFrame();
 
 	auto gameAccel = m_game->GetTimeAccel();
+	int sub = 0;
+	int noSub = 0;
 
 	for (size_t i = 0; i < m_bodies.size(); ++i) {
 		auto b = m_bodies[i];
 		auto ta = max_time_accel_for_body(b);
 		if (ta >= gameAccel) {
 			b->SetOnSubStep(false);
+			++ noSub;
 			// AI acts here, then move all bodies and frames
 			// NOTE: The AI can add bodies here so we can't use an iterator
 			// this restores the previous version where only the initial list is
@@ -1111,8 +1113,10 @@ void Space::TimeStep(float step)
 				b->StaticUpdate(substep);
 				b->TimeStepUpdate(substep);
 			}
+			++sub;
 		}
 	}
+	Output("update: sub: %d noSub: %d", sub, noSub);
 	Frame::UpdateOrbitRails(m_game->GetTime(), m_game->GetTimeStep());
 
 	for (Body *b : m_bodies) {
