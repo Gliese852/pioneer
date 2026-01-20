@@ -1054,6 +1054,19 @@ static void CollideWithTerrain(Body *body, float timeStep)
 	hitCallback(&c);
 }
 
+static Game::TimeAccel max_time_accel_for_body(Body *b)
+{
+	if (b->IsType(ObjectType::SHIP)) {
+		auto s = static_cast<Ship*>(b);
+		if (s->GetFlightState() != Ship::FLYING) return Game::TIMEACCEL_MAX;
+	}
+
+	auto hsq = b->GetPosition().LengthSqr();
+	if (hsq < 10'000'000.0 * 10'000'000.0) return Game::TIMEACCEL_1000X;
+
+	return Game::TIMEACCEL_MAX;
+}
+
 void Space::TimeStep(float step)
 {
 	PROFILE_SCOPED()
@@ -1072,23 +1085,38 @@ void Space::TimeStep(float step)
 	for (Body *b : m_bodies)
 		b->UpdateFrame();
 
-	// AI acts here, then move all bodies and frames
-	// NOTE: The AI can add bodies here so we can't use an iterator
-	// this restores the previous version where only the initial list is
-	// updated unless the bodies vector reallocated where anything could
-	// have happened
-	// alternative fixes to delay addition caused
-	// https://github.com/pioneerspacesim/pioneer/issues/5695
-	//
-	// THIS IS A HACK/WORKAROUND until a more proper solution can be found
+	auto gameAccel = m_game->GetTimeAccel();
+
 	for (size_t i = 0; i < m_bodies.size(); ++i) {
 		auto b = m_bodies[i];
-		b->StaticUpdate(step);
+		auto ta = max_time_accel_for_body(b);
+		if (ta >= gameAccel) {
+			b->SetOnSubStep(false);
+			// AI acts here, then move all bodies and frames
+			// NOTE: The AI can add bodies here so we can't use an iterator
+			// this restores the previous version where only the initial list is
+			// updated unless the bodies vector reallocated where anything could
+			// have happened
+			// alternative fixes to delay addition caused
+			// https://github.com/pioneerspacesim/pioneer/issues/5695
+			//
+			// THIS IS A HACK/WORKAROUND until a more proper solution can be found
+			b->StaticUpdate(step);
+		} else {
+			// still no more than 100 substeps
+			auto substeps = pow(10, Clamp(gameAccel - ta, 1, 2));
+			auto substep = step/substeps;
+			b->SetOnSubStep(true);
+			for (int i = 0; i < substeps; ++i) {
+				b->StaticUpdate(substep);
+				b->TimeStepUpdate(substep);
+			}
+		}
 	}
 	Frame::UpdateOrbitRails(m_game->GetTime(), m_game->GetTimeStep());
 
 	for (Body *b : m_bodies) {
-		b->TimeStepUpdate(step);
+		if (!b->IsOnSubStep()) b->TimeStepUpdate(step);
 	}
 
 	LuaEvent::Emit();
