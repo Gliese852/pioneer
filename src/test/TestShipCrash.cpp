@@ -4,5 +4,5 @@
 
 TEST_CASE("Ship crash")
 {
-	INFO("HELLO, TEST");
+	MESSAGE("HELLO AGAIN");
 }
