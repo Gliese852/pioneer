@@ -1120,7 +1120,7 @@ void Space::TimeStep(float step)
 			++sub;
 		}
 	}
-	Output("update: sub: %d noSub: %d", sub, noSub);
+	// Output("update: sub: %d noSub: %d", sub, noSub);
 	Frame::UpdateOrbitRails(m_game->GetTime(), m_game->GetTimeStep());
 
 	for (Body *b : m_bodies) {
