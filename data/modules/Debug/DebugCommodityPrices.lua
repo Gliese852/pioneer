@@ -312,13 +312,23 @@ local function show_details_on_commodity(commodities, selected)
 		station_economy(commodities, selected, station)
 	end
 
+	local selected_in_sectorview = Game.sectorView:GetSelectedSystemPath()
 	ui.child("all_systems_prices_child", all_systems_prices_size, function()
 		local pos = ui.getCursorPos()
 		arrayTable.draw("all_systems_prices", c.view, ipairs, {
 			{ name = "System", key = "system", fnc = function(x) return x.name end, string = true },
 			{ name = "Path",  key = "system", fnc = function(x) return ui.Format.SystemPath(x.path) end, string = true },
 			{ name = "Price",  key = "price",  },
-		}, {})
+		}, {
+			callbacks = {
+				onClick = function(row)
+					Game.sectorView:SwitchToPath(row.system.path)
+				end,
+				isSelected = function(row)
+					return row.system.path:IsSameSystem(selected_in_sectorview)
+				end
+			}
+		})
 		all_systems_prices_size = ui.getCursorPos() - pos
 	end)
 
