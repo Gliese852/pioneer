@@ -3,8 +3,12 @@
 #include "pigui/LuaPiGui.h"
 #include "core/GuiApplication.h"
 #include "SaveGameManager.h"
+#include "BaseSphere.h"
 #include "Json.h"
 #include "Game.h"
+#include "core/StringUtils.h"
+#include "pigui/PiGui.h"
+#include "lua/LuaEvent.h"
 
 #include "doctest.h"
 
@@ -17,15 +21,26 @@ class TestLoop : public Application::Lifecycle {
 		CHECK(rootNode.is_object());
 
 		Pi::game = new Game(rootNode);
+		Pi::game->SetTimeAccel(Game::TIMEACCEL_10000X);
+		LuaEvent::Queue("onGameStart");
+		LuaEvent::Emit();
 
 	}
 	void Update(float deltaTime) override
 	{
 		++m_counter;
-		std::cout << "COUNTER:" << m_counter << std::endl;
-		if (m_counter > 500) {
+		auto step = Pi::game->GetTimeStep();
+		std::cout << "COUNTER:" << m_counter << " TIME: " << format_date(Pi::game->GetTime()) << " TIMESTEP: " << step << std::endl;
+		if (m_counter > 100) {
 			RequestEndLifecycle();
 		}
+		Pi::game->TimeStep(step);
+		BaseSphere::UpdateAllBaseSphereDerivatives();
+		Pi::pigui->NewFrame();
+		PiGui::EmitEvents();
+		PiGui::RunHandler(deltaTime, "game");
+		Pi::pigui->Render();
+
 	}
 	void End() override
 	{
