@@ -22,21 +22,31 @@ class TestLoop : public Application::Lifecycle {
 
 		Pi::game = new Game(rootNode);
 		Pi::game->SetTimeAccel(Game::TIMEACCEL_10000X);
+		LuaEvent::Clear();
 		LuaEvent::Queue("onGameStart");
 		LuaEvent::Emit();
 
+
+		// std::cout << "EVENTS: ";
+		// for (LuaTable::VecIter<ScopedTable> it = queue.Begin<ScopedTable>(); it != queue.End<ScopedTable>(); ++it) {
+		// 	std::cout << it->Get<std::string>("name") << " ";
+		// }
 	}
 	void Update(float deltaTime) override
 	{
 		++m_counter;
 		auto step = Pi::game->GetTimeStep();
 		std::cout << "COUNTER:" << m_counter << " TIME: " << format_date(Pi::game->GetTime()) << " TIMESTEP: " << step << std::endl;
-		if (m_counter > 100) {
+		if (m_counter == 70) {
+			Pi::game->SetTimeAccel(Game::TIMEACCEL_1000X);
+		}
+		if (m_counter > 400) {
 			RequestEndLifecycle();
 		}
 		Pi::game->TimeStep(step);
 		BaseSphere::UpdateAllBaseSphereDerivatives();
 		Pi::pigui->NewFrame();
+        // DetectCrash();
 		PiGui::EmitEvents();
 		PiGui::RunHandler(deltaTime, "game");
 		Pi::pigui->Render();
@@ -45,6 +55,20 @@ class TestLoop : public Application::Lifecycle {
 	void End() override
 	{
 		std::cout << "END TESTLOOP" << std::endl;
+	}
+
+	// don't work mostly, queue fills and empties mostly in Game::TimeStep
+	void DetectCrash()
+	{
+		const LuaRef &queueRef = LuaEvent::GetEventQueue();
+		auto queue = ScopedTable(queueRef);
+
+		std::cout << "QUEUE SIZE:" << queue.Size() << std::endl;
+
+		for (int i = 0; i < queue.Size(); ++i) {
+			const ScopedTable &t = queue.Sub(i + 1);
+			std::cout << "  event: " << t.Get<std::string>("name") << std::endl;
+		}
 	}
 
 	int m_counter;
