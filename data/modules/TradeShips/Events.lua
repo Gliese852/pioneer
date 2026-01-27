@@ -105,6 +105,7 @@ local onShipDocked = function (ship, starport)
 
 	trader.route = nil
 	Core.log:add(ship, 'Docked with '..starport.label)
+	print("OH_YES " .. ship.label .. ' Docked with ' .. starport.label)
 
 	if trader.status == 'fleeing' then
 		trader['status'] = 'cowering'
@@ -283,6 +284,7 @@ local onShipDestroyed = function (ship, attacker)
 	if Core.ships[ship] ~= nil then
 		local trader = Core.ships[ship]
 		Core.log:add(ship, 'Destroyed by '..attacker.label..', status:'..trader.status..' starport:'..(trader.starport and trader.starport.label or 'N/A'))
+		print('OH_NO ' .. ship.label .. ' Destroyed by '..attacker.label..', status:'..trader.status..' starport:'..(trader.starport and trader.starport.label or 'N/A'))
 		Core.ships[ship] = nil
 		-- XXX consider spawning some CargoBodies if killed by a ship
 	elseif Core.attackers.check(attacker) then
