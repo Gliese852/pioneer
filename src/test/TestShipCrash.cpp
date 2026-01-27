@@ -37,10 +37,10 @@ class TestLoop : public Application::Lifecycle {
 		++m_counter;
 		auto step = Pi::game->GetTimeStep();
 		std::cout << "COUNTER:" << m_counter << " TIME: " << format_date(Pi::game->GetTime()) << " TIMESTEP: " << step << std::endl;
-		if (m_counter == 70) {
-			Pi::game->SetTimeAccel(Game::TIMEACCEL_1000X);
+		if (m_counter == 32) {
+			// Pi::game->SetTimeAccel(Game::TIMEACCEL_100X);
 		}
-		if (m_counter > 400) {
+		if (m_counter > 100) {
 			RequestEndLifecycle();
 		}
 		Pi::game->TimeStep(step);
