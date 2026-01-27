@@ -1095,6 +1095,28 @@ void Space::TimeStep(float step)
 		b->TimeStepUpdate(step);
 	}
 
+	std::string testee = "OU-4809";
+
+	for (Body *b : m_bodies) {
+		if (b->GetType() != ObjectType::SHIP) continue;
+		auto s = static_cast<Ship*>(b);
+		if (s->GetLabel() != testee) continue;
+
+		std::cout << "   HAS testee " << testee;
+
+		auto f = Frame::GetFrame(s->GetFrame());
+		auto fb = f->GetBody();
+
+		if (!fb) {
+			std::cout << " no frame body" << std::endl;
+			continue;
+		}
+
+		auto h = s->GetAltitudeRelTo(fb);
+
+		std::cout << " frame body: " << fb->GetLabel() << " rot: " << f->IsRotFrame() << " alt: " << h << std::endl;
+	}
+
 	LuaEvent::Emit();
 	Pi::luaTimer->Tick();
 
