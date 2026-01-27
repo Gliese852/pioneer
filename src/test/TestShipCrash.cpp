@@ -21,7 +21,7 @@ class TestLoop : public Application::Lifecycle {
 		CHECK(rootNode.is_object());
 
 		Pi::game = new Game(rootNode);
-		Pi::game->SetTimeAccel(Game::TIMEACCEL_10000X);
+		Pi::game->SetTimeAccel(Game::TIMEACCEL_100X);
 		LuaEvent::Clear();
 		LuaEvent::Queue("onGameStart");
 		LuaEvent::Emit();
@@ -36,11 +36,8 @@ class TestLoop : public Application::Lifecycle {
 	{
 		++m_counter;
 		auto step = Pi::game->GetTimeStep();
-		std::cout << "COUNTER:" << m_counter << " TIME: " << format_date(Pi::game->GetTime()) << " TIMESTEP: " << step << std::endl;
-		if (m_counter == 32) {
-			// Pi::game->SetTimeAccel(Game::TIMEACCEL_100X);
-		}
-		if (m_counter > 100) {
+		std::cout << "COUNTER:" << m_counter << " TIME: " << format_date(Pi::game->GetTime()) << " TIMESTEP: " << step << "    ";
+		if (m_counter > 7500) {
 			RequestEndLifecycle();
 		}
 		Pi::game->TimeStep(step);
