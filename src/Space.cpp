@@ -1058,6 +1058,43 @@ static void CollideWithTerrain(Body *body, float timeStep)
 	hitCallback(&c);
 }
 
+static Game::TimeAccel max_time_accel_for_body(Body *b)
+{
+	if (!b->IsType(ObjectType::SHIP)) return Game::TIMEACCEL_MAX;
+	auto s = static_cast<Ship*>(b);
+	if (s->GetFlightState() != Ship::FLYING) return Game::TIMEACCEL_MAX;
+
+	auto f = Frame::GetFrame(s->GetFrame());
+	auto fb = f->GetBody();
+
+	double h;
+
+	if (f) {
+		h = s->GetAltitudeRelTo(fb);
+	} else {
+		h = f->GetPosition().Length();
+	}
+
+	if (h > 1'000'000) return Game::TIMEACCEL_MAX;
+	if (h >   300'000) return Game::TIMEACCEL_10000X;
+	if (h >    50'000) return Game::TIMEACCEL_1000X;
+
+	return Game::TIMEACCEL_100X;
+}
+
+void log_ship(Ship *s) {
+	auto f = Frame::GetFrame(s->GetFrame());
+	auto fb = f->GetBody();
+
+	if (!fb) {
+		std::cout << " no frame body" << std::endl;
+		return;
+	}
+
+	auto h = s->GetAltitudeRelTo(fb);
+	std::cout << " frame body: " << fb->GetLabel() << " rot: " << f->IsRotFrame() << " alt: " << h << " max time:" << max_time_accel_for_body(s) << std::endl;
+}
+
 void Space::TimeStep(float step)
 {
 	PROFILE_SCOPED()
@@ -1076,46 +1113,67 @@ void Space::TimeStep(float step)
 	for (Body *b : m_bodies)
 		b->UpdateFrame();
 
-	// AI acts here, then move all bodies and frames
-	// NOTE: The AI can add bodies here so we can't use an iterator
-	// this restores the previous version where only the initial list is
-	// updated unless the bodies vector reallocated where anything could
-	// have happened
-	// alternative fixes to delay addition caused
-	// https://github.com/pioneerspacesim/pioneer/issues/5695
-	//
-	// THIS IS A HACK/WORKAROUND until a more proper solution can be found
+	auto gameAccel = m_game->GetTimeAccel();
+	int sub = 0;
+	int noSub = 0;
+
+	std::string testee = "OU-4809";
+
 	for (size_t i = 0; i < m_bodies.size(); ++i) {
 		auto b = m_bodies[i];
-		b->StaticUpdate(step);
+		auto ta = max_time_accel_for_body(b);
+		if (ta >= gameAccel) {
+			b->SetOnSubStep(false);
+			++ noSub;
+			// AI acts here, then move all bodies and frames
+			// NOTE: The AI can add bodies here so we can't use an iterator
+			// this restores the previous version where only the initial list is
+			// updated unless the bodies vector reallocated where anything could
+			// have happened
+			// alternative fixes to delay addition caused
+			// https://github.com/pioneerspacesim/pioneer/issues/5695
+			//
+			// THIS IS A HACK/WORKAROUND until a more proper solution can be found
+			b->StaticUpdate(step);
+		} else {
+			// still no more than 100 substeps
+			auto substeps = pow(10, Clamp(gameAccel - ta, 1, 2));
+			auto substep = step/substeps;
+			b->SetOnSubStep(true);
+			for (int i = 0; i < substeps; ++i) {
+				b->StaticUpdate(substep);
+				b->TimeStepUpdate(substep);
+
+				if (b->GetLabel() == testee) {
+					std::cout << "   SUBSTEP ";
+					log_ship(static_cast<Ship*>(b));
+				}
+
+			}
+			++sub;
+		}
 	}
 	Frame::UpdateOrbitRails(m_game->GetTime(), m_game->GetTimeStep());
 
 	for (Body *b : m_bodies) {
-		b->TimeStepUpdate(step);
+		if (!b->IsOnSubStep()) b->TimeStepUpdate(step);
 	}
 
-	std::string testee = "OU-4809";
+
+	bool found = false;
 
 	for (Body *b : m_bodies) {
 		if (b->GetType() != ObjectType::SHIP) continue;
 		auto s = static_cast<Ship*>(b);
 		if (s->GetLabel() != testee) continue;
 
+		found = true;
 		std::cout << "   HAS testee " << testee;
 
-		auto f = Frame::GetFrame(s->GetFrame());
-		auto fb = f->GetBody();
-
-		if (!fb) {
-			std::cout << " no frame body" << std::endl;
-			continue;
-		}
-
-		auto h = s->GetAltitudeRelTo(fb);
-
-		std::cout << " frame body: " << fb->GetLabel() << " rot: " << f->IsRotFrame() << " alt: " << h << std::endl;
+		log_ship(s);
 	}
+
+	if (!found) std::cout << " no testee" << std::endl;
 
 	LuaEvent::Emit();
 	Pi::luaTimer->Tick();
