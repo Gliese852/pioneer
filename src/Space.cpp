@@ -24,6 +24,8 @@
 #include "galaxy/Galaxy.h"
 #include "lua/LuaEvent.h"
 #include "lua/LuaTimer.h"
+#include "ShipAICmd.h"
+#include "EnumStrings.h"
 
 #include "profiler/Profiler.h"
 
@@ -1082,7 +1084,7 @@ static Game::TimeAccel max_time_accel_for_body(Body *b)
 	return Game::TIMEACCEL_100X;
 }
 
-void log_ship(Ship *s) {
+void log_ship(Ship *s, Body *station) {
 	auto f = Frame::GetFrame(s->GetFrame());
 	auto fb = f->GetBody();
 
@@ -1091,13 +1093,52 @@ void log_ship(Ship *s) {
 		return;
 	}
 
+	double dist = -777;
+	double hor_dist = -666;
+
+	if (s->GetFrame() == station->GetFrame()) {
+		auto toStation = s->GetPosition() - station->GetPosition();
+		dist = toStation.Length();
+		hor_dist = (s->GetPositionRelTo(station) * station->GetOrient()).xz().Length();
+	}
+
+	auto vel = s->GetVelocity();
+
+	auto dh = vel.y;
+
+	const auto aic = s->GetAICommand();
+
+	char ai_status[5000];
+	if (aic) {
+		aic->GetStatusText(ai_status);
+	} else {
+		strcpy(ai_status, "NO_AI");
+	}
+
 	auto h = s->GetAltitudeRelTo(fb);
-	std::cout << " frame body: " << fb->GetLabel() << " rot: " << f->IsRotFrame() << " alt: " << h << " max time:" << max_time_accel_for_body(s) << std::endl;
+	std::cout << " frame body: " << fb->GetLabel() << " rot: " << f->IsRotFrame() << " alt: " << h << " dh: " << dh
+		<< " to_station: " << dist
+		<< " hor_dist: " << hor_dist
+		<< " max time:" << max_time_accel_for_body(s)
+		<< " fuel: " << s->GetFuel()
+		//<< " ai: " << EnumStrings::GetString("ShipAICmdName", aic->GetType())
+		<< " ai: " << ai_status
+		<< std::endl;
 }
 
 void Space::TimeStep(float step)
 {
 	PROFILE_SCOPED()
+
+	static Body *shanghai = nullptr;
+	if (!shanghai) {
+		for (Body *b : m_bodies) {
+			if (b->GetLabel() == "Shanghai") {
+				shanghai = b;
+				break;
+			}
+		}
+	}
 
 	if (Pi::MustRefreshBackgroundClearFlag())
 		RefreshBackground();
@@ -1113,11 +1154,13 @@ void Space::TimeStep(float step)
 	for (Body *b : m_bodies)
 		b->UpdateFrame();
 
+
 	auto gameAccel = m_game->GetTimeAccel();
 	int sub = 0;
 	int noSub = 0;
 
 	std::string testee = "OU-4809";
+
 
 	for (size_t i = 0; i < m_bodies.size(); ++i) {
 		auto b = m_bodies[i];
@@ -1141,12 +1184,13 @@ void Space::TimeStep(float step)
 			auto substep = step/substeps;
 			b->SetOnSubStep(true);
 			for (int i = 0; i < substeps; ++i) {
+				b->UpdateFrame();
 				b->StaticUpdate(substep);
 				b->TimeStepUpdate(substep);
 
 				if (b->GetLabel() == testee) {
 					std::cout << "   SUBSTEP ";
-					log_ship(static_cast<Ship*>(b));
+					log_ship(static_cast<Ship*>(b), shanghai);
 				}
 
 			}
@@ -1170,7 +1214,7 @@ void Space::TimeStep(float step)
 		found = true;
 		std::cout << "   HAS testee " << testee;
 
-		log_ship(s);
+		log_ship(s, shanghai);
 	}
 
 	if (!found) std::cout << " no testee" << std::endl;
