@@ -904,7 +904,7 @@ void AICmdFlyTo::OnDeleted(const Body *body)
 	if (m_target == body) m_target = 0;
 }
 
-void AICmdFlyTo::GetStatusText(char *str)
+void AICmdFlyTo::GetStatusText(char *str) const
 {
 	if (m_child)
 		m_child->GetStatusText(str);
@@ -1258,7 +1258,7 @@ void AICmdDock::OnDeleted(const Body *body)
 	if (static_cast<Body *>(m_target) == body) m_target = nullptr;
 }
 
-void AICmdDock::GetStatusText(char *str)
+void AICmdDock::GetStatusText(char *str) const
 {
 	if (m_child)
 		m_child->GetStatusText(str);
@@ -1494,7 +1494,7 @@ bool AICmdHoldPosition::TimeStepUpdate()
 	return false;
 }
 
-void AICmdFlyAround::GetStatusText(char *str)
+void AICmdFlyAround::GetStatusText(char *str) const
 {
 	if (m_child)
 		m_child->GetStatusText(str);

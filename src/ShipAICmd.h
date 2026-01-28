@@ -40,7 +40,7 @@ public:
 
 	virtual bool TimeStepUpdate() = 0;
 	bool ProcessChild(); // returns false if child is active
-	virtual void GetStatusText(char *str)
+	virtual void GetStatusText(char *str) const
 	{
 		if (m_child)
 			m_child->GetStatusText(str);
@@ -80,7 +80,7 @@ public:
 	virtual bool TimeStepUpdate();
 	AICmdDock(DynamicBody *dBody, SpaceStation *target);
 
-	virtual void GetStatusText(char *str);
+	virtual void GetStatusText(char *str) const;
 	virtual void SaveToJson(Json &jsonObj);
 	AICmdDock(const Json &jsonObj);
 	virtual void PostLoadFixup(Space *space);
@@ -124,7 +124,7 @@ public:
 	AICmdFlyTo(DynamicBody *dBody, FrameId targframeId, const vector3d &posoff, double endvel, bool tangent);
 	AICmdFlyTo(DynamicBody *dBody, Body *target);
 
-	virtual void GetStatusText(char *str);
+	virtual void GetStatusText(char *str) const;
 	virtual void SaveToJson(Json &jsonObj);
 	AICmdFlyTo(const Json &jsonObj);
 	virtual void PostLoadFixup(Space *space);
@@ -154,7 +154,7 @@ public:
 	AICmdFlyAround(DynamicBody *dBody, Body *obstructor, double relalt, int mode = 2);
 	AICmdFlyAround(DynamicBody *dBody, Body *obstructor, double alt, double vel, int mode = 1);
 
-	virtual void GetStatusText(char *str);
+	virtual void GetStatusText(char *str) const;
 	virtual void SaveToJson(Json &jsonObj);
 	AICmdFlyAround(const Json &jsonObj);
 	virtual void PostLoadFixup(Space *space);
