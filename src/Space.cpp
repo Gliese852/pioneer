@@ -1088,23 +1088,37 @@ void log_ship(Ship *s, Body *station) {
 	auto f = Frame::GetFrame(s->GetFrame());
 	auto fb = f->GetBody();
 
+	std::cout << " " << s->GetLabel();
+
 	if (!fb) {
 		std::cout << " no frame body" << std::endl;
 		return;
 	}
 
-	double dist = -777;
-	double hor_dist = -666;
+	double r_stn = -777;
+	double p_stn = -666;
 
 	if (s->GetFrame() == station->GetFrame()) {
 		auto toStation = s->GetPosition() - station->GetPosition();
-		dist = toStation.Length();
-		hor_dist = (s->GetPositionRelTo(station) * station->GetOrient()).xz().Length();
+		r_stn = toStation.Length();
+		p_stn = (s->GetPositionRelTo(station) * station->GetOrient()).xz().Length();
 	}
 
+	auto up = s->GetPosition().Normalized();
+
+	auto pitch = RAD2DEG(std::asin((-s->GetOrient().VectorZ()).Dot(up)));
+	auto roll = RAD2DEG(std::asin(s->GetOrient().VectorY().Dot(up)));
+
+	static std::map<Ship*, vector3d> prevVel;
+
 	auto vel = s->GetVelocity();
+	auto acc = vel - prevVel[s];
+	prevVel[s] = vel;
 
 	auto dh = vel.y;
+	auto ddh = acc.y;
+
+	auto ddp = acc.xz().Length();
 
 	const auto aic = s->GetAICommand();
 
@@ -1114,13 +1128,25 @@ void log_ship(Ship *s, Body *station) {
 	} else {
 		strcpy(ai_status, "NO_AI");
 	}
-
 	auto h = s->GetAltitudeRelTo(fb);
-	std::cout << " frame body: " << fb->GetLabel() << " rot: " << f->IsRotFrame() << " alt: " << h << " dh: " << dh
-		<< " to_station: " << dist
-		<< " hor_dist: " << hor_dist
-		<< " max time:" << max_time_accel_for_body(s)
-		<< " fuel: " << s->GetFuel()
+
+	auto thr = s->GetPropulsion()->GetActualLinThrust();
+
+	std::cout
+		// << " frame body: " << fb->GetLabel()
+		<< " rot: " << f->IsRotFrame()
+		<< " alt: " << std::setw(8) << h
+		<< " r_stn: " << std::setw(8) << r_stn
+		<< " p_stn: " << std::setw(8) << p_stn
+		<< " dh: " << std::setw(4) << dh
+		<< " ddh: " << std::setw(4) << ddh
+		<< " ddp: " << std::setw(4) << ddp
+		<< " pitch: " << std::setw(4) << pitch
+		<< " roll: " << std::setw(4) << roll
+		<< " t_up: " << thr.y
+		<< " t_fw: " << thr.z
+		// << " max time:" << max_time_accel_for_body(s)
+		// << " fuel: " << s->GetFuel()
 		//<< " ai: " << EnumStrings::GetString("ShipAICmdName", aic->GetType())
 		<< " ai: " << ai_status
 		<< std::endl;
@@ -1160,7 +1186,6 @@ void Space::TimeStep(float step)
 	int noSub = 0;
 
 	std::string testee = "OU-4809";
-
 
 	for (size_t i = 0; i < m_bodies.size(); ++i) {
 		auto b = m_bodies[i];
@@ -1212,7 +1237,6 @@ void Space::TimeStep(float step)
 		if (s->GetLabel() != testee) continue;
 
 		found = true;
-		std::cout << "   HAS testee " << testee;
 
 		log_ship(s, shanghai);
 	}
