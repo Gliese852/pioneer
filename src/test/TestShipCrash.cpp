@@ -36,7 +36,7 @@ class TestLoop : public Application::Lifecycle {
 	{
 		++m_counter;
 		auto step = Pi::game->GetTimeStep();
-		std::cout << "COUNTER:" << m_counter << " TIME: " << format_date(Pi::game->GetTime()) << " TIMESTEP: " << step << "    ";
+		std::cout << "C:" << m_counter << " T: " << format_date(Pi::game->GetTime()) << " TS: " << step << "    ";
 		if (m_counter > 7500) {
 			RequestEndLifecycle();
 		}
