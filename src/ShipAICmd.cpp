@@ -918,7 +918,7 @@ void AICmdFlyTo::GetStatusText(char *str) const
 			<< "FT: " << Frame::GetFrame(m_targframeId)->GetLabel()
 			<< " dist: " << m_dist
 			<< " state: " << m_state
-			<< m_statBuffer;
+			<< m_statBuffer << '\0';
 			//<< " tg: " << m_tangent
 		// snprintf(str, 255, "FlyTo: %s, dist %.1fkm, endvel %.1fkm/s, state %i",
 		// 	Frame::GetFrame(m_targframeId)->GetLabel().c_str(), m_posoff.Length() / 1000.0, m_endvel / 1000.0, m_state);
@@ -1026,6 +1026,7 @@ bool AICmdFlyTo::TimeStepUpdate()
 	std::stringstream log;
 	std::fill(std::begin(m_statBuffer), std::end(m_statBuffer), '\0');
 	log.rdbuf()->pubsetbuf(m_statBuffer, sizeof(m_statBuffer));
+	log << std::fixed << std::setprecision(2);
 	/* TODO: ship is used ONLY to calls
 	 * wheels, launch and flightstate, so
 	 * it is better to split them in a module
@@ -1097,6 +1098,7 @@ bool AICmdFlyTo::TimeStepUpdate()
 				std::cout << "safeAlt=" << safeAlt << " obsdist=" << obspos.Length() << " targetpos.Length()=" << targpos.Length() << std::endl;
 			}
 #endif
+			log << " SC! ang: " << ang << " tst: " << targetSideTan << " sa: " << safeAlt << " od: " << obspos.Length() << " tp: " << targpos.Length();
 
 			//Full Up and Forward thruster.
 			//Side thrust depends on relative pos of the target - not relevant for recovery but it is nice
@@ -1115,6 +1117,10 @@ bool AICmdFlyTo::TimeStepUpdate()
 		Output("Autopilot dist = %.1f, speed = %.1f, zthrust = %.2f, state = %i\n",
 			targdist, relvel.Length(), m_ship->GetLinThrusterState().z, m_state);
 #endif
+
+	log << " td: " << targdist
+		<< " rv: " << relvel.Length()
+		;
 
 	// frame switch stuff - clear children/collision state
 	if (m_frameId != m_dBody->GetFrame()) {
@@ -1258,6 +1264,7 @@ bool AICmdFlyTo::TimeStepUpdate()
 	if (body && body->IsType(ObjectType::PLANET) && m_dBody->GetPosition().LengthSqr() < 2 * erad * erad)
 		m_prop->AIFaceUpdir(m_dBody->GetPosition()); // turn bottom thruster towards planet
 
+	log << " cr: " << 0.5 * m_prop->GetAccelMin() * timestep * timestep;
 	// termination conditions: check
 	if (m_state >= 3) return true; // finished last adjustment, hopefully
 	if (m_endvel > 0.0) {
