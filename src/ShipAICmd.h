@@ -146,6 +146,7 @@ private:
 	vector3d m_reldir; // target direction relative to ship at last frame change
 	FrameId m_frameId; // last frame of ship
 	bool m_suicideRecovery;
+	char m_statBuffer[5000];
 };
 
 class AICmdFlyAround : public AICommand {
