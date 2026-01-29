@@ -1062,6 +1062,7 @@ static void CollideWithTerrain(Body *body, float timeStep)
 
 static Game::TimeAccel max_time_accel_for_body(Body *b)
 {
+	return Game::TIMEACCEL_MAX;
 	if (!b->IsType(ObjectType::SHIP)) return Game::TIMEACCEL_MAX;
 	auto s = static_cast<Ship*>(b);
 	if (s->GetFlightState() != Ship::FLYING) return Game::TIMEACCEL_MAX;
@@ -1133,18 +1134,21 @@ void log_ship(Ship *s, Body *station) {
 	auto thr = s->GetPropulsion()->GetActualLinThrust();
 
 	std::cout
+		<< std::fixed << std::setprecision(2)
 		// << " frame body: " << fb->GetLabel()
 		<< " rot: " << f->IsRotFrame()
 		<< " alt: " << std::setw(8) << h
-		<< " r_stn: " << std::setw(8) << r_stn
+		//<< " r_stn: " << std::setw(8) << r_stn
 		<< " p_stn: " << std::setw(8) << p_stn
-		<< " dh: " << std::setw(4) << dh
+		// << " dh: " << std::setw(4) << dh
 		<< " ddh: " << std::setw(4) << ddh
-		<< " ddp: " << std::setw(4) << ddp
+		// << " ddp: " << std::setw(4) << ddp
+		<< std::setprecision(1)
 		<< " pitch: " << std::setw(4) << pitch
 		<< " roll: " << std::setw(4) << roll
-		<< " t_up: " << thr.y
-		<< " t_fw: " << thr.z
+		<< std::setprecision(0)
+		<< " t_up: " << std::setw(9) << thr.y
+		<< " t_fw: " << std::setw(9) << thr.z
 		// << " max time:" << max_time_accel_for_body(s)
 		// << " fuel: " << s->GetFuel()
 		//<< " ai: " << EnumStrings::GetString("ShipAICmdName", aic->GetType())
