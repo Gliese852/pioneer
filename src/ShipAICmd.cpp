@@ -911,9 +911,18 @@ void AICmdFlyTo::GetStatusText(char *str) const
 	else if (m_target)
 		snprintf(str, 255, "Intercept: %s, dist %.1fkm, state %i",
 			m_target->GetLabel().c_str(), m_dist, m_state);
-	else
-		snprintf(str, 255, "FlyTo: %s, dist %.1fkm, endvel %.1fkm/s, state %i",
-			Frame::GetFrame(m_targframeId)->GetLabel().c_str(), m_posoff.Length() / 1000.0, m_endvel / 1000.0, m_state);
+	else {
+		std::stringstream res;
+		res.rdbuf()->pubsetbuf(str, 255);
+		res
+			<< "FT: " << Frame::GetFrame(m_targframeId)->GetLabel()
+			<< " dist: " << m_dist
+			<< " state: " << m_state
+			<< m_statBuffer;
+			//<< " tg: " << m_tangent
+		// snprintf(str, 255, "FlyTo: %s, dist %.1fkm, endvel %.1fkm/s, state %i",
+		// 	Frame::GetFrame(m_targframeId)->GetLabel().c_str(), m_posoff.Length() / 1000.0, m_endvel / 1000.0, m_state);
+	}
 }
 
 void AICmdFlyTo::PostLoadFixup(Space *space)
@@ -1014,6 +1023,9 @@ void AICmdFlyTo::SaveToJson(Json &jsonObj)
 
 bool AICmdFlyTo::TimeStepUpdate()
 {
+	std::stringstream log;
+	std::fill(std::begin(m_statBuffer), std::end(m_statBuffer), '\0');
+	log.rdbuf()->pubsetbuf(m_statBuffer, sizeof(m_statBuffer));
 	/* TODO: ship is used ONLY to calls
 	 * wheels, launch and flightstate, so
 	 * it is better to split them in a module
@@ -1053,6 +1065,9 @@ bool AICmdFlyTo::TimeStepUpdate()
 
 	Body* planetNear = Frame::GetFrame(m_dBody->GetFrame())->GetBody();
 	double targetAlt = targpos.Length();
+
+	log << " tg_dist: " << targdist;
+	log << " tg_alt: " << targetAlt;
 
 	if(planetNear) {
 		double M = planetNear->IsType(ObjectType::TERRAINBODY) ? planetNear->GetMass() : 0;
