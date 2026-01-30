@@ -1103,7 +1103,7 @@ bool AICmdFlyTo::TimeStepUpdate(float timeStep)
 			//Full Up and Forward thruster.
 			//Side thrust depends on relative pos of the target - not relevant for recovery but it is nice
 			//to be aligned with the target after surviving.
-			m_prop->SetLinThrusterState(ang < 0.05 ? vector3d(sign * targetSideTan * (1/cSideDriveRange), 1, -1) : vector3d(0.0));
+			m_prop->SetLinThrusterState(vector3d(sign * targetSideTan * (1/cSideDriveRange), 1, -1));
 
 			return false;
 		}
