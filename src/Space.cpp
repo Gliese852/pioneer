@@ -1062,7 +1062,7 @@ static void CollideWithTerrain(Body *body, float timeStep)
 
 static Game::TimeAccel max_time_accel_for_body(Body *b)
 {
-	return Game::TIMEACCEL_MAX;
+	// return Game::TIMEACCEL_MAX;
 	if (!b->IsType(ObjectType::SHIP)) return Game::TIMEACCEL_MAX;
 	auto s = static_cast<Ship*>(b);
 	if (s->GetFlightState() != Ship::FLYING) return Game::TIMEACCEL_MAX;
@@ -1078,9 +1078,9 @@ static Game::TimeAccel max_time_accel_for_body(Body *b)
 		h = f->GetPosition().Length();
 	}
 
-	if (h > 1'000'000) return Game::TIMEACCEL_MAX;
-	if (h >   300'000) return Game::TIMEACCEL_10000X;
-	if (h >    50'000) return Game::TIMEACCEL_1000X;
+	if (h > 3'000'000) return Game::TIMEACCEL_MAX;
+	if (h > 1'500'000) return Game::TIMEACCEL_10000X;
+	if (h >   200'000) return Game::TIMEACCEL_1000X;
 
 	return Game::TIMEACCEL_100X;
 }
@@ -1160,11 +1160,13 @@ void Space::TimeStep(float step)
 {
 	PROFILE_SCOPED()
 
-	static Body *shanghai = nullptr;
-	if (!shanghai) {
+	static Body *stationObj = nullptr;
+	if (!stationObj) {
 		for (Body *b : m_bodies) {
-			if (b->GetLabel() == "Shanghai") {
-				shanghai = b;
+			//if (b->GetLabel() == "Shanghai") {
+			//if (b->GetLabel() == "Mariasurīru") {
+			if (b->GetLabel() == "Gates Spaceport") {
+				stationObj = b;
 				break;
 			}
 		}
@@ -1189,7 +1191,9 @@ void Space::TimeStep(float step)
 	int sub = 0;
 	int noSub = 0;
 
-	std::string testee = "OU-4809";
+	//std::string testee = "OU-4809";
+	//std::string testee = "YK-4230";
+	std::string testee = "UV-57731";
 
 	for (size_t i = 0; i < m_bodies.size(); ++i) {
 		auto b = m_bodies[i];
@@ -1206,6 +1210,7 @@ void Space::TimeStep(float step)
 			// https://github.com/pioneerspacesim/pioneer/issues/5695
 			//
 			// THIS IS A HACK/WORKAROUND until a more proper solution can be found
+			b->SetTimeStep(step);
 			b->StaticUpdate(step);
 		} else {
 			// still no more than 100 substeps
@@ -1214,12 +1219,13 @@ void Space::TimeStep(float step)
 			b->SetOnSubStep(true);
 			for (int i = 0; i < substeps; ++i) {
 				b->UpdateFrame();
+				b->SetTimeStep(substep);
 				b->StaticUpdate(substep);
 				b->TimeStepUpdate(substep);
 
 				if (b->GetLabel() == testee) {
-					std::cout << "   SUBSTEP ";
-					log_ship(static_cast<Ship*>(b), shanghai);
+					std::cout << "                               SUBSTEP ";
+					log_ship(static_cast<Ship*>(b), stationObj);
 				}
 
 			}
@@ -1242,7 +1248,7 @@ void Space::TimeStep(float step)
 
 		found = true;
 
-		log_ship(s, shanghai);
+		log_ship(s, stationObj);
 	}
 
 	if (!found) std::cout << " no testee" << std::endl;
