@@ -132,7 +132,7 @@ void Missile::StaticUpdate(const float timeStep)
 	if (!m_curAICmd) {
 		m_propulsion->ClearLinThrusterState();
 		m_propulsion->ClearAngThrusterState();
-	} else if (m_curAICmd->TimeStepUpdate()) {
+	} else if (m_curAICmd->TimeStepUpdate(timeStep)) {
 		delete m_curAICmd;
 		m_curAICmd = nullptr;
 	}

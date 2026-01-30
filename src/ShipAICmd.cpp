@@ -82,11 +82,11 @@ void AICommand::PostLoadFixup(Space *space)
 	if (m_child) m_child->PostLoadFixup(space);
 }
 
-bool AICommand::ProcessChild()
+bool AICommand::ProcessChild(float timeStep)
 {
 	if (!m_child) return true; // no child present
 	m_child->m_is_flyto = false;
-	if (!m_child->TimeStepUpdate()) return false; // child still active
+	if (!m_child->TimeStepUpdate(timeStep)) return false; // child still active
 	m_child.reset();
 	return true; // child finished
 }
@@ -264,7 +264,7 @@ void AICmdKamikaze::PostLoadFixup(Space *space)
 	assert(m_prop != nullptr);
 }
 
-bool AICmdKamikaze::TimeStepUpdate()
+bool AICmdKamikaze::TimeStepUpdate(float timeStep)
 {
 	if (!m_target || m_target->IsDead()) return true;
 
@@ -376,7 +376,7 @@ AICmdKill::GunStats AICmdKill::GetGunStats()
 	return { data->projectile.speed * data->projectile.lifespan, data->projectile.speed };
 }
 
-bool AICmdKill::TimeStepUpdate()
+bool AICmdKill::TimeStepUpdate(float timeStep)
 {
 	if (m_dBody->IsType(ObjectType::SHIP)) {
 		Ship *ship = static_cast<Ship *>(m_dBody);
@@ -403,7 +403,7 @@ bool AICmdKill::TimeStepUpdate()
 	if(m_child) {
 		if(dist < (VICINITY_MIN + 1000.0) * (VICINITY_MIN + 1000.0)) //no sqrt on dist yet
 			m_child.reset();
-		else if (!ProcessChild())
+		else if (!ProcessChild(timeStep))
 			return false;
 	}
 
@@ -415,14 +415,14 @@ bool AICmdKill::TimeStepUpdate()
 	vector3d targdir = targpos.NormalizedSafe();
 	vector3d heading = -rot.VectorZ();
 	// Accel will be wrong for a frame on timestep changes, but it doesn't matter
-	vector3d targaccel = (m_target->GetVelocity() - m_lastVel) / Pi::game->GetTimeStep();
+	vector3d targaccel = (m_target->GetVelocity() - m_lastVel) / timeStep;
 	m_lastVel = m_target->GetVelocity(); // may need next frame
 	vector3d leaddir = m_prop->AIGetLeadDir(m_target, targaccel, stats.speed);
 
 	if (dist >= VICINITY_MIN + 1000.0) { // if really far from target, intercept
 		//		Output("%s started AUTOPILOT\n", m_ship->GetLabel().c_str());
 		m_child.reset(new AICmdFlyTo(m_dBody, m_target));
-		ProcessChild();
+		ProcessChild(timeStep);
 		return false;
 	}
 
@@ -453,7 +453,7 @@ bool AICmdKill::TimeStepUpdate()
 		float max_fire_dist = std::min(stats.range, 4000.f);
 		if (dist > max_fire_dist) m_guns->SetAllGroupsFiring(false); // temp
 	}
-	m_leadOffset += m_leadDrift * Pi::game->GetTimeStep();
+	m_leadOffset += m_leadDrift * timeStep;
 	double leadAV = (leaddir - targdir).Dot((leaddir - heading).NormalizedSafe()); // leaddir angvel
 	m_prop->AIFaceDirection((leaddir + m_leadOffset).Normalized(), leadAV);
 
@@ -712,7 +712,7 @@ static vector3d GetVelInFrame(FrameId frameId, FrameId targetId, const vector3d 
 	vector3d vel = vector3d(0.0);
 	Frame *target = Frame::GetFrame(targetId);
 	if (targetId != frameId && target->IsRotFrame()) {
-		//		double ang = Pi::game->GetTimeStep() * target->GetAngSpeed();
+		//		double ang = timeStep * target->GetAngSpeed();
 		//		vector3d newpos = offset * matrix3x3d::RotateYMatrix(ang);
 		//		vel = (newpos - offset) / Pi::game->GetTimeStep();
 		vel = -target->GetStasisVelocity(offset); // stasis velocity not accurate enough
@@ -896,7 +896,7 @@ static bool CheckSuicide(DynamicBody *dBody, const vector3d &obspos, double obsM
 	return false;
 }
 
-extern double calc_ivel(double dist, double vel, double acc);
+extern double calc_ivel(double dist, double vel, double acc, float timeStep);
 
 void AICmdFlyTo::OnDeleted(const Body *body)
 {
@@ -1021,7 +1021,7 @@ void AICmdFlyTo::SaveToJson(Json &jsonObj)
 	jsonObj["ai_command"] = aiCommandObj; // Add ai command object to supplied object.
 }
 
-bool AICmdFlyTo::TimeStepUpdate()
+bool AICmdFlyTo::TimeStepUpdate(float timeStep)
 {
 	std::stringstream log;
 	std::fill(std::begin(m_statBuffer), std::end(m_statBuffer), '\0');
@@ -1049,7 +1049,7 @@ bool AICmdFlyTo::TimeStepUpdate()
 	if (!m_target && !m_targframeId.valid()) return true; // deleted object
 
 	// generate base target pos (with vicinity adjustment) & vel
-	double timestep = Pi::game->GetTimeStep();
+	double timestep = timeStep;
 	vector3d targpos, targvel;
 	if (m_target) {
 		targpos = m_target->GetPositionRelTo(m_dBody->GetFrame());
@@ -1149,7 +1149,7 @@ bool AICmdFlyTo::TimeStepUpdate()
 		} else { // same thing for 2/3/4
 			if (!m_child) m_child.reset(new AICmdFlyAround(m_dBody, body, erad * 1.05, 0.0));
 			static_cast<AICmdFlyAround *>(m_child.get())->SetTargPos(targpos);
-			ProcessChild();
+			ProcessChild(timeStep);
 		}
 		if (coll) {
 			m_state = -coll;
@@ -1200,7 +1200,7 @@ bool AICmdFlyTo::TimeStepUpdate()
 	//	if (perpspeed < tt*0.01*m_ship->GetAccelMin()) perpspeed = 0;
 
 	// calculate target speed
-	double ispeed = (maxdecel < 1e-10) ? 0.0 : calc_ivel(targdist, m_endvel, maxdecel);
+	double ispeed = (maxdecel < 1e-10) ? 0.0 : calc_ivel(targdist, m_endvel, maxdecel, timeStep);
 
 	// cap target speed according to spare fuel remaining
 	double fuelspeed = m_prop->GetSpeedReachedWithFuel();
@@ -1365,10 +1365,10 @@ void AICmdDock::SaveToJson(Json &jsonObj)
 // 2: get data for docking end pos
 // 3: Fly to docking end pos
 
-bool AICmdDock::TimeStepUpdate()
+bool AICmdDock::TimeStepUpdate(float timeStep)
 {
 	Ship *ship = nullptr;
-	if (!ProcessChild()) return false;
+	if (!ProcessChild(timeStep)) return false;
 	if (!m_target) return true;
 
 	if (!m_dBody->IsType(ObjectType::SHIP)) return false;
@@ -1402,7 +1402,7 @@ bool AICmdDock::TimeStepUpdate()
 	double targdist = m_target->GetPositionRelTo(ship).LengthSqr();
 	if (targdist > 16000.0 * 16000.0) {
 		m_child.reset(new AICmdFlyTo(m_dBody, m_target));
-		ProcessChild();
+		ProcessChild(timeStep);
 		return false;
 	}
 
@@ -1446,7 +1446,7 @@ bool AICmdDock::TimeStepUpdate()
 
 	if (m_state == eDockFlyToStart) { // fly to first docking waypoint
 		m_child.reset(new AICmdFlyTo(m_dBody, m_target->GetFrame(), m_dockpos, 0.0, false));
-		ProcessChild();
+		ProcessChild(timeStep);
 		return false;
 	}
 
@@ -1458,7 +1458,7 @@ bool AICmdDock::TimeStepUpdate()
 	const vector3d relvel = -m_target->GetVelocityRelTo(m_dBody);
 
 	const double maxdecel = m_prop->GetAccelUp() - GetGravityAtPos(m_target->GetFrame(), m_dockpos);
-	const double ispeed = calc_ivel(relpos.Length(), 0.0, maxdecel);
+	const double ispeed = calc_ivel(relpos.Length(), 0.0, maxdecel, timeStep);
 	const vector3d vdiff = ispeed * reldir - relvel;
 	m_prop->AIChangeVelDir(vdiff * m_dBody->GetOrient());
 	if (vdiff.Dot(reldir) < 0) {
@@ -1468,7 +1468,7 @@ bool AICmdDock::TimeStepUpdate()
 	// get rotation of station for next frame
 	matrix3x3d trot = m_target->GetOrientRelTo(m_dBody->GetFrame());
 	double av = m_target->GetAngVelocity().Length();
-	double ang = av * Pi::game->GetTimeStep();
+	double ang = av * timeStep;
 	if (ang > 1e-16) {
 		vector3d axis = m_target->GetAngVelocity().Normalized();
 		trot = trot * matrix3x3d::Rotate(ang, axis);
@@ -1509,7 +1509,7 @@ AICmdHoldPosition::AICmdHoldPosition(const Json &jsonObj) :
 	assert(m_prop != nullptr);
 }
 
-bool AICmdHoldPosition::TimeStepUpdate()
+bool AICmdHoldPosition::TimeStepUpdate(float timeStep)
 {
 	// XXX perhaps try harder to move back to the original position
 	m_prop->AIMatchVel(vector3d::Zero);
@@ -1608,7 +1608,7 @@ void AICmdFlyAround::SaveToJson(Json &jsonObj)
 	jsonObj["ai_command"] = aiCommandObj; // Add ai command object to supplied object.
 }
 
-double AICmdFlyAround::MaxVel(double targdist, double targalt)
+double AICmdFlyAround::MaxVel(double targdist, double targalt, float timeStep)
 {
 	Propulsion *prop = m_dBody->GetComponent<Propulsion>();
 	assert(prop != 0);
@@ -1617,11 +1617,11 @@ double AICmdFlyAround::MaxVel(double targdist, double targalt)
 	//either use reverse accel or implement dir flipping in FlyAround
 	double vmaxprox = sqrt(2 * prop->GetAccelRev() * targdist);
 	double vmaxstep = std::max(m_alt * 0.05, m_alt - targalt);
-	vmaxstep /= Pi::game->GetTimeStep(); // limit by distance covered per timestep
+	vmaxstep /= timeStep; // limit by distance covered per timestep
 	return std::min(m_vel, std::min(vmaxprox, vmaxstep));
 }
 
-bool AICmdFlyAround::TimeStepUpdate()
+bool AICmdFlyAround::TimeStepUpdate(float timeStep)
 {
 	if (m_dBody->IsType(ObjectType::SHIP)) {
 		Ship *ship = nullptr;
@@ -1629,7 +1629,7 @@ bool AICmdFlyAround::TimeStepUpdate()
 		assert(ship != 0);
 
 		if (ship->GetFlightState() == Ship::JUMPING) return false;
-		if (!ProcessChild()) return false;
+		if (!ProcessChild(timeStep)) return false;
 
 		// Not necessary unless it's a tier 1 AI
 		if (ship->GetFlightState() == Ship::FLYING)
@@ -1643,7 +1643,7 @@ bool AICmdFlyAround::TimeStepUpdate()
 		// return false;
 	}
 
-	double timestep = Pi::game->GetTimeStep();
+	double timestep = timeStep;
 	vector3d targpos = (!m_targmode) ? m_targpos : m_dBody->GetVelocity().NormalizedSafe() * m_dBody->GetPosition().LengthSqr();
 	vector3d obspos = m_obstructor->GetPositionRelTo(m_dBody);
 	double obsdist = obspos.Length();
@@ -1663,14 +1663,14 @@ bool AICmdFlyAround::TimeStepUpdate()
 		else if (relpos.LengthSqr() < obsdist + tpos_obs.LengthSqr())
 			v = 0.0;
 		else
-			v = MaxVel((tpos_obs - tangent).Length(), tpos_obs.Length());
+			v = MaxVel((tpos_obs - tangent).Length(), tpos_obs.Length(), timeStep);
 		m_child.reset(new AICmdFlyTo(m_dBody, obsframeId, tangent, v, true));
-		ProcessChild();
+		ProcessChild(timeStep);
 		return false;
 	}
 
 	// limit m_vel by target proximity & distance covered per frame
-	double vel = (m_targmode) ? m_vel : MaxVel(targetDist, targpos.Length());
+	double vel = (m_targmode) ? m_vel : MaxVel(targetDist, targpos.Length(), timeStep);
 
 	// all calculations in ship's frame
 	vector3d fwddir = (obsdir.Cross(relpos).Cross(obsdir)).NormalizedSafe();
@@ -1685,7 +1685,7 @@ bool AICmdFlyAround::TimeStepUpdate()
 
 	// calculate target velocity
 	double alt = (tanvel * timestep + obspos).Length(); // unnecessary?
-	double ivel = calc_ivel(alt - m_alt, 0.0, m_prop->GetAccelMin());
+	double ivel = calc_ivel(alt - m_alt, 0.0, m_prop->GetAccelMin(), timeStep);
 
 	vector3d finalvel = tanvel + ivel * obsdir;
 	m_prop->AIMatchVel(finalvel);
@@ -1762,7 +1762,7 @@ void AICmdFormation::PostLoadFixup(Space *space)
 	assert(m_prop != nullptr);
 }
 
-bool AICmdFormation::TimeStepUpdate()
+bool AICmdFormation::TimeStepUpdate(float timeStep)
 {
 	if (m_dBody->IsType(ObjectType::SHIP)) {
 		Ship *ship = static_cast<Ship *>(m_dBody);
@@ -1777,13 +1777,13 @@ bool AICmdFormation::TimeStepUpdate()
 		}
 	}
 	if (!m_target) return true;
-	if (!ProcessChild()) return false; // In case we're doing an intercept
+	if (!ProcessChild(timeStep)) return false; // In case we're doing an intercept
 
 	// if too far away, do an intercept first
 	// TODO: adjust distance cap by timestep so we don't bounce?
 	if (m_target->GetPositionRelTo(m_dBody).Length() > 30000.0) {
 		m_child.reset(new AICmdFlyTo(m_dBody, m_target));
-		ProcessChild();
+		ProcessChild(timeStep);
 		return false;
 	}
 
@@ -1796,12 +1796,12 @@ bool AICmdFormation::TimeStepUpdate()
 	// adjust for target acceleration
 	matrix3x3d forient = Frame::GetFrame(m_target->GetFrame())->GetOrientRelTo(m_dBody->GetFrame());
 	vector3d targaccel = forient * m_target->GetLastForce() / m_target->GetMass();
-	relvel -= targaccel * Pi::game->GetTimeStep();
+	relvel -= targaccel * timeStep;
 	double maxdecel = m_prop->GetAccelFwd() + targaccel.Dot(reldir);
 	if (maxdecel < 0.0) maxdecel = 0.0;
 
 	// linear thrust
-	double ispeed = calc_ivel(targdist, 0.0, maxdecel);
+	double ispeed = calc_ivel(targdist, 0.0, maxdecel, timeStep);
 	vector3d vdiff = ispeed * reldir - relvel;
 	m_prop->AIChangeVelDir(vdiff * m_dBody->GetOrient());
 	if (m_target->IsType(ObjectType::SHIP)) {

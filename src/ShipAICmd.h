@@ -38,8 +38,8 @@ public:
 	}
 	virtual ~AICommand() {}
 
-	virtual bool TimeStepUpdate() = 0;
-	bool ProcessChild(); // returns false if child is active
+	virtual bool TimeStepUpdate(float timeStep) = 0;
+	bool ProcessChild(float timeStep); // returns false if child is active
 	virtual void GetStatusText(char *str) const
 	{
 		if (m_child)
@@ -77,7 +77,7 @@ protected:
 
 class AICmdDock : public AICommand {
 public:
-	virtual bool TimeStepUpdate();
+	virtual bool TimeStepUpdate(float timeStep);
 	AICmdDock(DynamicBody *dBody, SpaceStation *target);
 
 	virtual void GetStatusText(char *str) const;
@@ -120,7 +120,7 @@ private:
 
 class AICmdFlyTo : public AICommand {
 public:
-	virtual bool TimeStepUpdate();
+	virtual bool TimeStepUpdate(float timeStep);
 	AICmdFlyTo(DynamicBody *dBody, FrameId targframeId, const vector3d &posoff, double endvel, bool tangent);
 	AICmdFlyTo(DynamicBody *dBody, Body *target);
 
@@ -151,7 +151,7 @@ private:
 
 class AICmdFlyAround : public AICommand {
 public:
-	virtual bool TimeStepUpdate();
+	virtual bool TimeStepUpdate(float timeStep);
 	AICmdFlyAround(DynamicBody *dBody, Body *obstructor, double relalt, int mode = 2);
 	AICmdFlyAround(DynamicBody *dBody, Body *obstructor, double alt, double vel, int mode = 1);
 
@@ -174,7 +174,7 @@ public:
 
 protected:
 	void Setup(Body *obstructor, double alt, double vel, int mode);
-	double MaxVel(double targdist, double targalt);
+	double MaxVel(double targdist, double targalt, float timeStep);
 
 private:
 	Body *m_obstructor;	   // body to fly around
@@ -186,7 +186,7 @@ private:
 
 class AICmdKill : public AICommand {
 public:
-	virtual bool TimeStepUpdate();
+	virtual bool TimeStepUpdate(float timeStep);
 	AICmdKill(DynamicBody *dBody, Ship *target);
 	AICmdKill(const Json &jsonObj);
 
@@ -217,7 +217,7 @@ private:
 
 class AICmdKamikaze : public AICommand {
 public:
-	virtual bool TimeStepUpdate();
+	virtual bool TimeStepUpdate(float timeStep);
 	AICmdKamikaze(DynamicBody *dBody, Body *target);
 
 	virtual void SaveToJson(Json &jsonObj);
@@ -234,14 +234,14 @@ private:
 
 class AICmdHoldPosition : public AICommand {
 public:
-	virtual bool TimeStepUpdate();
+	virtual bool TimeStepUpdate(float timeStep);
 	AICmdHoldPosition(DynamicBody *dBody);
 	AICmdHoldPosition(const Json &jsonObj);
 };
 
 class AICmdFormation : public AICommand {
 public:
-	virtual bool TimeStepUpdate();
+	virtual bool TimeStepUpdate(float timeStep);
 	AICmdFormation(DynamicBody *dBody, DynamicBody *target, const vector3d &posoff);
 
 	void GetStatusText(char *str);
