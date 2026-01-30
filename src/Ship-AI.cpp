@@ -29,7 +29,7 @@ bool Ship::AITimeStep(float timeStep)
 		return true;
 	}
 
-	if (m_curAICmd->TimeStepUpdate()) {
+	if (m_curAICmd->TimeStepUpdate(timeStep)) {
 		AIClearInstructions();
 		//		ClearThrusterState();		// otherwise it does one timestep at 10k and gravity is fatal
 		LuaEvent::Queue("onAICompleted", this, EnumStrings::GetString("ShipAIError", AIMessage()));

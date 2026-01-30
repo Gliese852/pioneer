@@ -107,6 +107,8 @@ public:
 	virtual void StaticUpdate(const float timeStep) {}
 	virtual void TimeStepUpdate(const float timeStep) {}
 	virtual void Render(Graphics::Renderer *r, const Camera *camera, const vector3d &viewCoords, const matrix4x4d &viewTransform) = 0;
+	float GetTimeStep() const { return m_timeStep; }
+	void SetTimeStep(float timeStep) { m_timeStep = timeStep; }
 
 	virtual void SetFrame(FrameId f) { m_frame = f; }
 	FrameId GetFrame() const { return m_frame; }
@@ -245,6 +247,7 @@ private:
 	double m_clipRadius;
 	double m_physRadius;
 	bool m_onSubStep;
+	float m_timeStep;
 };
 
 #endif /* _BODY_H */

@@ -260,7 +260,7 @@ void Propulsion::AIAccelToModelRelativeVelocity(const vector3d &v)
 {
 	vector3d difVel = v - m_dBody->GetVelocity() * m_dBody->GetOrient(); // required change in velocity
 	vector3d maxThrust = GetThrust(difVel);
-	vector3d maxFrameAccel = maxThrust * (Pi::game->GetTimeStep() / m_dBody->GetMass());
+	vector3d maxFrameAccel = maxThrust * (m_dBody->GetTimeStep() / m_dBody->GetMass());
 
 	SetLinThrusterState(0, is_zero_exact(maxFrameAccel.x) ? 0.0 : difVel.x / maxFrameAccel.x);
 	SetLinThrusterState(1, is_zero_exact(maxFrameAccel.y) ? 0.0 : difVel.y / maxFrameAccel.y);
@@ -284,7 +284,7 @@ void Propulsion::AIAccelToModelRelativeVelocity(const vector3d &v)
 // sometimes endvel is too low to catch moving objects
 // worked around with half-accel hack in dynamicbody & pi.cpp
 
-double calc_ivel(double dist, double vel, double acc)
+double calc_ivel(double dist, double vel, double acc, float timeStep)
 {
 	bool inv = false;
 	if (dist < 0) {
@@ -294,9 +294,9 @@ double calc_ivel(double dist, double vel, double acc)
 	}
 	double ivel = 0.9 * sqrt(vel * vel + 2.0 * acc * dist); // fudge hardly necessary
 
-	double endvel = ivel - (acc * Pi::game->GetTimeStep());
+	double endvel = ivel - (acc * timeStep);
 	if (endvel <= 0.0)
-		ivel = dist / Pi::game->GetTimeStep(); // last frame discrete correction
+		ivel = dist / timeStep; // last frame discrete correction
 	else
 		ivel = (ivel + endvel) * 0.5; // discrete overshoot correction
 	//	else ivel = endvel + 0.5*acc/PHYSICS_HZ;                  // unknown next timestep discrete overshoot correction
@@ -305,13 +305,13 @@ double calc_ivel(double dist, double vel, double acc)
 }
 
 // version for all-positive values
-double calc_ivel_pos(double dist, double vel, double acc)
+double calc_ivel_pos(double dist, double vel, double acc, float timeStep)
 {
 	double ivel = 0.9 * sqrt(vel * vel + 2.0 * acc * dist); // fudge hardly necessary
 
-	double endvel = ivel - (acc * Pi::game->GetTimeStep());
+	double endvel = ivel - (acc * timeStep);
 	if (endvel <= 0.0)
-		ivel = dist / Pi::game->GetTimeStep(); // last frame discrete correction
+		ivel = dist / timeStep; // last frame discrete correction
 	else
 		ivel = (ivel + endvel) * 0.5; // discrete overshoot correction
 
@@ -331,11 +331,11 @@ bool Propulsion::AIMatchVel(const vector3d &vel, const vector3d &powerLimit)
 bool Propulsion::AIChangeVelBy(const vector3d &diffvel, const vector3d &powerLimit)
 {
 	// counter external forces
-	vector3d extf = m_dBody->GetExternalForce() * (Pi::game->GetTimeStep() / m_dBody->GetMass());
+	vector3d extf = m_dBody->GetExternalForce() * (m_dBody->GetTimeStep() / m_dBody->GetMass());
 	vector3d diffvel2 = diffvel - extf * m_dBody->GetOrient();
 
 	vector3d maxThrust = GetThrust(diffvel2);
-	vector3d maxFrameAccel = maxThrust * (Pi::game->GetTimeStep() / m_dBody->GetMass());
+	vector3d maxFrameAccel = maxThrust * (m_dBody->GetTimeStep() / m_dBody->GetMass());
 	vector3d thrust(
 		Clamp(diffvel2.x / maxFrameAccel.x, -powerLimit.x, powerLimit.x),
 		Clamp(diffvel2.y / maxFrameAccel.y, -powerLimit.y, powerLimit.y),
@@ -351,7 +351,7 @@ vector3d Propulsion::AIChangeVelDir(const vector3d &reqdiffvel)
 	// get max thrust in desired direction after external force compensation
 	vector3d maxthrust = GetThrust(reqdiffvel);
 	maxthrust += m_dBody->GetExternalForce() * m_dBody->GetOrient();
-	vector3d maxFA = maxthrust * (Pi::game->GetTimeStep() / m_dBody->GetMass());
+	vector3d maxFA = maxthrust * (m_dBody->GetTimeStep() / m_dBody->GetMass());
 	maxFA.x = fabs(maxFA.x);
 	maxFA.y = fabs(maxFA.y);
 	maxFA.z = fabs(maxFA.z);
@@ -370,7 +370,7 @@ vector3d Propulsion::AIChangeVelDir(const vector3d &reqdiffvel)
 void Propulsion::AIMatchAngVelObjSpace(const vector3d &angvel, const vector3d &powerLimit, bool ignoreZeroValues)
 {
 	double maxAccel = m_angThrust / m_dBody->GetAngularInertia();
-	double invFrameAccel = 1.0 / maxAccel / Pi::game->GetTimeStep();
+	double invFrameAccel = 1.0 / maxAccel / m_dBody->GetTimeStep();
 
 	vector3d currAngVel = m_dBody->GetAngVelocity() * m_dBody->GetOrient();
 	vector3d diff;
@@ -392,7 +392,7 @@ void Propulsion::AIMatchAngVelObjSpace(const vector3d &angvel, const vector3d &p
 double Propulsion::AIFaceUpdir(const vector3d &updir, double av)
 {
 	double maxAccel = m_angThrust / m_dBody->GetAngularInertia(); // should probably be in stats anyway
-	double frameAccel = maxAccel * Pi::game->GetTimeStep();
+	double frameAccel = maxAccel * m_dBody->GetTimeStep();
 
 	vector3d uphead = updir * m_dBody->GetOrient(); // create desired object-space updir
 	if (uphead.z > 0.99999) return 0;				// bail out if facing updir
@@ -402,7 +402,7 @@ double Propulsion::AIFaceUpdir(const vector3d &updir, double av)
 	double ang = 0.0, dav = 0.0;
 	if (uphead.y < 0.99999999) {
 		ang = acos(Clamp(uphead.y, -1.0, 1.0));					 // scalar angle from head to curhead
-		double iangvel = av + calc_ivel_pos(ang, 0.0, maxAccel); // ideal angvel at current time
+		double iangvel = av + calc_ivel_pos(ang, 0.0, maxAccel, m_dBody->GetTimeStep()); // ideal angvel at current time
 
 		dav = uphead.x > 0 ? -iangvel : iangvel;
 	}
@@ -428,7 +428,7 @@ double Propulsion::AIFaceDirection(const vector3d &dir, double av)
 	double ang = 0.0;
 	if (head.z > -0.99999999) {
 		ang = acos(Clamp(-head.z, -1.0, 1.0));					 // scalar angle from head to curhead
-		double iangvel = av + calc_ivel_pos(ang, 0.0, maxAccel); // ideal angvel at current time
+		double iangvel = av + calc_ivel_pos(ang, 0.0, maxAccel, m_dBody->GetTimeStep()); // ideal angvel at current time
 
 		// Normalize (head.x, head.y) to give desired angvel direction
 		if (head.z > 0.999999) head.x = 1.0;
@@ -437,7 +437,7 @@ double Propulsion::AIFaceDirection(const vector3d &dir, double av)
 		dav.y = -head.x * head2dnorm * iangvel;
 	}
 	const vector3d cav = m_dBody->GetAngVelocity() * m_dBody->GetOrient(); // current obj-rel angvel
-	const double frameAccel = maxAccel * Pi::game->GetTimeStep();
+	const double frameAccel = maxAccel * m_dBody->GetTimeStep();
 	vector3d diff = is_zero_exact(frameAccel) ? vector3d(0.0) : (dav - cav) / frameAccel; // find diff between current & desired angvel
 
 	// If the player is pressing a roll key, don't override roll.
