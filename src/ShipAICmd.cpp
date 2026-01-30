@@ -1100,10 +1100,20 @@ bool AICmdFlyTo::TimeStepUpdate(float timeStep)
 #endif
 			log << " SC! ang: " << ang << " tst: " << targetSideTan << " sa: " << safeAlt << " od: " << obspos.Length() << " tp: " << targpos.Length();
 
+			vector3d thrustDir = updir * m_dBody->GetOrient();
+			vector3d maxThrust = m_prop->GetThrust(thrustDir);
+			vector3d thrust{ thrustDir.x / maxThrust.x, thrustDir.y / maxThrust.y, thrustDir.z / maxThrust.z };
+			double invScale = std::max(abs(thrust.x),
+									   std::max(abs(thrust.y),
+												abs(thrust.z)));
+			thrust /= invScale;
+
+			log << "thr: " << thrust.x << " " << thrust.y << " " << thrust.z;
+
 			//Full Up and Forward thruster.
 			//Side thrust depends on relative pos of the target - not relevant for recovery but it is nice
 			//to be aligned with the target after surviving.
-			m_prop->SetLinThrusterState(vector3d(sign * targetSideTan * (1/cSideDriveRange), 1, -1));
+			m_prop->SetLinThrusterState(thrust);
 
 			return false;
 		}
