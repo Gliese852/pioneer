@@ -1165,7 +1165,8 @@ void Space::TimeStep(float step)
 		for (Body *b : m_bodies) {
 			//if (b->GetLabel() == "Shanghai") {
 			//if (b->GetLabel() == "Mariasurīru") {
-			if (b->GetLabel() == "Gates Spaceport") {
+			if (b->GetLabel() == "Cydonia") {
+			//if (b->GetLabel() == "Gates Spaceport") {
 				stationObj = b;
 				break;
 			}
@@ -1193,7 +1194,8 @@ void Space::TimeStep(float step)
 
 	//std::string testee = "OU-4809";
 	//std::string testee = "YK-4230";
-	std::string testee = "UV-57731";
+	//std::string testee = "UV-57731";
+	std::string testee = "AM-5458";
 
 	for (size_t i = 0; i < m_bodies.size(); ++i) {
 		auto b = m_bodies[i];
