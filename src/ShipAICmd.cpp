@@ -1021,6 +1021,12 @@ void AICmdFlyTo::SaveToJson(Json &jsonObj)
 	jsonObj["ai_command"] = aiCommandObj; // Add ai command object to supplied object.
 }
 
+std::basic_ostream<char, std::char_traits<char>> &operator<<(std::basic_ostream<char, std::char_traits<char>> &log, vector3d v)
+{
+	log << v.x << " " << v.y << " " << v.z;
+	return log;
+}
+
 bool AICmdFlyTo::TimeStepUpdate(float timeStep)
 {
 	std::stringstream log;
@@ -1108,7 +1114,9 @@ bool AICmdFlyTo::TimeStepUpdate(float timeStep)
 												abs(thrust.z)));
 			thrust /= invScale;
 
-			log << "thr: " << thrust.x << " " << thrust.y << " " << thrust.z;
+			log << " tdr: " << thrustDir;
+			log << " mth: " << maxThrust;
+			log << " thr: " << thrust;
 
 			//Full Up and Forward thruster.
 			//Side thrust depends on relative pos of the target - not relevant for recovery but it is nice
