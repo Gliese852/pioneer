@@ -31,6 +31,29 @@ static std::basic_ostream<char, std::char_traits<char>> &operator<<(std::basic_o
 	return log;
 }
 
+static void log_ship(Ship *s)
+{
+	std::cout << std::endl << "THE SHIP";
+	auto f = Frame::GetFrame(s->GetFrame());
+	auto fb = f->GetBody();
+	auto fsb = f->GetSystemBody();
+
+	if (fb) {
+		std::cout << " fb: " << fb->GetLabel();
+	} else {
+		std::cout << " fb: NO";
+	}
+
+	if (fsb) {
+		std::cout << " fsb: " << fsb->GetName();
+	}
+
+	std::cout << " pos: " << s->GetPosition() << " vel: " << s->GetVelocity()
+		<< std::endl << " ori: " << std::endl << s->GetOrient();
+
+	std::cout << std::endl;
+}
+
 
 TEST_CASE("ship_thrust")
 {
@@ -38,6 +61,7 @@ TEST_CASE("ship_thrust")
 	Pi::Init(options, true);
 	Lua::Init(Pi::GetAsyncJobQueue());
 	PiGui::Lua::Init();
+	Lua::InitModules();
 	LuaEvent::Init();
 	FileSystem::Init();
 	BaseSphere::Init(Pi::renderer);
@@ -70,23 +94,16 @@ TEST_CASE("ship_thrust")
 	s->SetPosition({ 0, 0, 0 });
 	s->SetVelocity({ 0, 0, 0 });
 
-	std::cout << std::endl << "THE SHIP";
-	auto f = Frame::GetFrame(s->GetFrame());
-	auto fb = f->GetBody();
-	auto fsb = f->GetSystemBody();
+	// auto ori = s->GetOrient();
+	s->SetOrient(matrix3x3d::RotateX(DEG2RAD(45.0)));
 
-	if (fb) {
-		std::cout << " fb: " << fb->GetLabel();
-	} else {
-		std::cout << " fb: NO";
+	auto prop = s->GetPropulsion();
+	vector3d upVel{ 0, 100'000, 0 };
+	g.SetTimeAccel(Game::TIMEACCEL_1X);
+
+	for (int i = 0; i < 100; ++i) {
+		prop->AIMatchVel(upVel);
+		g.TimeStep(g.GetTimeStep());
+		log_ship(s);
 	}
-
-	if (fsb) {
-		std::cout << " fsb: " << fsb->GetName();
-	}
-
-	std::cout << " pos: " << s->GetPosition() << " vel: " << s->GetVelocity()
-		<< std::endl << " ori: " << std::endl << s->GetOrient();
-
-	std::cout << std::endl;
 }
