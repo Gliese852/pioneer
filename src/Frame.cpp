@@ -162,7 +162,7 @@ void Frame::ToJson(Json &frameObj, FrameId fId, Space *space)
 Frame::~Frame()
 {
 	if (!d.madeWithFactory) {
-		Error("Frame instance deletion outside 'DeleteFrame' [%zu]\n", m_thisId.id());
+		std::cout << "Frame instance deletion outside 'DeleteFrame'" <<  m_thisId.id() << std::endl;
 	}
 }
 
