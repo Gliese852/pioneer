@@ -16,6 +16,11 @@
 #include "Body.h"
 #include "Ship.h"
 #include "Frame.h"
+#include "ship/PlayerShipController.h"
+#include "ShipAICmd.h"
+#include "CargoBody.h"
+
+#include <iomanip>
 
 #include "doctest.h"
 
@@ -27,16 +32,26 @@ static std::basic_ostream<char, std::char_traits<char>> &operator<<(std::basic_o
 
 static std::basic_ostream<char, std::char_traits<char>> &operator<<(std::basic_ostream<char, std::char_traits<char>> &log, const matrix3x3d &m)
 {
-	log << m.VectorX() << std::endl << m.VectorY() << std::endl << m.VectorZ();
+	log << m.VectorX() << " | " << m.VectorY() << " | " << m.VectorZ();
 	return log;
 }
 
-static void log_ship(Ship *s)
+class NullAICommand : public AICommand {
+public:
+	NullAICommand(DynamicBody *db) : AICommand(db, AICommand::CMD_NONE) {}
+private:
+	bool TimeStepUpdate(float timeStep) override {
+		return false;
+	}
+};
+
+static void log_ship(Game *g, Ship *s)
 {
-	std::cout << std::endl << "THE SHIP";
+	std::cout << g->GetTime();
 	auto f = Frame::GetFrame(s->GetFrame());
 	auto fb = f->GetBody();
 	auto fsb = f->GetSystemBody();
+	auto prop = s->GetPropulsion();
 
 	if (fb) {
 		std::cout << " fb: " << fb->GetLabel();
@@ -48,8 +63,11 @@ static void log_ship(Ship *s)
 		std::cout << " fsb: " << fsb->GetName();
 	}
 
+	std::cout << " thr: " << prop->GetLinThrusterState();
+
 	std::cout << " pos: " << s->GetPosition() << " vel: " << s->GetVelocity()
-		<< std::endl << " ori: " << std::endl << s->GetOrient();
+		<< " ori: " << s->GetOrient();
+	std::cout << " grav: " << s->GetGravityForce();
 
 	std::cout << std::endl;
 }
@@ -59,6 +77,7 @@ TEST_CASE("ship_thrust")
 {
 	std::map<std::string, std::string> options;
 	Pi::Init(options, true);
+	ShipType::Init();
 	Lua::Init(Pi::GetAsyncJobQueue());
 	PiGui::Lua::Init();
 	Lua::InitModules();
@@ -90,20 +109,42 @@ TEST_CASE("ship_thrust")
 
 	assert(s);
 
+	g.TimeStep(g.GetTimeStep());
+
 	s->SetFrame(0);
 	s->SetPosition({ 0, 0, 0 });
 	s->SetVelocity({ 0, 0, 0 });
 
+	if (s->GetController()->GetType() == ShipController::PLAYER) {
+		auto psc = static_cast<PlayerShipController*>(s->GetController());
+		psc->SetLowThrustPower(0);
+	}
+
+	s->SetAICommand(new NullAICommand(s));
+
 	// auto ori = s->GetOrient();
-	s->SetOrient(matrix3x3d::RotateX(DEG2RAD(45.0)));
+	// s->SetOrient(matrix3x3d::RotateX(DEG2RAD(-45.0)));
 
 	auto prop = s->GetPropulsion();
-	vector3d upVel{ 0, 100'000, 0 };
+	vector3d upPos{ 0, 100'000, 0 };
+
+	auto l = Lua::manager->GetLuaState();
+
 	g.SetTimeAccel(Game::TIMEACCEL_1X);
 
-	for (int i = 0; i < 100; ++i) {
+	LuaEvent::Queue("onGameStart");
+	LuaEvent::Emit();
+
+	std::cout << std::endl
+		<< std::setprecision(4) << std::fixed;
+
+
+	for (int i = 0; i < 200; ++i) {
+
+		vector3d upVel{ upPos - s->GetPosition() };
 		prop->AIMatchVel(upVel);
+		prop->AIFaceDirection(upVel);
 		g.TimeStep(g.GetTimeStep());
-		log_ship(s);
+		log_ship(&g, s);
 	}
 }
