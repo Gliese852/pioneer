@@ -1253,7 +1253,7 @@ void Space::TimeStep(float step)
 		log_ship(s, stationObj);
 	}
 
-	if (!found) std::cout << " no testee" << std::endl;
+	// if (!found) std::cout << " no testee" << std::endl;
 
 	LuaEvent::Emit();
 	Pi::luaTimer->Tick();
