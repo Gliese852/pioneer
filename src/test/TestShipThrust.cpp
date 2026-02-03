@@ -45,7 +45,7 @@ private:
 	}
 };
 
-static void log_ship(Game *g, Ship *s)
+static void ship_log(Game *g, Ship *s)
 {
 	std::cout << g->GetTime();
 	auto f = Frame::GetFrame(s->GetFrame());
@@ -70,6 +70,24 @@ static void log_ship(Game *g, Ship *s)
 	std::cout << " grav: " << s->GetGravityForce();
 
 	std::cout << std::endl;
+}
+
+void ship_thrust_there(Ship *m_dBody, const vector3d &updir)
+{
+	auto m_prop = m_dBody->GetPropulsion();
+
+	vector3d thrustDir = updir * m_dBody->GetOrient();
+	vector3d maxThrust = m_prop->GetThrust(thrustDir);
+	vector3d thrust{ thrustDir.x / maxThrust.x, thrustDir.y / maxThrust.y, thrustDir.z / maxThrust.z };
+	double invScale = std::max(abs(thrust.x),
+							   std::max(abs(thrust.y),
+										abs(thrust.z)));
+	thrust /= invScale;
+
+
+	m_prop->SetLinThrusterState(thrust);
+	auto end_thr = m_prop->GetLinThrusterState();
+	std::cout << " hm, thrust: " << end_thr << " - ";
 }
 
 
@@ -123,10 +141,10 @@ TEST_CASE("ship_thrust")
 	s->SetAICommand(new NullAICommand(s));
 
 	// auto ori = s->GetOrient();
-	// s->SetOrient(matrix3x3d::RotateX(DEG2RAD(-45.0)));
+	s->SetOrient(matrix3x3d::RotateX(DEG2RAD(60.0)));
 
 	auto prop = s->GetPropulsion();
-	vector3d upPos{ 0, 100'000, 0 };
+	vector3d upVel{ 0, -100'000, 0 };
 
 	auto l = Lua::manager->GetLuaState();
 
@@ -141,10 +159,10 @@ TEST_CASE("ship_thrust")
 
 	for (int i = 0; i < 200; ++i) {
 
-		vector3d upVel{ upPos - s->GetPosition() };
-		prop->AIMatchVel(upVel);
-		prop->AIFaceDirection(upVel);
+		ship_thrust_there(s, upVel);
+		//prop->AIMatchVel(upVel);
+		// prop->AIFaceDirection(upVel);
 		g.TimeStep(g.GetTimeStep());
-		log_ship(&g, s);
+		ship_log(&g, s);
 	}
 }
