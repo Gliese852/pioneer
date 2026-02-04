@@ -345,6 +345,63 @@ bool Propulsion::AIChangeVelBy(const vector3d &diffvel, const vector3d &powerLim
 	return true;
 }
 
+static std::basic_ostream<char, std::char_traits<char>> &operator<<(std::basic_ostream<char, std::char_traits<char>> &log, const vector3d &v)
+{
+	log << v.x << " " << v.y << " " << v.z;
+	return log;
+}
+
+static std::basic_ostream<char, std::char_traits<char>> &operator<<(std::basic_ostream<char, std::char_traits<char>> &log, const matrix3x3d &m)
+{
+	log << m.VectorX() << " | " << m.VectorY() << " | " << m.VectorZ();
+	return log;
+}
+
+bool Propulsion::AIMatchVel2(const vector3d &vel, const vector3d &powerLimit)
+{
+	vector3d diffvel = (vel - m_dBody->GetVelocity()) * m_dBody->GetOrient();
+	return AIChangeVelBy2(diffvel, powerLimit);
+}
+
+bool Propulsion::AIChangeVelBy2(const vector3d &diffvel, const vector3d &powerLimit)
+{
+	std::cout << " - ";
+	// counter external forces
+	vector3d extf = m_dBody->GetExternalForce() * (m_dBody->GetTimeStep() / m_dBody->GetMass());
+	vector3d diffvel2 = diffvel - extf * m_dBody->GetOrient();
+	vector3d thrustDir = diffvel2.NormalizedSafe();
+
+	std::cout << " thrustDir: " << thrustDir;
+	//std::cout << " diffvel: " << diffvel;
+	std::cout << " diffvel2: " << diffvel2;
+
+	vector3d maxThrust = GetThrust(diffvel2);
+	vector3d ltdThrust{ maxThrust.x * powerLimit.x, maxThrust.y * powerLimit.y, maxThrust.z * powerLimit.z };
+	//std::cout << " ltdThrust: " << ltdThrust;
+	vector3d thrust0{ thrustDir.x / ltdThrust.x, thrustDir.y / ltdThrust.y, thrustDir.z / ltdThrust.z };
+	//std::cout << " thrust0: " << thrust0;
+	double invScale = std::max(abs(thrust0.x), std::max(abs(thrust0.y), abs(thrust0.z)));
+	std::cout << " is: " << invScale;
+	thrust0 /= invScale;
+	vector3d realThrust{ thrust0.x * ltdThrust.x, thrust0.y * ltdThrust.y, thrust0.z * ltdThrust.z };
+	std::cout << " rt: " << realThrust;
+
+	vector3d maxFrameAccel = realThrust * (m_dBody->GetTimeStep() / m_dBody->GetMass());
+	maxFrameAccel.x = abs(maxFrameAccel.x);
+	maxFrameAccel.y = abs(maxFrameAccel.y);
+	maxFrameAccel.z = abs(maxFrameAccel.z);
+	std::cout << " mfa: " << maxFrameAccel;
+
+	vector3d thrust(
+		Clamp(diffvel2.x, -maxFrameAccel.x, maxFrameAccel.x),
+		Clamp(diffvel2.y, -maxFrameAccel.y, maxFrameAccel.y),
+		Clamp(diffvel2.z, -maxFrameAccel.z, maxFrameAccel.z));
+	SetLinThrusterState(thrust); // use clamping
+	std::cout << " - ";
+	if (abs(diffvel2.x) > maxFrameAccel.x || abs(diffvel2.y) > maxFrameAccel.y || abs(diffvel2.z) > maxFrameAccel.z) return false;
+	return true;
+}
+
 // Change object-space velocity in direction of param
 vector3d Propulsion::AIChangeVelDir(const vector3d &reqdiffvel)
 {

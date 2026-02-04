@@ -116,6 +116,8 @@ public:
 	void AIAccelToModelRelativeVelocity(const vector3d &v);
 	bool AIMatchVel(const vector3d &vel, const vector3d &powerLimit = vector3d(1.0));
 	bool AIChangeVelBy(const vector3d &diffvel, const vector3d &powerLimit = vector3d(1.0)); // acts in object space
+	bool AIMatchVel2(const vector3d &vel, const vector3d &powerLimit = vector3d(1.0));
+	bool AIChangeVelBy2(const vector3d &diffvel, const vector3d &powerLimit = vector3d(1.0)); // acts in object space
 	vector3d AIChangeVelDir(const vector3d &diffvel);										 // object space, maintain direction
 	void AIMatchAngVelObjSpace(const vector3d &angvel, const vector3d &powerLimit = vector3d(1.0), bool ignoreZeroValues = false);
 	double AIFaceUpdir(const vector3d &updir, double av = 0);
