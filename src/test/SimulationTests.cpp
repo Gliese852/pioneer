@@ -69,6 +69,36 @@ struct fmt::formatter<matrix3x3<T>>: formatter<T> {
 class TestApp {
 
 public:
+	static TestApp &instance()
+	{
+		static TestApp a;
+		return a;
+	}
+
+	template <typename... T>
+	void log(T&& ...args)
+	{
+		if (!enableLogging) return;
+		Log::Info(std::forward<T>(args)...);
+	}
+
+	void LogShip(Ship *s)
+	{
+		auto p = s->GetPropulsion();
+		log("vel: {:.2f}  pos: {:.2f}  thr: {:.2f}  ori: {:.2f}", s->GetVelocity(), s->GetPosition(), p->GetLinThrusterState(), s->GetOrient());
+	}
+
+	void ShutDown()
+	{
+		if (!Pi::game) return;
+
+		delete(game);
+		Pi::game = nullptr;
+		Pi::GetApp()->Shutdown();
+		StringTable::Get()->Reclaim();
+	}
+
+private:
 	TestApp()
 	{
 		SDL_setenv("SDL_VIDEODRIVER", "offscreen", 1);
@@ -99,26 +129,13 @@ public:
 
 	~TestApp()
 	{
-		delete(game);
-		Pi::game = nullptr;
-		Pi::GetApp()->Shutdown();
-		StringTable::Get()->Reclaim();
+		ShutDown();
 	}
 
-	template <typename... T>
-	void log(T&& ...args)
-	{
-		if (!enableLogging) return;
-		Log::Info(std::forward<T>(args)...);
-	}
-
-	void logShip(Ship *s)
-	{
-		auto p = s->GetPropulsion();
-		log("vel: {:.2f}  pos: {:.2f}  thr: {:.2f}  ori: {:.2f}", s->GetVelocity(), s->GetPosition(), p->GetLinThrusterState(), s->GetOrient());
-	}
-
+public:
 	Game *game;
+
+private:
 	bool enableLogging = false;
 };
 
@@ -141,7 +158,7 @@ private:
 
 TEST_CASE("simulation_tests")
 {
-	TestApp app;
+	TestApp &app = TestApp::instance();
 
 	app.game->SetTimeAccel(Game::TIMEACCEL_10X);
 
@@ -178,7 +195,7 @@ TEST_CASE("simulation_tests")
 
 	for (int i = 0; i < 80; ++i) {
 
-		app.logShip(s);
+		app.LogShip(s);
 
 		app.game->TimeStep(app.game->GetTimeStep());
 
@@ -201,9 +218,9 @@ TEST_CASE("simulation_tests")
 	app.game->SetTimeAccel(Game::TIMEACCEL_10000X);
 	s->SetAICommand(new AIMatchVelCommand(s, { 0, -100, 0 }));
 
-	app.logShip(s);
+	app.LogShip(s);
 	app.game->TimeStep(app.game->GetTimeStep());
-	app.logShip(s);
+	app.LogShip(s);
 
 	CHECK(s->GetVelocity().xz().Length() < eps);
 	CHECK(s->GetPosition().xz().Length() < eps);
