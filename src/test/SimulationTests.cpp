@@ -69,6 +69,42 @@ struct fmt::formatter<matrix3x3<T>>: formatter<T> {
 class TestApp {
 
 public:
+	static TestApp &instance()
+	{
+		static TestApp a;
+		if (!a.game) {
+			throw std::runtime_error("The application has not started or is already disabled");
+		}
+		return a;
+	}
+
+	template <typename... T>
+	void log(T&& ...args)
+	{
+		if (!enableLogging) return;
+		Log::Info(std::forward<T>(args)...);
+	}
+
+	void logShip(Ship *s)
+	{
+		auto p = s->GetPropulsion();
+		log("vel: {:.2f}  pos: {:.2f}  thr: {:.2f}  ori: {:.2f}", s->GetVelocity(), s->GetPosition(), p->GetLinThrusterState(), s->GetOrient());
+	}
+
+	void shutDown()
+	{
+		if (!game) return;
+
+		delete(game);
+		game = nullptr;
+
+		Pi::game = nullptr; // Pi::App::OnShutdown asserts it
+		Pi::GetApp()->Shutdown();
+
+		StringTable::Get()->Reclaim();
+	}
+
+private:
 	TestApp()
 	{
 	   	SDL_setenv("SDL_VIDEODRIVER", "dummy", 1);
@@ -95,30 +131,20 @@ public:
 		// Gliese 852, binary system, frame 0 is gravpoint
 		SystemPath path{ -2, -4, -1, 0, 1 };
 		game = new Game(path, 0);
+
+		LuaEvent::Queue("onGameStart");
+		LuaEvent::Emit();
 	}
 
 	~TestApp()
 	{
-		delete(game);
-		Pi::game = nullptr;
-		Pi::GetApp()->Shutdown();
-		StringTable::Get()->Reclaim();
+		shutDown();
 	}
 
-	template <typename... T>
-	void log(T&& ...args)
-	{
-		if (!enableLogging) return;
-		Log::Info(std::forward<T>(args)...);
-	}
-
-	void logShip(Ship *s)
-	{
-		auto p = s->GetPropulsion();
-		log("vel: {:.2f}  pos: {:.2f}  thr: {:.2f}  ori: {:.2f}", s->GetVelocity(), s->GetPosition(), p->GetLinThrusterState(), s->GetOrient());
-	}
-
+public:
 	Game *game;
+
+private:
 	bool enableLogging = false;
 };
 
@@ -141,13 +167,12 @@ private:
 
 TEST_CASE("simulation_tests")
 {
-	TestApp app;
+	TestApp &app = TestApp::instance();
 
-	app.game->SetTimeAccel(Game::TIMEACCEL_10X);
+	auto eps = 0.001;
 
-	LuaEvent::Queue("onGameStart");
-	LuaEvent::Emit();
-
+	SUBCASE("aimatchvel")
+	{
 	Ship *s = new Ship("sinonatrix");
 	REQUIRE(s);
 
@@ -157,10 +182,6 @@ TEST_CASE("simulation_tests")
 	auto fb = Frame::GetFrame(s->GetFrame());
 	// don't want to position the test ship inside something
 	REQUIRE(fb->GetSystemBody()->GetType() == SystemBody::TYPE_GRAVPOINT);
-
-	auto eps = 0.001;
-
-	app.log("AIMatchVel - stable direction");
 
 	s->SetPosition({ 0, 0, 0 });
 	s->SetVelocity({ 0, 0, 0 });
@@ -173,6 +194,10 @@ TEST_CASE("simulation_tests")
 	app.game->TimeStep(app.game->GetTimeStep());
 
 	s->SetAICommand(new AIMatchVelCommand(s, { 0, -100, 0 }));
+
+	SUBCASE("aimatchvel_stable_direction")
+	{
+	app.game->SetTimeAccel(Game::TIMEACCEL_10X);
 
 	auto p = s->GetPropulsion();
 
@@ -193,13 +218,11 @@ TEST_CASE("simulation_tests")
 	CHECK(s->GetVelocity().xz().Length() < eps);
 	CHECK(s->GetPosition().xz().Length() < eps);
 	CHECK(abs(s->GetVelocity().y + 100) < eps);
+	}
 
-	app.log("AIMatchVel - gain speed in one frame");
-
-	s->SetPosition({ 0, 0, 0 });
-	s->SetVelocity({ 0, 0, 0 });
+	SUBCASE("aimatchvel_gain_speed_in_one_frame")
+	{
 	app.game->SetTimeAccel(Game::TIMEACCEL_10000X);
-	s->SetAICommand(new AIMatchVelCommand(s, { 0, -100, 0 }));
 
 	app.logShip(s);
 	app.game->TimeStep(app.game->GetTimeStep());
@@ -208,4 +231,14 @@ TEST_CASE("simulation_tests")
 	CHECK(s->GetVelocity().xz().Length() < eps);
 	CHECK(s->GetPosition().xz().Length() < eps);
 	CHECK(abs(s->GetVelocity().y + 100) < eps);
+	}
+
+	app.game->GetSpace()->KillBody(s);
+	app.game->TimeStep(app.game->GetTimeStep());
+	}
+
+	SUBCASE("shutdown_simulation")
+	{
+		app.shutDown();
+	}
 }
