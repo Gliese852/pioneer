@@ -198,9 +198,9 @@ Graphics::Renderer *GuiApplication::StartupRenderer(IniConfig *config, bool hidd
 	OutputVersioningInfo();
 
 	// determine what renderer we should use, default to Opengl 3.x
-	const std::string rendererName = config->String("RendererName", Graphics::RendererNameFromType(Graphics::RENDERER_OPENGL_3x));
+	const std::string rendererName = config->String("RendererName", Graphics::RendererNameFromType(Graphics::RENDERER_DUMMY));
 	// if we add new renderer types, make sure to update this logic
-	Graphics::RendererType rType = Graphics::RENDERER_OPENGL_3x;
+	Graphics::RendererType rType = Graphics::RENDERER_DUMMY;
 
 	Graphics::Settings videoSettings = {};
 	videoSettings.rendererType = rType;

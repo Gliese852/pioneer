@@ -71,7 +71,7 @@ class TestApp {
 public:
 	TestApp()
 	{
-		SDL_SetHint("SDL_VIDEODRIVER", "offscreen");
+	   	SDL_setenv("SDL_VIDEODRIVER", "dummy", 1);
 		std::map<std::string, std::string> options;
 		Pi::Init(options, true);
 
