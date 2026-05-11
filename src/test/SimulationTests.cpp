@@ -4,6 +4,7 @@
 #include "Frame.h"
 #include "Game.h"
 #include "ModelCache.h"
+#include "Missile.h"
 #include "NavLights.h"
 #include "Pi.h"
 #include "SDL_hints.h"
@@ -118,6 +119,11 @@ public:
 		log("vel: {:.2f}  pos: {:.2f}  thr: {:.2f}  ori: {:.2f}", s->GetVelocity(), s->GetPosition(), p->GetLinThrusterState(), s->GetOrient());
 	}
 
+	void logMissile(Missile *m)
+	{
+		log("vel: {:.2f}  pos: {:.2f}  ori: {:.2f}", m->GetVelocity(), m->GetPosition(), m->GetOrient());
+	}
+
 	Game *game;
 	bool enableLogging = false;
 };
@@ -208,4 +214,30 @@ TEST_CASE("simulation_tests")
 	CHECK(s->GetVelocity().xz().Length() < eps);
 	CHECK(s->GetPosition().xz().Length() < eps);
 	CHECK(abs(s->GetVelocity().y + 100) < eps);
+
+	app.log("AIMatchVel - testing unguided missile");
+
+	// test missile
+	s->SetPosition({ 0, 0, 0 });
+	s->SetVelocity({ 0, 0, 0 });
+
+	Ship *s2 = new Ship("sinonatrix");
+	REQUIRE(s2);
+	app.game->GetSpace()->AddBody(s2);
+	s->SetFrame(0);
+
+	s->SetPosition({ 0, -1000, 0 });
+	s->SetVelocity({ 0, 0, 0 });
+
+	MissileDef mdef;
+	mdef.shipType = StringName{ std::string_view{ "missile_unguided" } };
+	Missile *m = s->SpawnMissile(mdef, s2);
+
+	for (int i = 0; i < 80; ++i) {
+
+		app.logMissile(m);
+
+		app.game->TimeStep(app.game->GetTimeStep());
+	}
+
 }
