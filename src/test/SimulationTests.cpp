@@ -217,20 +217,24 @@ TEST_CASE("simulation_tests")
 
 	app.log("AIMatchVel - testing unguided missile");
 
-	// test missile
+	app.game->SetTimeAccel(Game::TIMEACCEL_10X);
+
 	s->SetPosition({ 0, 0, 0 });
 	s->SetVelocity({ 0, 0, 0 });
+	s->SetOrient(matrix3x3d::Identity);
+	s->AIClearInstructions();
 
 	Ship *s2 = new Ship("sinonatrix");
 	REQUIRE(s2);
 	app.game->GetSpace()->AddBody(s2);
-	s->SetFrame(0);
+	s2->SetFrame(0);
 
-	s->SetPosition({ 0, -1000, 0 });
-	s->SetVelocity({ 0, 0, 0 });
+	s2->SetPosition({ 0, -1000, 0 });
+	s2->SetVelocity({ 0, 0, 0 });
 
 	MissileDef mdef;
 	mdef.shipType = StringName{ std::string_view{ "missile_unguided" } };
+	// mdef.shipType = StringName{ std::string_view{ "missile_naval" } };
 	Missile *m = s->SpawnMissile(mdef, s2);
 
 	for (int i = 0; i < 80; ++i) {
