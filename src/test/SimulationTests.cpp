@@ -233,7 +233,7 @@ TEST_CASE("simulation_tests")
 	s2->SetVelocity({ 0, 0, 0 });
 
 	MissileDef mdef;
-	mdef.shipType = StringName{ std::string_view{ "missile_unguided" } };
+	mdef.shipType = StringName{ std::string_view{ "missile_guided" } };
 	// mdef.shipType = StringName{ std::string_view{ "missile_naval" } };
 	Missile *m = s->SpawnMissile(mdef, s2);
 
