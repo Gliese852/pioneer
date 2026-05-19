@@ -124,6 +124,11 @@ public:
 		log("vel: {:.2f}  pos: {:.2f}  ori: {:.2f}", m->GetVelocity(), m->GetPosition(), m->GetOrient());
 	}
 
+	bool haveInSpace(Body *b) {
+		auto bs = game->GetSpace()->GetBodies();
+		return std::find(bs.begin(), bs.end(), b) != bs.end();
+	}
+
 	Game *game;
 	bool enableLogging = false;
 };
@@ -237,7 +242,7 @@ TEST_CASE("simulation_tests")
 	// mdef.shipType = StringName{ std::string_view{ "missile_naval" } };
 	Missile *m = s->SpawnMissile(mdef, s2);
 
-	for (int i = 0; i < 80; ++i) {
+	for (int i = 0; i < 80 && app.haveInSpace(m); ++i) {
 
 		app.logMissile(m);
 
