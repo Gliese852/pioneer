@@ -344,9 +344,22 @@ bool Propulsion::AIChangeVelBy(const vector3d &diffvel, const vector3d &powerLim
 	vector3d allThrust = GetThrust(diffvel2);
 	vector3d ltdThrust{ allThrust.x * powerLimit.x, allThrust.y * powerLimit.y, allThrust.z * powerLimit.z };
 
-	assert(ltdThrust.x != 0.0 && ltdThrust.y != 0.0 && ltdThrust.z != 0.0);
+	double maxLtdThrust = std::max(ltdThrust.x, std::max(ltdThrust.y, ltdThrust.z));
 
-	vector3d invScales{ thrustDir.x / ltdThrust.x, thrustDir.y / ltdThrust.y, thrustDir.z / ltdThrust.z };
+	// no thrusters in this direction at all - maybe it’s worth turning the ship first
+	if (maxLtdThrust == 0) return false;
+
+	// some tradeoff - let's limit the influence of too weak thrusters, this
+	// may slightly distort the trajectory, but otherwise we may not move
+	// anywhere at all
+	double minLtdThrust = maxLtdThrust * 0.01;
+	vector3d clampLtdThrust{
+		std::max(ltdThrust.x, minLtdThrust),
+		std::max(ltdThrust.y, minLtdThrust),
+		std::max(ltdThrust.z, minLtdThrust)
+	};
+
+	vector3d invScales{ thrustDir.x / clampLtdThrust.x, thrustDir.y / clampLtdThrust.y, thrustDir.z / clampLtdThrust.z };
 	double invScale = std::max(abs(invScales.x), std::max(abs(invScales.y), abs(invScales.z)));
 
 	// maximum thrust levels for acceleration in exactly the right direction
