@@ -308,8 +308,10 @@ bool AICmdKamikaze::TimeStepUpdate()
 
 	m_prop->ClearLinThrusterState();
 	m_prop->ClearAngThrusterState();
-	m_prop->AIFaceDirection(targetDir);
-	m_prop->AIMatchVel(targetDir * 1000000);
+	m_prop->AIFaceDirection(accelDir);
+	m_prop->AIMatchVel(aimVel);
+
+	//printf("targetDir: x: %f y: %f z: %f\n", targetDir.x, targetDir.y, targetDir.z);
 
 	//m_prop->AIAccelToModelRelativeVelocity(aimVel * m_dBody->GetOrient());
 
