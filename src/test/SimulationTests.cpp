@@ -113,10 +113,14 @@ public:
 		Log::Info(std::forward<T>(args)...);
 	}
 
-	void logShip(Ship *s)
+	void logDBody(DynamicBody *b)
 	{
-		auto p = s->GetPropulsion();
-		log("vel: {:.2f}  pos: {:.2f}  thr: {:.2f}  ori: {:.2f}", s->GetVelocity(), s->GetPosition(), p->GetLinThrusterState(), s->GetOrient());
+		auto p = b->GetComponent<Propulsion>();
+		if (p) {
+			log("vel: {:.2f}  pos: {:.2f}  thr: {:.2f}  ori: {:.2f}", b->GetVelocity(), b->GetPosition(), p->GetLinThrusterState(), b->GetOrient());
+		} else {
+			log("vel: {:.2f}  pos: {:.2f}  ori: {:.2f}", b->GetVelocity(), b->GetPosition(), b->GetOrient());
+		}
 	}
 
 	void logMissile(Missile *m)
@@ -189,7 +193,7 @@ TEST_CASE("simulation_tests")
 
 	for (int i = 0; i < 80; ++i) {
 
-		app.logShip(s);
+		app.logDBody(s);
 
 		app.game->TimeStep(app.game->GetTimeStep());
 
@@ -212,9 +216,9 @@ TEST_CASE("simulation_tests")
 	app.game->SetTimeAccel(Game::TIMEACCEL_10000X);
 	s->SetAICommand(new AIMatchVelCommand(s, { 0, -100, 0 }));
 
-	app.logShip(s);
+	app.logDBody(s);
 	app.game->TimeStep(app.game->GetTimeStep());
-	app.logShip(s);
+	app.logDBody(s);
 
 	CHECK(s->GetVelocity().xz().Length() < eps);
 	CHECK(s->GetPosition().xz().Length() < eps);
@@ -244,7 +248,9 @@ TEST_CASE("simulation_tests")
 
 	for (int i = 0; i < 80 && app.haveInSpace(m); ++i) {
 
-		app.logMissile(m);
+		app.logDBody(m);
+
+		std::cout << i << "  ";
 
 		app.game->TimeStep(app.game->GetTimeStep());
 	}
