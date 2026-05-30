@@ -397,7 +397,7 @@ void Instance::Init(Graphics::Renderer *renderer)
 	// We will need to fill this with a valid pointer to the OpenGL context.
 	ImGui_ImplSDL2_InitForOpenGL(m_renderer->GetSDLWindow(), NULL);
 
-		m_instanceRenderer->Initialize();
+	m_instanceRenderer->Initialize();
 
 	ImGuiIO &io = ImGui::GetIO();
 	// Apply the base style

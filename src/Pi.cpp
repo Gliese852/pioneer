@@ -359,7 +359,12 @@ void Pi::App::OnStartup()
 	Pi::detail.planets = config->Int("DetailPlanets");
 	Pi::detail.cities = config->Int("DetailCities");
 
-	Graphics::RendererDummy::RegisterRenderer();
+	if (m_noGui) {
+		Graphics::RendererDummy::RegisterRenderer();
+	} else {
+		Graphics::RendererOGL::RegisterRenderer();
+	}
+
 	Pi::renderer = StartupRenderer(Pi::config, false, config->Int("DebugWindowResize"));
 
 	Pi::rng.IncRefCount(); // so nothing tries to free it
