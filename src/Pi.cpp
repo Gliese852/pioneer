@@ -361,11 +361,11 @@ void Pi::App::OnStartup()
 
 	if (m_noGui) {
 		Graphics::RendererDummy::RegisterRenderer();
+		Pi::renderer = StartupRenderer(Pi::config, Graphics::RendererType::RENDERER_DUMMY, false, config->Int("DebugWindowResize"));
 	} else {
 		Graphics::RendererOGL::RegisterRenderer();
+		Pi::renderer = StartupRenderer(Pi::config, Graphics::RendererType::RENDERER_OPENGL_3x, false, config->Int("DebugWindowResize"));
 	}
-
-	Pi::renderer = StartupRenderer(Pi::config, false, config->Int("DebugWindowResize"));
 
 	Pi::rng.IncRefCount(); // so nothing tries to free it
 	Pi::rng.seed(time(0));
