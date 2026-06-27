@@ -1099,7 +1099,7 @@ void log_ship(Ship *s, Body *station) {
 	double r_stn = -777;
 	double p_stn = -666;
 
-	if (s->GetFrame() == station->GetFrame()) {
+	if (station && s->GetFrame() == station->GetFrame()) {
 		auto toStation = s->GetPosition() - station->GetPosition();
 		r_stn = toStation.Length();
 		p_stn = (s->GetPositionRelTo(station) * station->GetOrient()).xz().Length();
@@ -1165,8 +1165,9 @@ void Space::TimeStep(float step)
 		for (Body *b : m_bodies) {
 			//if (b->GetLabel() == "Shanghai") {
 			//if (b->GetLabel() == "Mariasurīru") {
-			if (b->GetLabel() == "Cydonia") {
+			//if (b->GetLabel() == "Cydonia") {
 			//if (b->GetLabel() == "Gates Spaceport") {
+			if (b->GetLabel() == "Friedemann Station") {
 				stationObj = b;
 				break;
 			}
@@ -1195,7 +1196,7 @@ void Space::TimeStep(float step)
 	//std::string testee = "OU-4809";
 	//std::string testee = "YK-4230";
 	//std::string testee = "UV-57731";
-	std::string testee = "AM-5458";
+	std::string testee = "XR-2782";
 
 	for (size_t i = 0; i < m_bodies.size(); ++i) {
 		auto b = m_bodies[i];
@@ -1230,11 +1231,15 @@ void Space::TimeStep(float step)
 					log_ship(static_cast<Ship*>(b), stationObj);
 				}
 
+				++sub;
 			}
-			++sub;
 		}
 	}
 	Frame::UpdateOrbitRails(m_game->GetTime(), m_game->GetTimeStep());
+
+	if (m_game->GetTimeAccel() != Game::TIMEACCEL_1X) {
+		std::cout << "noSub: " << noSub << " sub: " << sub << std::endl;
+	}
 
 	for (Body *b : m_bodies) {
 		if (!b->IsOnSubStep()) b->TimeStepUpdate(step);
@@ -1244,12 +1249,13 @@ void Space::TimeStep(float step)
 	bool found = false;
 
 	for (Body *b : m_bodies) {
-		if (b->GetType() != ObjectType::SHIP) continue;
+		if (!b->IsType(ObjectType::SHIP)) continue;
 		auto s = static_cast<Ship*>(b);
 		if (s->GetLabel() != testee) continue;
 
 		found = true;
 
+		std::cout << "ts: " << step;
 		log_ship(s, stationObj);
 	}
 
