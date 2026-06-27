@@ -1060,7 +1060,7 @@ static void CollideWithTerrain(Body *body, float timeStep)
 	hitCallback(&c);
 }
 
-static Game::TimeAccel max_time_accel_for_body(Body *b)
+Game::TimeAccel max_time_accel_for_body(Body *b)
 {
 	// return Game::TIMEACCEL_MAX;
 	if (!b->IsType(ObjectType::SHIP)) return Game::TIMEACCEL_MAX;
