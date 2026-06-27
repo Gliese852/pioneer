@@ -125,11 +125,11 @@ TEST_CASE("ship_thrust")
 
 	assert(s);
 
-	g.TimeStep(g.GetTimeStep());
 
 	s->SetFrame(0);
 	s->SetPosition({ 0, 0, 0 });
 	s->SetVelocity({ 0, 0, 0 });
+
 
 	if (s->GetController()->GetType() == ShipController::PLAYER) {
 		auto psc = static_cast<PlayerShipController*>(s->GetController());
@@ -138,15 +138,18 @@ TEST_CASE("ship_thrust")
 
 	s->SetAICommand(new NullAICommand(s));
 
+	g.TimeStep(g.GetTimeStep());
+
 	// auto ori = s->GetOrient();
 	s->SetOrient(matrix3x3d::RotateX(DEG2RAD(45.0)));
 
 	auto prop = s->GetPropulsion();
-	vector3d upVel{ 0, -200, 0 };
+	vector3d upVel{ 0, -99, 0 };
 
 	auto l = Lua::manager->GetLuaState();
 
-	g.SetTimeAccel(Game::TIMEACCEL_1X);
+	g.SetTimeAccel(Game::TIMEACCEL_10X);
+	s->SetTimeStep(g.GetTimeStep());
 
 	LuaEvent::Queue("onGameStart");
 	LuaEvent::Emit();
@@ -155,12 +158,17 @@ TEST_CASE("ship_thrust")
 		<< std::setprecision(4) << std::fixed;
 
 
-	for (int i = 0; i < 30; ++i) {
+	int end_counter = 5;
+
+	for (int i = 0; i < 600; ++i) {
 
 		//ship_thrust_there(s, upVel);
-		prop->AIMatchVel2(upVel);
+		bool res = prop->AIMatchVel(upVel);
+		std::cout << " res: " << res << " - ";
 		// prop->AIFaceDirection(upVel);
 		g.TimeStep(g.GetTimeStep());
 		ship_log(&g, s);
+		if (res) end_counter--;
+		//if (!end_counter) break;
 	}
 }
