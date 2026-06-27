@@ -962,6 +962,8 @@ void Game::EmitPauseState(bool paused)
 	LuaEvent::Emit();
 }
 
+extern Game::TimeAccel max_time_accel_for_body(Body *b);
+
 void Game::SyncToPresent()
 {
 	time_t now;
@@ -975,24 +977,25 @@ void Game::SyncToPresent()
 	double x1000  = x100 * 10;
 	double x10000 = x1000 * 10;;
 
+	auto maxTimeAccel = std::max(max_time_accel_for_body(m_player.get()), Game::TIMEACCEL_100X);
+	TimeAccel wantTimeAccel;
+
 	if (delta < -15 || delta > 15 || GetTimeAccel() != Game::TIMEACCEL_1X) {
 		double hsq = m_player->GetPosition().LengthSqr();
 		if (delta < -x10 * 3) {
-			RequestTimeAccel(Game::TIMEACCEL_PAUSED, true);
+			wantTimeAccel = Game::TIMEACCEL_PAUSED;
 		} else if (delta < x10 * 3) {
-			RequestTimeAccel(Game::TIMEACCEL_1X, true);
+			wantTimeAccel = Game::TIMEACCEL_1X;
 		} else if (delta < x100 * 3) {
-			RequestTimeAccel(Game::TIMEACCEL_10X, true);
+			wantTimeAccel = Game::TIMEACCEL_10X;
 		} else if (delta < x1000 * 3) {
-			RequestTimeAccel(Game::TIMEACCEL_100X, true);
+			wantTimeAccel = Game::TIMEACCEL_100X;
 		} else if (delta < x10000 * 3) {
-			RequestTimeAccel(Game::TIMEACCEL_1000X, true);
+			wantTimeAccel = Game::TIMEACCEL_1000X;
 		} else {
-			if (IsHyperspace() || hsq > 10'000'000.0 * 10'000'000.0 || m_player->GetFlightState() != Ship::FLYING) {
-				RequestTimeAccel(Game::TIMEACCEL_10000X, true);
-			} else {
-				RequestTimeAccel(Game::TIMEACCEL_1000X, true);
-			}
+			wantTimeAccel = Game::TIMEACCEL_10000X;
 		}
+
+		RequestTimeAccel(std::min(wantTimeAccel, maxTimeAccel));
 	}
 }
