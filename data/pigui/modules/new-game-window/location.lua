@@ -80,7 +80,7 @@ function Time:draw()
 			self.value = util.timePartsToGameTime(year, month, 1, hour, minute, 0) + 86400 * (day - 1) + second
 		end
 		local ch, checked = ui.checkbox(lui.STANDARD_GAME_START_TIME, self.value < 0)
-		if ch and (not self.lock) then
+		if ch then
 			if checked then
 				self.value = -1
 			else
