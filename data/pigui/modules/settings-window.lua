@@ -8,6 +8,7 @@ local Game = require 'Game'
 local Lang = require 'Lang'
 local Vector2 = _G.Vector2
 local bindManager = require 'bind-manager'
+local utils = require 'utils'
 
 local lc = Lang.GetResource("core")
 local lui = Lang.GetResource("ui-core")
@@ -40,6 +41,11 @@ local function combo(label, selected, items, tooltip)
 	local color = colors.buttonBlue
 	local changed, ret = 0, nil
 	ui.withStyleColors({Button=color,ButtonHovered=color:tint(0.1),ButtonActive=color:tint(0.2)},function()
+		print("LABEL", label)
+		print("SELECTED")
+		utils.print_r(selected)
+		print("ITEMS")
+		utils.print_r(items)
 		changed, ret = ui.combo(label, selected, items)
 	end)
 	if ui.isItemHovered() and tooltip then
