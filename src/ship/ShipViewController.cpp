@@ -119,7 +119,7 @@ void ShipViewController::Init()
 	int port = Pi::config->Int("HeadtrackingPort", 4242);
 
 	m_headtrackingManager.reset(new HeadtrackingManager());
-	m_headtrackingManager->Connect(headtrackingIP.c_str(), port);
+	// m_headtrackingManager->Connect(headtrackingIP.c_str(), port);
 }
 
 void ShipViewController::Activated()
