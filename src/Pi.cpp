@@ -406,9 +406,7 @@ void Pi::App::OnStartup()
 
 	QueueLifecycle(m_loader);
 
-	// Don't start the main menu if we don't have a GUI
-	if (!m_noGui)
-		QueueLifecycle(m_mainMenu);
+	QueueLifecycle(m_mainMenu);
 
 	startupTimer.Stop();
 	Output("\n\nEngine startup took %.2fms\n", startupTimer.milliseconds());

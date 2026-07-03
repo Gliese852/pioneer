@@ -597,15 +597,8 @@ void Instance::NewFrame()
 	// Erase all nullptr values in m_pendingUploads (data is present and glyphs will be uploaded directly)
 	erase_mapped_val(m_pendingUploads, nullptr);
 
-	switch (m_renderer->GetRendererType()) {
-	default:
-	case Graphics::RENDERER_DUMMY:
-		Error("RENDERER_DUMMY is not a valid renderer, aborting.");
-		return;
-	case Graphics::RENDERER_OPENGL_3x:
-		m_instanceRenderer->NewFrame();
-		break;
-	}
+	m_instanceRenderer->NewFrame();
+
 	ImGui_ImplSDL2_NewFrame();
 	ImGui::NewFrame();
 

@@ -39,6 +39,7 @@ extern "C" int main(int argc, char **argv)
 	OS::SetDPIAware();
 
 	RunMode mode = MODE_GAME;
+	bool noGui = false;
 	std::string modeopt;
 
 	if (argc > 1) {
@@ -55,8 +56,14 @@ extern "C" int main(int argc, char **argv)
 			goto start;
 		}
 
+		if (modeopt == "nogui") {
+			noGui = true;
+			goto start;
+		}
+
 		if (modeopt == "galaxydump" || modeopt == "gd") {
 			mode = MODE_GALAXYDUMP;
+			noGui = true;
 			goto start;
 		}
 
@@ -178,7 +185,7 @@ start:
 			}
 		}
 
-		Pi::Init(options, mode == MODE_GALAXYDUMP);
+		Pi::Init(options, noGui);
 
 		if (mode == MODE_GAME) {
 			if (startPath != SystemPath(0, 0, 0, 0, 0))
