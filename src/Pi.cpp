@@ -953,6 +953,10 @@ void GameLoop::Start()
 	profile_startup_ms = Clamp(Pi::config->Int("ProfileStartupMs", 0), 0, 10000);
 	startup_ticks = SDL_GetTicks();
 	SetProfilerAccumulate(profile_startup_ms > 0);
+
+	if (Pi::GetApp()->HeadlessMode()) {
+		Pi::game->RequestIdleMode(true);
+	}
 }
 
 void GameLoop::Update(float deltaTime)
