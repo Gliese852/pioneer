@@ -1387,6 +1387,15 @@ static int l_ship_cancel_ai(lua_State *l)
 	return 0;
 }
 
+static int l_ship_get_ai_status_text(lua_State *l)
+{
+	Ship *s = LuaObject<Ship>::CheckFromLua(1);
+	char buffer[256];
+	s->AIGetStatusText(buffer);
+	lua_pushstring(l, buffer);
+	return 1;
+}
+
 /*
  * Method: UpdateEquipStats
  *
@@ -1449,6 +1458,7 @@ void LuaObject<Ship>::RegisterClass()
 		{ "AIEnterMediumOrbit", l_ship_ai_enter_medium_orbit },
 		{ "AIEnterHighOrbit", l_ship_ai_enter_high_orbit },
 		{ "CancelAI", l_ship_cancel_ai },
+		{ "GetAIStatusText", l_ship_get_ai_status_text },
 
 		{ "InitiateHyperjumpTo", l_ship_initiate_hyperjump_to },
 		{ "AbortHyperjump", l_ship_abort_hyperjump },
