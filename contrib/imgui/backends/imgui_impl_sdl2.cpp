@@ -1067,6 +1067,14 @@ static void ImGui_ImplSDL2_GetWindowSizeAndFramebufferScale(SDL_Window* window, 
 {
     int w, h;
     int display_w, display_h;
+
+	// in the case of using a dummy renderer, and 'dummy' SDL backend, the window pointer is null
+	if (!window) {
+        *out_size = ImVec2(1280.f, 720.f);
+        *out_framebuffer_scale = ImVec2(1.0f, 1.0f);
+		return;
+	}
+
     SDL_GetWindowSize(window, &w, &h);
     if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED)
         w = h = 0;
