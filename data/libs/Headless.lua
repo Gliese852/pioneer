@@ -22,4 +22,12 @@ function Headless.Quit()
 	Engine.Quit()
 end
 
+function Headless.Perf()
+	return Engine.GetPerfString()
+end
+
+function Headless.Profile()
+	return Engine.RequestProfileFrame()
+end
+
 return Headless
