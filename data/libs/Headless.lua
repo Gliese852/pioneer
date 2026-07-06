@@ -10,7 +10,12 @@ function Headless.StartGame()
 	shipType = 'pumpkinseed'
 	Game.StartGame(location, startTime, shipType)
 	Game.SetRealtimeMode(true)
-	return "COOL?"
+end
+
+function Headless.LoadGame(filename)
+	local Game = require 'Game'
+	Game.LoadGame(filename)
+	Game.SetRealtimeMode(true)
 end
 
 function Headless.EndGame()
@@ -28,6 +33,22 @@ end
 
 function Headless.Profile()
 	return Engine.RequestProfileFrame()
+end
+
+function Headless.Status()
+	local Game = require 'Game'
+
+	local year, month, day, hour, minute, second = Game.GetDateTime()
+	local time = string.format("%04i-%02i-%02i - %02i:%02i:%02i", year, month, day, hour, minute, second)
+
+	local s = "TIME: " .. time .. " PERF: " .. Headless.Perf()
+	s = s .. "\nAI: " .. Game.player:GetAIStatusText()
+
+	return s
+end
+
+function Headless.Reload()
+	return package.reimport('Headless')
 end
 
 return Headless
