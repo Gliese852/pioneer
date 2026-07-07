@@ -19,6 +19,7 @@ namespace Input {
 
 namespace PiGui {
 	class Instance;
+	class PerfInfo;
 } //namespace PiGui
 
 class Game;
@@ -209,6 +210,7 @@ public:
 
 	static DetailLevel detail;
 	static GameConfig *config;
+	static std::unique_ptr<PiGui::PerfInfo> perfInfoDisplay;
 
 	static JobQueue *GetAsyncJobQueue() { return GetApp()->GetAsyncJobQueue(); }
 	static JobQueue *GetSyncJobQueue() { return GetApp()->GetSyncJobQueue(); }

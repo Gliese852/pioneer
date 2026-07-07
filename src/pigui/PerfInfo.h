@@ -56,6 +56,7 @@ namespace PiGui {
 
 		void SetShowDebugInfo(bool open);
 		void SetUpdatePause(bool pause);
+		CounterInfo &GetCounter(CounterType ct);
 
 	private:
 		void DrawPerfWindow();
@@ -71,7 +72,6 @@ namespace PiGui {
 		void DrawStatList(const Perf::Stats::FrameInfo &fi);
 
 		void DrawCounter(CounterInfo &counter, const char *label, float min, float max, float height, bool drawStats = false);
-		CounterInfo &GetCounter(CounterType ct);
 
 		// Per-frame counters
 		CounterInfo m_fpsCounter;

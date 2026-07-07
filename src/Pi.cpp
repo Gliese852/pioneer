@@ -182,7 +182,7 @@ protected:
 // FIXME: this is a hack, this class should have its lifecycle managed elsewhere
 // Ideally an application framework class handles this (as well as the rest of the main loop)
 // but for now this is the best we have.
-std::unique_ptr<PiGui::PerfInfo> perfInfoDisplay;
+std::unique_ptr<PiGui::PerfInfo> Pi::perfInfoDisplay;
 
 class MainMenu : public Application::Lifecycle {
 public:
@@ -609,7 +609,7 @@ void StartupScreen::Start()
 
 		Pi::planner = new TransferPlanner();
 
-		perfInfoDisplay.reset(new PiGui::PerfInfo());
+		Pi::perfInfoDisplay.reset(new PiGui::PerfInfo());
 	});
 }
 
@@ -688,8 +688,8 @@ void MainMenu::Start()
 	// for some models
 	Pi::renderer->SetAmbientColor(Color(51, 51, 51, 255));
 
-	perfInfoDisplay->ClearCounter(PiGui::PerfInfo::COUNTER_PHYS);
-	perfInfoDisplay->ClearCounter(PiGui::PerfInfo::COUNTER_PIGUI);
+	Pi::perfInfoDisplay->ClearCounter(PiGui::PerfInfo::COUNTER_PHYS);
+	Pi::perfInfoDisplay->ClearCounter(PiGui::PerfInfo::COUNTER_PIGUI);
 
 	LuaEvent::Queue("onEnterMainMenu");
 }
@@ -709,11 +709,11 @@ void MainMenu::Update(float deltaTime)
 	PiGui::EmitEvents();
 	PiGui::RunHandler(deltaTime, "mainMenu");
 
-	perfInfoDisplay->Update(deltaTime);
+	Pi::perfInfoDisplay->Update(deltaTime);
 
 	if (Pi::showDebugInfo) {
 		Pi::pigui->SetDebugStyle();
-		perfInfoDisplay->Draw();
+		Pi::perfInfoDisplay->Draw();
 		Pi::pigui->SetNormalStyle();
 	}
 
@@ -1087,7 +1087,7 @@ void GameLoop::Update(float deltaTime)
 	// Render this even when we're dead.
 	if (Pi::showDebugInfo) {
 		Pi::pigui->SetDebugStyle();
-		perfInfoDisplay->Draw();
+		Pi::perfInfoDisplay->Draw();
 		Pi::pigui->SetNormalStyle();
 	}
 
@@ -1111,9 +1111,9 @@ void GameLoop::Update(float deltaTime)
 
 	Pi::GetMusicPlayer().Update();
 
-	perfInfoDisplay->Update(deltaTime);
-	perfInfoDisplay->UpdateCounter(PiGui::PerfInfo::COUNTER_PHYS, phys_time);
-	perfInfoDisplay->UpdateCounter(PiGui::PerfInfo::COUNTER_PIGUI, pigui_time);
+	Pi::perfInfoDisplay->Update(deltaTime);
+	Pi::perfInfoDisplay->UpdateCounter(PiGui::PerfInfo::COUNTER_PHYS, phys_time);
+	Pi::perfInfoDisplay->UpdateCounter(PiGui::PerfInfo::COUNTER_PIGUI, pigui_time);
 
 	// XXX: profile game startup
 	if (GetProfilerAccumulate() && (SDL_GetTicks() - startup_ticks) >= profile_startup_ms) {
@@ -1122,7 +1122,7 @@ void GameLoop::Update(float deltaTime)
 	}
 
 	if (Pi::showDebugInfo && SDL_GetTicks() - last_stats >= 1000) {
-		perfInfoDisplay->UpdateFrameInfo(frame_stat, phys_stat);
+		Pi::perfInfoDisplay->UpdateFrameInfo(frame_stat, phys_stat);
 		frame_stat = 0;
 		phys_stat = 0;
 		if (SDL_GetTicks() - last_stats > 1200)
