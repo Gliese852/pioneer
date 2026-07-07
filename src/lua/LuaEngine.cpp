@@ -30,6 +30,7 @@
 #include "sound/Sound.h"
 #include "sound/SoundMusic.h"
 #include "utils.h"
+#include "pigui/PerfInfo.h"
 
 #include <SDL_timer.h>
 /*
@@ -715,6 +716,33 @@ static int l_engine_set_music_volume(lua_State *l)
 	return 0;
 }
 
+static int l_engine_get_perf_stat(lua_State *l)
+{
+	LuaTable result(l);
+	std::vector<std::pair<PiGui::PerfInfo::CounterType, const char*>> counters{
+		{ PiGui::PerfInfo::COUNTER_FPS,     "fps" },
+		{ PiGui::PerfInfo::COUNTER_PHYS,    "phys" },
+		{ PiGui::PerfInfo::COUNTER_PIGUI,   "pigui" },
+		{ PiGui::PerfInfo::COUNTER_PROCMEM, "procmem" },
+		{ PiGui::PerfInfo::COUNTER_LUAMEM,  "luamem" }
+	};
+
+	for (auto counter : counters) {
+		LuaTable counterTable(l);
+		auto counterData = Pi::perfInfoDisplay->GetCounter(counter.first);
+		counterTable.Set("average", counterData.average);
+		counterTable.Set("recent", counterData.recent);
+		counterTable.Set("min", counterData.min);
+		counterTable.Set("max", counterData.max);
+		counterTable.Set("name", counterData.name);
+		counterTable.Set("unit", counterData.unit);
+		result.Set(counter.second, counterTable);
+	};
+
+	LuaPush(l, result);
+	return 1;
+}
+
 static int l_engine_get_gpu_jobs_enabled(lua_State *l)
 {
 	lua_pushboolean(l, Pi::config->Int("EnableGPUJobs") != 0);
@@ -1060,6 +1088,8 @@ void LuaEngine::Register()
 		{ "SetMusicMuted", l_engine_set_music_muted },
 		{ "GetMusicVolume", l_engine_get_music_volume },
 		{ "SetMusicVolume", l_engine_set_music_volume },
+
+		{ "GetPerfStat", l_engine_get_perf_stat },
 
 		{ "CanBrowseUserFolder", l_get_can_browse_user_folders },
 		{ "OpenBrowseUserFolder", l_browse_user_folders },
