@@ -34,7 +34,8 @@ function Headless.Quit()
 end
 
 function Headless.Perf()
-	return Engine.GetPerfString()
+	local stat = Engine.GetPerfStat()
+    return string.format("fps %.1f phys %.1f %s mem %.1f %s", 1000 / stat.fps.recent, stat.phys.recent, stat.phys.unit, stat.procmem.recent, stat.procmem.unit)
 end
 
 function Headless.Profile()
@@ -75,13 +76,13 @@ function Headless.FlightData()
 	local altitude_txt, altitude_unit = ui.Format.DistanceUnit(altitude)
 
 	local estimate_txt = ui.Format.Duration(estimate(aTarget))
-	s = s .. ", AI TARGET: " .. tostring(aTarget.label) .. "\nEST: " .. estimate_txt .. " DST: " .. altitude_txt .. " " .. altitude_unit
+	s = s .. ", AI TARGET: " .. tostring(aTarget.label) .. "\nEST: " .. estimate_txt .. "  DST: " .. altitude_txt .. " " .. altitude_unit
 
 	local velocity = player:GetVelocityRelTo(aTarget)
 	local position = player:GetPositionRelTo(aTarget)
 	local approach_speed = position:dot(velocity) / position:length()
 	local speed, speed_unit = ui.Format.SpeedUnit(approach_speed)
-    s = s .. " APPROACH: " .. -speed .. " " .. speed_unit
+    s = s .. "  APPROACH: " .. -speed .. " " .. speed_unit
 
     local ShipDef = require 'ShipDef'
 	local shipDef = ShipDef[player.shipId]
