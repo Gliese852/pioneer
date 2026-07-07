@@ -77,6 +77,23 @@ function Headless.FlightData()
 	local estimate_txt = ui.Format.Duration(estimate(aTarget))
 	s = s .. ", AI TARGET: " .. tostring(aTarget.label) .. "\nEST: " .. estimate_txt .. " DST: " .. altitude_txt .. " " .. altitude_unit
 
+	local velocity = player:GetVelocityRelTo(aTarget)
+	local position = player:GetPositionRelTo(aTarget)
+	local approach_speed = position:dot(velocity) / position:length()
+	local speed, speed_unit = ui.Format.SpeedUnit(approach_speed)
+    s = s .. " APPROACH: " .. -speed .. " " .. speed_unit
+
+    local ShipDef = require 'ShipDef'
+	local shipDef = ShipDef[player.shipId]
+    local reserve = player:GetManualFuelReserve() * shipDef.fuelTankMass
+    local avail = player.fuelMassLeft - reserve
+    if avail < 0 then avail = 0 end
+
+    s = s .. "\nFUEL: " .. string.format("%.1f / %.1f / %.1f t", avail, player.fuelMassLeft, shipDef.fuelTankMass )
+
+    local thrust = player:GetThrusterState()
+    -- s = s .. " THRUST: " .. tostring(-thrust.z)
+    s = s .. " -Z THRUST: " .. string.format("%.1f %%", -thrust.z)
 
 	return s
 end
