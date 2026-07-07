@@ -673,7 +673,7 @@ utils.print_r = function(t)
 		sub_print_r(t, 2)
 	end
 
-	print(table.concat(print_str_cache, "\n"))
+	return table.concat(print_str_cache, "\n")
 end
 
 --
