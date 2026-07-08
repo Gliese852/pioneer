@@ -84,6 +84,10 @@ function Headless.FlightData()
 	local speed, speed_unit = ui.Format.SpeedUnit(approach_speed)
     s = s .. "  APPROACH: " .. -speed .. " " .. speed_unit
 
+	local brake_distance = player:GetDistanceToZeroV(velocity:length(), "forward")
+	local distance, unit = ui.Format.DistanceUnit(brake_distance)
+	s = s .. " BRA: " .. distance .. " " .. unit
+
     local ShipDef = require 'ShipDef'
 	local shipDef = ShipDef[player.shipId]
     local reserve = player:GetManualFuelReserve() * shipDef.fuelTankMass
