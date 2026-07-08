@@ -98,7 +98,7 @@ function Headless.FlightData()
 
     local thrust = player:GetThrusterState()
     -- s = s .. " THRUST: " .. tostring(-thrust.z)
-    s = s .. " -Z THRUST: " .. string.format("%.1f %%", -thrust.z)
+    s = s .. " -Z THRUST: " .. string.format("%.1f %%", -thrust.z * 100)
 
 	return s
 end
