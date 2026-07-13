@@ -53,6 +53,13 @@ local function estimate(target)
 	return estimate
 end
 
+local function dist(value)
+	local value_txt, value_unit = ui.Format.DistanceUnit(value)
+	return tostring(value_txt) .. " " .. tostring(value_unit)
+end
+
+local ftime = ui.Format.Duration
+
 function Headless.FlightData()
 	local Game = require 'Game'
 	local player = Game.player
@@ -69,24 +76,23 @@ function Headless.FlightData()
 	aTarget = Game.player:GetAutopilotTarget()
 	if not aTarget then
 		s = s .. ", NO AI TARGET";
-		return s;
+	else
+		local altitude = player:GetAltitudeRelTo(aTarget)
+		local altitude_txt, altitude_unit = ui.Format.DistanceUnit(altitude)
+
+		local estimate_txt = ui.Format.Duration(estimate(aTarget))
+		s = s .. ", AI TARGET: " .. tostring(aTarget.label) .. "\nEST: " .. estimate_txt .. "  DST: " .. altitude_txt .. " " .. altitude_unit
+
+		local velocity = player:GetVelocityRelTo(aTarget)
+		local position = player:GetPositionRelTo(aTarget)
+		local approach_speed = position:dot(velocity) / position:length()
+		local speed, speed_unit = ui.Format.SpeedUnit(approach_speed)
+		s = s .. "  APPROACH: " .. -speed .. " " .. speed_unit
+
+		local brake_distance = player:GetDistanceToZeroV(velocity:length(), "forward")
+		local distance, unit = ui.Format.DistanceUnit(brake_distance)
+		s = s .. " BRA: " .. distance .. " " .. unit
 	end
-
-	local altitude = player:GetAltitudeRelTo(aTarget)
-	local altitude_txt, altitude_unit = ui.Format.DistanceUnit(altitude)
-
-	local estimate_txt = ui.Format.Duration(estimate(aTarget))
-	s = s .. ", AI TARGET: " .. tostring(aTarget.label) .. "\nEST: " .. estimate_txt .. "  DST: " .. altitude_txt .. " " .. altitude_unit
-
-	local velocity = player:GetVelocityRelTo(aTarget)
-	local position = player:GetPositionRelTo(aTarget)
-	local approach_speed = position:dot(velocity) / position:length()
-	local speed, speed_unit = ui.Format.SpeedUnit(approach_speed)
-    s = s .. "  APPROACH: " .. -speed .. " " .. speed_unit
-
-	local brake_distance = player:GetDistanceToZeroV(velocity:length(), "forward")
-	local distance, unit = ui.Format.DistanceUnit(brake_distance)
-	s = s .. " BRA: " .. distance .. " " .. unit
 
     local ShipDef = require 'ShipDef'
 	local shipDef = ShipDef[player.shipId]
@@ -97,8 +103,17 @@ function Headless.FlightData()
     s = s .. "\nFUEL: " .. string.format("%.1f / %.1f / %.1f t", avail, player.fuelMassLeft, shipDef.fuelTankMass )
 
     local thrust = player:GetThrusterState()
-    -- s = s .. " THRUST: " .. tostring(-thrust.z)
     s = s .. " -Z THRUST: " .. string.format("%.1f %%", -thrust.z * 100)
+
+	local frame = player.frameBody
+
+	if frame then
+		local altitude = player:GetAltitudeRelTo(frame)
+		s = s .. "\nFRAME: " .. frame.label .. " ALT: " .. dist(altitude)
+	end
+
+	local o = player:GetOrbit()
+	s = s .. "\nORBIT: AP: " .. dist(o.apogeum) .. " PG: " .. dist(o.perigeum) .. " T: " .. ftime(o.period)
 
 	return s
 end
