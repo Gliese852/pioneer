@@ -354,6 +354,21 @@ static int l_ship_set_ship_name(lua_State *l)
 	return 0;
 }
 
+static int l_ship_get_orbit(lua_State *l)
+{
+	Ship *s = LuaObject<Ship>::CheckFromLua(1);
+	Orbit o = s->ComputeOrbit();
+
+	LuaTable result(l);
+	result.Set("apogeum", o.Apogeum().Length());
+	result.Set("perigeum", o.Perigeum().Length());
+	result.Set("period", o.Period());
+	result.Set("eccentricity", o.GetEccentricity());
+	result.Set("semimajoraxis", o.GetSemiMajorAxis());
+	LuaPush(l, result);
+	return 1;
+}
+
 /*
  * Method: SpawnCargo
  *
@@ -1472,6 +1487,7 @@ void LuaObject<Ship>::RegisterClass()
 
 		{ "GetVelocity", l_ship_get_velocity },
 		{ "GetPosition", l_ship_get_position },
+		{ "GetOrbit", l_ship_get_orbit },
 		{ "GetThrusterState", l_ship_get_thruster_state },
 		{ "GetThrusterAcceleration", l_ship_get_thruster_acceleration },
 
