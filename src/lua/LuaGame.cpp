@@ -602,6 +602,27 @@ static int l_game_get_hyperspace_end_time(lua_State *l)
 	return 1;
 }
 
+/*
+ * Function: GetHyperspaceSource
+ *
+ * > path = Game.GetHyperspaceSource()
+ *
+ * Return:
+ *
+ *   path - hyperspace source path, nil if you are not in hyperspace
+ */
+static int l_game_get_hyperspace_source(lua_State *l)
+{
+	// out of hyperspace we can return an obsolete or uninitialized variable
+	if (!Pi::game->IsHyperspace()) {
+		lua_pushnil(l);
+		return 1;
+	}
+
+	LuaPush(l, Pi::game->GetHyperspaceSource());
+	return 1;
+}
+
 static int l_game_set_realtime_mode(lua_State *l)
 {
 	Pi::game->SetRealtimeMode(LuaPull<bool>(l, 1, false));
@@ -721,6 +742,7 @@ void LuaGame::Register()
 		{ "GetRequestedTimeAcceleration", l_game_get_requested_time_acceleration },
 		{ "GetHyperspaceTravelledPercentage", l_game_get_hyperspace_travelled_percentage },
 		{ "GetHyperspaceEndTime", l_game_get_hyperspace_end_time },
+		{ "GetHyperspaceSource", l_game_get_hyperspace_source },
 		{ "SetRealtimeMode", l_game_set_realtime_mode },
 
 		{ "SetWorldCamType", l_game_set_world_cam_type },
