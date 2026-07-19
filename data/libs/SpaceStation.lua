@@ -892,7 +892,11 @@ Event.Register("onGameStart", function ()
 		loaded_data = nil
 	end
 
-	createSystem()
+	if Game.system then
+		createSystem()
+	else
+		return
+	end
 
 	local station = Game.player:GetDockedWith()
 
@@ -931,7 +935,7 @@ Event.Register("onShipDestroyed", function (ship, _)
 end)
 
 Event.Register("onGameEnd", function ()
-	destroySystem()
+	if Game.system then destroySystem() end
 
 	-- XXX clean up for next game
 	nextRef = 0
