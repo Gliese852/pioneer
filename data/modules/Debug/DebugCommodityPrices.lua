@@ -183,55 +183,40 @@ end
 
 
 local clicked = nil
-
+local show_price_table_size = Vector2(0, 0)
 -- Generates text of type: <name> <min price> <max price> <average price>
 local function show_price_table(commodities)
 	if not commodities then
 		return
 	end
-	local alpha_w = 1.2 * ui.calcTextSize("Industrial machines").x
-	local num_w = 1.2 * ui.calcTextSize("$100.00").x
 
-	-- HEADLINE
-	ui.text("NAME")
-	ui.sameLine(alpha_w)
-
-	ui.text("MIN")
-	ui.sameLine(alpha_w + num_w)
-
-	ui.text("MEAN")
-	ui.sameLine(alpha_w + num_w*2)
-
-	ui.text("MAX")
-	ui.sameLine(alpha_w + num_w*3)
-
-	ui.text("DIFF")
-	ui.sameLine(alpha_w + num_w*4)
-
-	ui.text("REL")
-
-	local count = 0
-	for key, val in pairs(commodities) do
-		if ui.selectable(key, key == count) then
-			print("Clicked:", key)
-			clicked = key
-		end
-		ui.sameLine(alpha_w)
-		ui.text(Format.Money(val.min))
-
-		ui.sameLine(alpha_w + num_w)
-		ui.text(Format.Money(val:mean()))
-
-		ui.sameLine(alpha_w + num_w*2)
-		ui.text(Format.Money(val.max))
-
-		ui.sameLine(alpha_w + num_w*3)
-		ui.text(Format.Money(val.max - val.min))
-
-		ui.sameLine(alpha_w + num_w*4)
-		ui.text(string.format("%.2f", 100*(val.max - val.min)/val.min) .. "%")
-		count = count + 1
+	for _, val in pairs(commodities) do
+		val.mean_value = val:mean()
+		val.diff_value = val.max - val.min
+		val.rel_value = 100 * (val.max - val.min) / val.min
 	end
+
+	ui.child("show_price_table_child", show_price_table_size, function()
+		local pos = ui.getCursorPos()
+		arrayTable.draw("show_price_table", commodities, pairs, {
+			{ name = "NAME", key = "#", string = true },
+			{ name = "MIN",  key = "min", fnc = Format.Money },
+			{ name = "MEAN", key = "mean_value", fnc = Format.Money },
+			{ name = "MAX",  key = "max", fnc = Format.Money },
+			{ name = "DIFF", key = "diff_value", fnc = Format.Money },
+			{ name = "REL",  key = "rel_value", fnc = Format.Money },
+		}, {
+			callbacks = {
+				onClick = function(row)
+					clicked = row.name
+				end,
+				isSelected = function(row)
+					return clicked == row.name
+				end
+			}
+		})
+		show_price_table_size = ui.getCursorPos() - pos
+	end)
 end
 
 local function show_system_info(min, sys, str)
