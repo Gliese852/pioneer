@@ -236,6 +236,19 @@ local function show_system_info(min, sys, str)
 	-- Economy type: capitalist
 end
 
+-- borrowed from CommodityMarketWidget
+-- what do we charge for this item if we are buying
+local function getBuyPrice(station, commodity)
+	local price = station:GetCommodityPrice(commodity)
+	return price * (1.0 + math.sign(price) * Economy.TradeFeeSplit * 0.01)
+end
+
+-- what do we get for this item if we are selling
+local function getSellPrice(station, commodity)
+    local price = station:GetCommodityPrice(commodity)
+	return price * (1.0 - math.sign(price) * Economy.TradeFeeSplit * 0.01)
+end
+
 local function station_economy(commodities, clicked, station)
 	if not clicked or not station then
 		return
@@ -249,11 +262,13 @@ local function station_economy(commodities, clicked, station)
 
 	local equilibrium_stock = Economy.GetCommodityStockEquilibrium(station:GetSystemBody(), cargo_item.name)
 
-	local price = station:GetCommodityPrice(cargo_item)
+	local buy_price = getBuyPrice(station, cargo_item)
+	local sell_price = getSellPrice(station, cargo_item)
+
 	local stock = station:GetCommodityStock(cargo_item)
 
 	ui.text("At station: " .. station.label)
-	ui.text("Local price $" .. utils.round(price, 0.01))
+	ui.text("Local price: buy $" .. utils.round(buy_price, 0.01) .. " sell $" .. utils.round(sell_price, 0.01))
 	ui.text("Local stock " .. stock)
 	ui.text("Local supply: " .. supply)
 	ui.text("Local demand: " .. demand)
