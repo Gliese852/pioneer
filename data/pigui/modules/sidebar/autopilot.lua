@@ -55,10 +55,22 @@ local function draw()
 	ui.text("AUTOPILOT TARGET:")
 	drawEstimate(aTarget)
 
+	ui.text("MANUAL LENGTH:")
+	local text = "0.1"
+	local changed = false
+	text, changed = ui.inputText("##manual_length", text, {})
+	ui.sameLine()
+	ui.text("AU")
+	local len = tonumber(text)
 
-	-- combatTarget navTarget frame
-	ui.text("ESTIMATE")
-	ui.text("ARRIVAL TIME")
+	if len then
+		local AU = 149598000000
+		local estimate = Game.player:GetDurationForDistance(len * AU, 0.0, 0.9)
+		local estimate_txt = ui.Format.Duration(estimate)
+		ui.text("EST: " .. estimate_txt)
+	else
+		ui.text("WRONG NUMBER")
+	end
 end
 
 gameView.registerSidebarModule("autopilot", {
