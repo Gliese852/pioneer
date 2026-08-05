@@ -32,12 +32,6 @@ extern "C" int main(int argc, char **argv)
 	Profiler::detect(argc, argv);
 #endif
 
-	/* SDL2 does not enable Wayland by default, but we want to prefer it
-	 * when available, over X11 */
-	SDL_setenv("SDL_VIDEODRIVER", "windows,wayland,x11", 0);
-
-	OS::SetDPIAware();
-
 	RunMode mode = MODE_GAME;
 	bool noGui = false;
 	std::string modeopt;
@@ -87,6 +81,17 @@ extern "C" int main(int argc, char **argv)
 	}
 
 start:
+
+	if (noGui) {
+		SDL_setenv("SDL_VIDEODRIVER", "dummy", 0);
+	}
+	else {
+	/* SDL2 does not enable Wayland by default, but we want to prefer it
+	 * when available, over X11 */
+		SDL_setenv("SDL_VIDEODRIVER", "windows,wayland,x11", 0);
+	}
+
+	OS::SetDPIAware();
 
 	int pos = 2;
 	long int radius = 4;
