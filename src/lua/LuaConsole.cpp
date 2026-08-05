@@ -587,6 +587,14 @@ void LuaConsole::OpenTCPDebugConnection(int portnumber)
 		Output("Error opening socket");
 		return;
 	}
+
+	// when the application is quickly restarted, the socket turns out to be
+	// busy, in the TIME-WAIT state, with this option we will still take it
+	int on = 1;
+	if (setsockopt(m_debugSocket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on))) {
+		Output("Error setting SO_REUSEADDR for socket");
+	}
+
 	struct sockaddr_in destination;
 	destination.sin_family = AF_INET;
 	destination.sin_port = htons(portnumber);
