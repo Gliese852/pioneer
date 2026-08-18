@@ -69,43 +69,6 @@ struct fmt::formatter<matrix3x3<T>>: formatter<T> {
 class TestApp {
 
 public:
-	static TestApp &instance()
-	{
-		static TestApp a;
-		if (!Pi::game) {
-			throw std::runtime_error("The application has not started or is already disabled");
-		}
-		return a;
-	}
-
-	template <typename... T>
-	void log(T&& ...args)
-	{
-		if (!enableLogging) return;
-		Log::Info(std::forward<T>(args)...);
-	}
-
-	void LogShip(Ship *s)
-	{
-		auto p = s->GetPropulsion();
-		log("vel: {:.2f}  pos: {:.2f}  thr: {:.2f}  ori: {:.2f}", s->GetVelocity(), s->GetPosition(), p->GetLinThrusterState(), s->GetOrient());
-	}
-
-	void ShutDown()
-	{
-		std::cout << "SHUTDOWN, PI::GAME is " << Pi::game << '\n';
-		if (!Pi::game) return;
-
-		delete(game);
-		Pi::game = nullptr;
-		Pi::GetApp()->Shutdown();
-		std::cout << "gona reclaim that bitch\n";
-		std::cout << "SIZE BEFORE:" << StringTable::Get()->Size() << '\n';
-		StringTable::Get()->Reclaim();
-		std::cout << "SIZE AFTER:" << StringTable::Get()->Size() << '\n';
-	}
-
-private:
 	TestApp()
 	{
 	   	SDL_setenv("SDL_VIDEODRIVER", "dummy", 1);
@@ -132,20 +95,30 @@ private:
 		// Gliese 852, binary system, frame 0 is gravpoint
 		SystemPath path{ -2, -4, -1, 0, 1 };
 		game = new Game(path, 0);
-
-		LuaEvent::Queue("onGameStart");
-		LuaEvent::Emit();
 	}
 
 	~TestApp()
 	{
-		ShutDown();
+		delete(game);
+		Pi::game = nullptr;
+		Pi::GetApp()->Shutdown();
+		StringTable::Get()->Reclaim();
 	}
 
-public:
-	Game *game;
+	template <typename... T>
+	void log(T&& ...args)
+	{
+		if (!enableLogging) return;
+		Log::Info(std::forward<T>(args)...);
+	}
 
-private:
+	void logShip(Ship *s)
+	{
+		auto p = s->GetPropulsion();
+		log("vel: {:.2f}  pos: {:.2f}  thr: {:.2f}  ori: {:.2f}", s->GetVelocity(), s->GetPosition(), p->GetLinThrusterState(), s->GetOrient());
+	}
+
+	Game *game;
 	bool enableLogging = false;
 };
 
@@ -168,78 +141,71 @@ private:
 
 TEST_CASE("simulation_tests")
 {
-	TestApp &app = TestApp::instance();
+	TestApp app;
+
+	app.game->SetTimeAccel(Game::TIMEACCEL_10X);
+
+	LuaEvent::Queue("onGameStart");
+	LuaEvent::Emit();
+
+	Ship *s = new Ship("sinonatrix");
+	REQUIRE(s);
+
+	app.game->GetSpace()->AddBody(s);
+
+	s->SetFrame(0);
+	auto fb = Frame::GetFrame(s->GetFrame());
+	// don't want to position the test ship inside something
+	REQUIRE(fb->GetSystemBody()->GetType() == SystemBody::TYPE_GRAVPOINT);
 
 	auto eps = 0.001;
 
-	SUBCASE("aimatchvel")
-	{
-		Ship *s = new Ship("sinonatrix");
-		REQUIRE(s);
+	app.log("AIMatchVel - stable direction");
 
-		app.game->GetSpace()->AddBody(s);
+	s->SetPosition({ 0, 0, 0 });
+	s->SetVelocity({ 0, 0, 0 });
 
-		s->SetFrame(0);
-		auto fb = Frame::GetFrame(s->GetFrame());
-		// don't want to position the test ship inside something
-		REQUIRE(fb->GetSystemBody()->GetType() == SystemBody::TYPE_GRAVPOINT);
+	// lower the bow of the ship by 45 degrees, so that it will have to gain
+	// speed  simultaneously with a powerful rear thruster and the weakest upper
+	s->SetOrient(matrix3x3d::RotateX(DEG2RAD(45.0)));
 
-		s->SetPosition({ 0, 0, 0 });
-		s->SetVelocity({ 0, 0, 0 });
+	// update ship stats
+	app.game->TimeStep(app.game->GetTimeStep());
 
-		// lower the bow of the ship by 45 degrees, so that it will have to gain
-		// speed  simultaneously with a powerful rear thruster and the weakest upper
-		s->SetOrient(matrix3x3d::RotateX(DEG2RAD(45.0)));
+	s->SetAICommand(new AIMatchVelCommand(s, { 0, -100, 0 }));
 
-		// update ship stats
+	auto p = s->GetPropulsion();
+
+	for (int i = 0; i < 80; ++i) {
+
+		app.logShip(s);
+
 		app.game->TimeStep(app.game->GetTimeStep());
 
-		s->SetAICommand(new AIMatchVelCommand(s, { 0, -100, 0 }));
-
-		SUBCASE("aimatchvel_stable_direction")
-		{
-			app.game->SetTimeAccel(Game::TIMEACCEL_10X);
-
-			auto p = s->GetPropulsion();
-
-			for (int i = 0; i < 80; ++i) {
-
-				app.LogShip(s);
-
-				app.game->TimeStep(app.game->GetTimeStep());
-
-				// check weak thrusters somewhere in the process
-				// if they are not fully loaded, AIMatchVel is not fully effective
-				if (i == 10) {
-					CHECK(abs(p->GetLinThrusterState().y + 1.0) < eps);
-				}
-			}
-
-			// we want to accelerate strictly in the specified direction
-			CHECK(s->GetVelocity().xz().Length() < eps);
-			CHECK(s->GetPosition().xz().Length() < eps);
-			CHECK(abs(s->GetVelocity().y + 100) < eps);
+		// check weak thrusters somewhere in the process
+		// if they are not fully loaded, AIMatchVel is not fully effective
+		if (i == 10) {
+			CHECK(abs(p->GetLinThrusterState().y + 1.0) < eps);
 		}
-
-		SUBCASE("aimatchvel_gain_speed_in_one_frame")
-		{
-			app.game->SetTimeAccel(Game::TIMEACCEL_10000X);
-
-			app.LogShip(s);
-			app.game->TimeStep(app.game->GetTimeStep());
-			app.LogShip(s);
-
-			CHECK(s->GetVelocity().xz().Length() < eps);
-			CHECK(s->GetPosition().xz().Length() < eps);
-			CHECK(abs(s->GetVelocity().y + 100) < eps);
-		}
-
-		app.game->GetSpace()->RemoveBody(s);
 	}
 
-	SUBCASE("shutdown_simulation")
-	{
-		std::cout << "SHUTTING_DOWN_SIMULATION\n";
-		app.ShutDown();
-	}
+	// we want to accelerate strictly in the specified direction
+	CHECK(s->GetVelocity().xz().Length() < eps);
+	CHECK(s->GetPosition().xz().Length() < eps);
+	CHECK(abs(s->GetVelocity().y + 100) < eps);
+
+	app.log("AIMatchVel - gain speed in one frame");
+
+	s->SetPosition({ 0, 0, 0 });
+	s->SetVelocity({ 0, 0, 0 });
+	app.game->SetTimeAccel(Game::TIMEACCEL_10000X);
+	s->SetAICommand(new AIMatchVelCommand(s, { 0, -100, 0 }));
+
+	app.logShip(s);
+	app.game->TimeStep(app.game->GetTimeStep());
+	app.logShip(s);
+
+	CHECK(s->GetVelocity().xz().Length() < eps);
+	CHECK(s->GetPosition().xz().Length() < eps);
+	CHECK(abs(s->GetVelocity().y + 100) < eps);
 }
