@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <vector>
+#include <iostream>
 
 StringName::StringName(std::string_view s, uint32_t hash) :
 	StringName()
@@ -174,13 +175,20 @@ void StringTable::Reclaim(bool force)
 {
 	uint64_t ticks = Profiler::Clock::getticks();
 	double seconds = Profiler::Clock::ms(ticks - m_lastReclaim) * 1000.0;
+	std::cout << "RECLAIM: ticks: " << ticks << " last: " << m_lastReclaim << " seconds: " << seconds << '\n';
 
 	if (seconds < 15.0 && !force)
 		return;
 
+	std::cout << "RECLAIMING THAT BITCH\n";
+
+	std::cout << "KEYS: " << keys.size() << '\n';
 	m_lastReclaim = ticks;
 	for (uint32_t idx = 0; idx < keys.size(); idx++) {
 		uint32_t probed_key = keys[idx];
+		if (probed_key) {
+			std::cout << idx << " - " << keys[idx] << " - " << values[idx]->get_ref() << '\n';
+		}
 
 		// the refcount can be decremented to zero from another thread,
 		// and it can be incremented on another thread as long as it is >0
