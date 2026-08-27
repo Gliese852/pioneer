@@ -173,68 +173,68 @@ TEST_CASE("simulation_tests")
 
 	SUBCASE("aimatchvel")
 	{
-	Ship *s = new Ship("sinonatrix");
-	REQUIRE(s);
+		Ship *s = new Ship("sinonatrix");
+		REQUIRE(s);
 
-	app.game->GetSpace()->AddBody(s);
+		app.game->GetSpace()->AddBody(s);
 
-	s->SetFrame(0);
-	auto fb = Frame::GetFrame(s->GetFrame());
-	// don't want to position the test ship inside something
-	REQUIRE(fb->GetSystemBody()->GetType() == SystemBody::TYPE_GRAVPOINT);
+		s->SetFrame(0);
+		auto fb = Frame::GetFrame(s->GetFrame());
+		// don't want to position the test ship inside something
+		REQUIRE(fb->GetSystemBody()->GetType() == SystemBody::TYPE_GRAVPOINT);
 
-	s->SetPosition({ 0, 0, 0 });
-	s->SetVelocity({ 0, 0, 0 });
+		s->SetPosition({ 0, 0, 0 });
+		s->SetVelocity({ 0, 0, 0 });
 
-	// lower the bow of the ship by 45 degrees, so that it will have to gain
-	// speed  simultaneously with a powerful rear thruster and the weakest upper
-	s->SetOrient(matrix3x3d::RotateX(DEG2RAD(45.0)));
+		// lower the bow of the ship by 45 degrees, so that it will have to gain
+		// speed  simultaneously with a powerful rear thruster and the weakest upper
+		s->SetOrient(matrix3x3d::RotateX(DEG2RAD(45.0)));
 
-	// update ship stats
-	app.game->TimeStep(app.game->GetTimeStep());
-
-	s->SetAICommand(new AIMatchVelCommand(s, { 0, -100, 0 }));
-
-	SUBCASE("aimatchvel_stable_direction")
-	{
-	app.game->SetTimeAccel(Game::TIMEACCEL_10X);
-
-	auto p = s->GetPropulsion();
-
-	for (int i = 0; i < 80; ++i) {
-
-		app.logShip(s);
-
+		// update ship stats
 		app.game->TimeStep(app.game->GetTimeStep());
 
-		// check weak thrusters somewhere in the process
-		// if they are not fully loaded, AIMatchVel is not fully effective
-		if (i == 10) {
-			CHECK(abs(p->GetLinThrusterState().y + 1.0) < eps);
+		s->SetAICommand(new AIMatchVelCommand(s, { 0, -100, 0 }));
+
+		SUBCASE("aimatchvel_stable_direction")
+		{
+			app.game->SetTimeAccel(Game::TIMEACCEL_10X);
+
+			auto p = s->GetPropulsion();
+
+			for (int i = 0; i < 80; ++i) {
+
+				app.logShip(s);
+
+				app.game->TimeStep(app.game->GetTimeStep());
+
+				// check weak thrusters somewhere in the process
+				// if they are not fully loaded, AIMatchVel is not fully effective
+				if (i == 10) {
+					CHECK(abs(p->GetLinThrusterState().y + 1.0) < eps);
+				}
+			}
+
+			// we want to accelerate strictly in the specified direction
+			CHECK(s->GetVelocity().xz().Length() < eps);
+			CHECK(s->GetPosition().xz().Length() < eps);
+			CHECK(abs(s->GetVelocity().y + 100) < eps);
 		}
-	}
 
-	// we want to accelerate strictly in the specified direction
-	CHECK(s->GetVelocity().xz().Length() < eps);
-	CHECK(s->GetPosition().xz().Length() < eps);
-	CHECK(abs(s->GetVelocity().y + 100) < eps);
-	}
+		SUBCASE("aimatchvel_gain_speed_in_one_frame")
+		{
+			app.game->SetTimeAccel(Game::TIMEACCEL_10000X);
 
-	SUBCASE("aimatchvel_gain_speed_in_one_frame")
-	{
-	app.game->SetTimeAccel(Game::TIMEACCEL_10000X);
+			app.logShip(s);
+			app.game->TimeStep(app.game->GetTimeStep());
+			app.logShip(s);
 
-	app.logShip(s);
-	app.game->TimeStep(app.game->GetTimeStep());
-	app.logShip(s);
+			CHECK(s->GetVelocity().xz().Length() < eps);
+			CHECK(s->GetPosition().xz().Length() < eps);
+			CHECK(abs(s->GetVelocity().y + 100) < eps);
+		}
 
-	CHECK(s->GetVelocity().xz().Length() < eps);
-	CHECK(s->GetPosition().xz().Length() < eps);
-	CHECK(abs(s->GetVelocity().y + 100) < eps);
-	}
-
-	app.game->GetSpace()->KillBody(s);
-	app.game->TimeStep(app.game->GetTimeStep());
+		app.game->GetSpace()->KillBody(s);
+		app.game->TimeStep(app.game->GetTimeStep());
 	}
 
 	SUBCASE("shutdown_simulation")
