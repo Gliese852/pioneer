@@ -237,6 +237,12 @@ TEST_CASE("simulation_tests")
 		app.game->TimeStep(app.game->GetTimeStep());
 	}
 
+	SUBCASE("flight_assist_in_gravity")
+	{
+		auto p = Pi::game->GetPlayer();
+		app.log("PLAYER: {}", (void*)p);
+	}
+
 	SUBCASE("shutdown_simulation")
 	{
 		app.shutDown();
