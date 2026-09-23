@@ -224,6 +224,131 @@ function Headless.Status()
 	return s
 end
 
+-- XXX hydrogen only, add military?
+function Headless.Fuel()
+
+	local Game = require 'Game'
+	local player = Game.player
+
+    local ShipDef = require 'ShipDef'
+	local shipDef = ShipDef[player.shipId]
+
+	local drive = player:GetInstalledHyperdrive()
+
+	local cargoMgr = Game.player:GetComponent('CargoManager')
+
+	local s = ""
+	-- fuel in tank
+    local reserve = player:GetManualFuelReserve() * shipDef.fuelTankMass
+    local avail = player.fuelMassLeft - reserve
+    if avail < 0 then avail = 0 end
+    s = s .. string.format("TANK: %.1f / %.1f / %.1f t", avail, player.fuelMassLeft, shipDef.fuelTankMass )
+	-- fuel in cargo
+	-- fuel in hyperdrive
+    s = s .. string.format("\nHDRIVE: %.1f / %.1f t", drive.storedFuel, drive:GetMaxFuel())
+	return s
+end
+
+local function transfer_hyperfuel_hydrogen(drive, shipDef, player, amt)
+	local fuelTankSize = shipDef.fuelTankMass
+	local fuelMassLeft = player.fuelMassLeft
+
+	-- Ensure we're not transferring more than the hyperdrive holds
+	local delta = math.clamp(amt, -drive.storedFuel, drive:GetMaxFuel() - drive.storedFuel)
+	-- Ensure we're not transferring more than the fuel tank holds
+	delta = math.clamp(delta, fuelMassLeft - fuelTankSize, fuelMassLeft)
+
+	if math.abs(delta) > 0.0001 then
+		player:SetFuelPercent((fuelMassLeft - delta) * 100 / fuelTankSize)
+		drive:SetFuel(player, drive.storedFuel + delta)
+	end
+end
+
+-- XXX doing one function yet TANK -> HDRIVE
+function Headless.TransferFuel()
+
+	local s = ""
+
+	local Game = require 'Game'
+	local player = Game.player
+
+    local ShipDef = require 'ShipDef'
+	local shipDef = ShipDef[player.shipId]
+
+	local drive = player:GetInstalledHyperdrive()
+
+    local reserve = player:GetManualFuelReserve() * shipDef.fuelTankMass
+    local avail = player.fuelMassLeft - reserve
+    if avail < 0 then avail = 0 end
+
+    local needed = drive:GetMaxFuel() - drive.storedFuel
+    s = s .. string.format("NEEDED: %.1f t", needed)
+
+	if needed > 0 then
+		s = s .. "\ntransfering..."
+		transfer_hyperfuel_hydrogen(drive, shipDef, player, needed)
+	end
+
+	s = s .. "\n" .. Headless.Fuel()
+
+	return s
+end
+
+function Headless.Ports()
+	local Space = require 'Space'
+	local Game = require 'Game'
+	local player = Game.player
+
+	local s = ""
+	local sep = ""
+
+	local ports = Space.GetBodies("SpaceStation")
+	if #ports == 0 then return "no ports" end
+
+	for _,port in ipairs(ports) do
+		local distance = player:DistanceTo(port)
+		local value_txt, value_unit = ui.Format.DistanceUnit(distance)
+		local portGravity = port.type == "STARPORT_SURFACE" and port.path:GetSystemBody().parent.gravity/9.8 or 0
+		s = s .. sep .. tostring(port.type == "STARPORT_SURFACE" and "SF" or "SP")
+		s = s .. " " .. tostring(port.label) .. " - " .. tostring(value_txt) .. " " .. tostring(value_unit)
+		s = s .. " " .. tostring(port.numDocks - port.numShipsDocked) .. "/" .. tostring(port.numDocks)
+		s = s .. string.format(" grav: %.2f", portGravity)
+		sep = '\n'
+	end
+	return s
+end
+
+function Headless.Dock(port_name)
+
+	local Game = require 'Game'
+	local player = Game.player
+
+	local Space = require 'Space'
+	local ports = Space.GetBodies("SpaceStation")
+	if #ports == 0 then return "no ports" end
+
+	local target
+
+	for _,port in ipairs(ports) do
+		if port.label == port_name then
+			target = port
+			break
+		end
+	end
+
+	if not target then return "can't find port '" .. port_name .. "'" end
+
+	local autoPilotLevel = player["autopilot_cap"] or 0
+
+	if autoPilotLevel >= 1 then
+		player:SetFlightControlState("CONTROL_AUTOPILOT")
+		player:AIDockWith(target)
+		player:SetNavTarget(target)
+	else
+		return "no autopilot"
+	end
+end
+
 function Headless.Reload()
 	return package.reimport('Headless')
 end
