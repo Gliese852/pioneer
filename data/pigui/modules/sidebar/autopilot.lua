@@ -36,6 +36,8 @@ local function drawEstimate(target)
 	ui.text("EST: " .. estimate_txt)
 end
 
+local manual_length_text = "0.1"
+
 local function draw()
 	local rTarget = reticuleTarget()
 	local aTarget = Game.player:GetAutopilotTarget()
@@ -64,12 +66,11 @@ local function draw()
 	drawEstimate(aTarget)
 
 	ui.text("MANUAL LENGTH:")
-	local text = "0.1"
 	local changed = false
-	text, changed = ui.inputText("##manual_length", text, {})
+	manual_length_text, changed = ui.inputText("##manual_length", manual_length_text, {})
 	ui.sameLine()
 	ui.text("AU")
-	local len = tonumber(text)
+	local len = tonumber(manual_length_text)
 
 	if len then
 		local AU = 149598000000
