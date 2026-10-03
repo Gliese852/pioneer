@@ -100,8 +100,6 @@ public:
 
 		Pi::game = nullptr; // Pi::App::OnShutdown asserts it
 		Pi::GetApp()->Shutdown();
-
-		StringTable::Get()->Reclaim();
 	}
 
 private:
@@ -245,6 +243,7 @@ TEST_CASE("simulation_tests")
 
 	SUBCASE("shutdown_simulation")
 	{
+		StringTable::Get()->Reclaim();
 		app.shutDown();
 	}
 }
